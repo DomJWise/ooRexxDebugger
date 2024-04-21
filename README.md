@@ -39,6 +39,6 @@ Insert the following above the TRACE ?R line:
 
 CALL LaunchDebugger parentWindowName, offsetdirection-LRUD
 
-Before the ::REQUIRES RexxDebugger.rex insert:
+Before the ::REQUIRES RexxDebugger.rex line insert:
 
 ::REQUIRES DeferRexxDebuggerLaunch.rex
