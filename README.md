@@ -32,7 +32,7 @@ At the end of the file add:
 
 ::REQUIRES RexxDebugger.rex
   
-For deferred launching with optional positioning you also need to you need to download and put
+For deferred launching with optional positioning you also need to download and put
 DeferRexxDebuggerLaunch.rex in your path and make a couple of additional source code changes:
 
 Insert the following above the TRACE ?R line:
