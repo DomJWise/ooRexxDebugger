@@ -37,7 +37,7 @@ DeferRexxDebuggerLaunch.rex in your path and make a couple of additional source 
 
 Insert the following above the TRACE ?R line:
 
-CALL LaunchDebugger [<parentWindowName>, '<offset directorion L,R,U or D>']
+CALL LaunchDebugger parentWindowName, offsetdirection-LRUD
 
 Before the ::REQUIRES RexxDebugger.rex insert:
 
