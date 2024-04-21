@@ -36,8 +36,9 @@ For deferrered launching with optional positioning you also need to you need to 
 DeferRexxDebuggerLaunch.rex in your path and make a couple of additional source code changes:
 
 Insert the following above the TRACE ?R line:
-  call LaunchDebugger [<parentWindowName>, '<offset directorion L,R,U or D>']
+
+call LaunchDebugger [<parentWindowName>, '<offset directorion L,R,U or D>']
 
 Before the ::REQUIRES RexxDebugger.rex insert:
 
-  ::REQUIRES DeferRexxDebuggerLaunch.rex
+::REQUIRES DeferRexxDebuggerLaunch.rex
