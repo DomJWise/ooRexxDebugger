@@ -24,20 +24,19 @@ TRACE statements and/or use global TRACE options to ensure single stepping and b
 To  activate the debugger you need to download and put RexxDebugger.rex somewhere in your path
 and modify your source code as follows:
 
-Before the first line of code to debug add:
+Before the first line of code to debug (if not using a global TRACE option) add:
   
-  TRACE ?R
+TRACE ?R
   
 At the end of the file add:
-
-  ::REQUIRES RexxDebugger.rex
+::REQUIRES RexxDebugger.rex
   
 For deferrered launching with optional positioning you also need to you need to download and put
 DeferRexxDebuggerLaunch.rex in your path and make a couple of additional source code changes:
 
 Insert the following above the TRACE ?R line:
 
-call LaunchDebugger [<parentWindowName>, '<offset directorion L,R,U or D>']
+CALL LaunchDebugger [<parentWindowName>, '<offset directorion L,R,U or D>']
 
 Before the ::REQUIRES RexxDebugger.rex insert:
 
