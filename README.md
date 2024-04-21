@@ -13,7 +13,7 @@ It's a bit rough around the edges (still) and pretty basic but features include:
 - Single step or run to breakpoints (*)
 - Toggling of breakpoints in an active session
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/)
-- Watch windows, for display of simple variables with drilldown into many collection types
+- Watch windows for display of simple variables and drilldown into many collection types
 - A deferred launch option enabling positioning relative to a specific window
 
 (*) Note that this is built around the interactive trace framework included with ooRexx so can only pause
