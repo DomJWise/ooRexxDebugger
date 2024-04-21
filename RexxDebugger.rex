@@ -39,7 +39,7 @@ SOFTWARE.
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.0"
+::CONSTANT VERSION "1.001"
 
 --====================================================
 ::class RexxDebugger public
@@ -79,7 +79,7 @@ debugdialog~popup("SHOWTOP")
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection nulltracer
 
 use arg windowname = "", offsetdirection = ""
 
@@ -88,6 +88,7 @@ launched = .False
 breakpoints = .Set~new
 tracedprograms = .Set~new
 manualbreak = .false
+nulltracer = .nil
 
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
@@ -165,14 +166,20 @@ if debugdialog \= .nil then debugdialog~appendtext(text, newline)
 ------------------------------------------------------
 ::method CaptureConsoleOutput 
 ------------------------------------------------------
+expose nulltracer
+use arg discardtrace
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-  ignore = .traceoutput~destination(self)
+  if discardtrace then do 
+    if \nulltracer~IsA(.NullTracer) Then nulltracer = .NullTracer~new(self)
+    ignore = .traceoutput~destination(nulltracer)
+  end
+  else  ignore = .traceoutput~destination(self)
   ignore = .output~destination(self)
   ignore = .error~destination(self)
   return .True
 END
 else do
-  self~SendDebugMessage("CAPTURE cannot be used while tracing for the debugger is active")
+  self~SendDebugMessage("CAPTURE[X] cannot be used while tracing for the debugger is active")
   return .False
 end
 
@@ -240,10 +247,15 @@ if translate(response) = 'UPDATEVARS' then do
   .debug.channel~status="getvars"
   return 'NOP'
 end  
-
-if translate(response) = 'CAPTURE' then do 
-   if self~captureconsoleoutput Then
-  return 'call SAY "Output redirected to the debugger (if the program permits this)"'
+if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do 
+   if translate(response) = 'CAPTURE' then discardtrace = .False
+   else  discardtrace = .True
+   if self~captureconsoleoutput(discardtrace) then do
+     retstr = 'call SAY "Output redirected to the debugger if the program permits this."'
+     if discardtrace = .False then retstr = retstr||'.endofline||"CAPTUREX does the same but discards trace text."'
+     else retstr = retstr||'.endofline||"All trace apart from runtime error messages will be discarded."'
+     return retstr
+   end  
 end
   
 .debug.channel~status="getprogramstatus"
@@ -532,7 +544,7 @@ end
 ::method OnHelpButton 
 ------------------------------------------------------
 expose debugger
-debugger~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE - use the Exec button to run the command.")
+debugger~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX - use the Exec button to run the command.")
 debugger~SendDebugMessage("- Buttons with the above labels execute the corresponding command.")
 debugger~SendDebugMessage("- Command history for the session can be accessed with the up/down keys.")
 debugger~SendDebugMessage("- The Vars button opens a realtime variables window.")
@@ -542,12 +554,15 @@ debugger~SendDebugMessage("- Double clicking a source row toggles a breakpoint, 
 debugger~SendDebugMessage("  Some simple hit checks are carried out but there is no detailed code analysis.")
 debugger~SendDebugMessage("  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
 debugger~SendDebugMessage("  DO statements should be hit unless they mark the start of a loop that has looped once already.")
+debugger~SendDebugMessage("  CALL statements (and what they call) may be hit, depending on what they are calling.")
 debugger~SendDebugMessage("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
-debugger~SendDebugMessage("- /**/ at the start of line causes a breakpoint to be automatically set for that line.")
+debugger~SendDebugMessage("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
+debugger~SendDebugMessage("- /**/ at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
 debugger~SendDebugMessage("- The instruction CALL SAY ... will always send output here.")
 debugger~SendDebugMessage("- So long as SAY is enabled in the target application, other output should appear there.")
-debugger~SendDebugMessage("- If the application has no output, you can try the CAPTURE command to show all output here.")
-debugger~SendDebugMessage("- The source window goes grey while the program is running and after it has finished.")
+debugger~SendDebugMessage("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
+debugger~SendDebugMessage("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
+debugger~SendDebugMessage("- The source window and watch windows go grey while the program is running and after it has finished.")
 debugger~SendDebugMessage("Happy debugging!")
 
 ------------------------------------------------------
@@ -1106,6 +1121,26 @@ use arg enablelist
 
 if enablelist & varsvalid then self~EnableControl(self~LISTVARS)
 else  self~DisableControl(self~LISTVARS)
+
+--====================================================
+::class NullTracer
+--====================================================
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose debugger
+use arg debugger
+
+return 0
+
+------------------------------------------------------
+::method LINEOUT
+------------------------------------------------------
+expose debugger
+use arg tracestring
+if tracestring~word(1)~translate='ERROR' then return debugger~lineout(tracestring)
+else return 0
 
 /*====================================================
 Routines
