@@ -22,24 +22,33 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
--- Below is the help text that will initially be added to the source list 
-.local~rexxdebugger.startuphelptext = .list~of( -
-"A TRACE ?R statement near the start of your program and", - 
-"::REQUIRES RexxDebugger.rex at the end will launch this", -
-"debugger when the program runs.", -
-"Source code will be shown when tracing is started.")
+if .local~rexxdebugger.debugger \= .nil then  return
 
--- The line below can be moved into your program or a routine to control when the debugger launches and how the
--- debug window is positioned (UDLR) relative to the (named) application window
-.local~rexxdebugger.debugger = .RexxDebugger~new(/*application window name*/, /*offset for debug window UDLR */)
--- Alternatively you can  include ::REQUIRES DeferRexxDebuggerLaunch.rex above the 
---  ::REQUIRES RexxDebugger.rex and call its LaunchRexxDebugger routine in your program  to set position
+parentwindowname = arg(1)
+offsetdirection = arg(2)
+if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
+if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
+
+-- Below is the help text List that will initially be added to the source list unless already set by the caller
+if .local~rexxdebugger.startuphelptext = .nil then do 
+  .local~rexxdebugger.startuphelptext = .list~of( -
+  "To launch the debugger include the following line:", - 
+  "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
+  "", - 
+  "Below this add the following to start debugging:", -
+  "TRACE ?R ", - 
+  "", -
+  "Source code will be shown when debugging is started.")
+end
+
+-- Kick everything off
+.local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
 
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.001"
+::CONSTANT VERSION "1.005"
 
 --====================================================
 ::class RexxDebugger public
@@ -55,7 +64,7 @@ expose debugdialog dialogthreadinitialised
 debugdialog = .nil
 dialogthreadinitialised = .False
 
-self~RunDialogThread
+self~DialogThread
 
 guard off when dialogthreadinitialised = .True --Wait for dialog to start up
 
@@ -67,7 +76,7 @@ expose dialogthreadinitialised
 dialogthreadinitialised = .True
 
 ------------------------------------------------------
-::method RunDialogThread unguarded
+::method DialogThread unguarded
 ------------------------------------------------------
 expose debugdialog
 REPLY /* Switch to a new thread */
@@ -76,13 +85,14 @@ debugdialog = .DebugDialog~new(self, .rexxdebugger.startuphelptext)
 debugdialog~popup("SHOWTOP")
 
 
+
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
 expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection nulltracer
 
 use arg windowname = "", offsetdirection = ""
-
+if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
 launched = .False
 breakpoints = .Set~new
@@ -90,10 +100,18 @@ tracedprograms = .Set~new
 manualbreak = .false
 nulltracer = .nil
 
+.local~debug.channel = .Directory~new
+.debug.channel~status="getprogramstatus"
+.debug.channel~frames=.Nil
+.debug.channel~variables=.Nil
+
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
   self~launch(windowname, offsetdirection)
 end
+
+
+ignore =  .debuginput~destination(self)
 
 ------------------------------------------------------
 ::method launch 
@@ -105,8 +123,6 @@ if launched = .true then return
 
 launched = .true
 self~CreateDialogThread
-ignore =  .debuginput~destination(self)
-
 ------------------------------------------------------
 ::method informshutdown unguarded
 ------------------------------------------------------
@@ -125,7 +141,7 @@ return shutdown
 expose breakpoints
 use arg sourcefile, sourceline
 
-breakpoints~put(sourcefile':'sourceline)
+breakpoints~put(sourcefile'>'sourceline)
 
 ------------------------------------------------------
 ::method ClearBreakPoint  unguarded
@@ -133,24 +149,23 @@ breakpoints~put(sourcefile':'sourceline)
 expose breakpoints
 use arg sourcefile, sourceline
 
-ignore = breakpoints~remove(sourcefile':'sourceline)
+ignore = breakpoints~remove(sourcefile'>'sourceline)
 
 ------------------------------------------------------
 ::method CheckBreakPoint 
 ------------------------------------------------------
 expose breakpoints
 use arg sourcefile, sourceline
-
-return breakpoints~hasindex(sourcefile':'sourceline)
+return breakpoints~hasindex(sourcefile'>'sourceline)
 
 ------------------------------------------------------
-::method GetBreakPoints 
+::method GetBreakPoints unguarded
 ------------------------------------------------------
 expose breakpoints
 use arg sourcefile 
 listBreakpoints = .List~new
 do breakpoint over breakpoints
-  if breakpoint~pos(sourcefile':') = 1 then listbreakpoints~append(breakpoint~changestr(sourcefile':', ''))
+  if breakpoint~pos(sourcefile'>') = 1 then listbreakpoints~append(breakpoint~changestr(sourcefile'>', ''))
 end
 
 return listBreakpoints
@@ -209,18 +224,13 @@ self~SendDebugMessage(text)
 return self~ReplyWithTraceCommand
 
 
-------------------------------------------------------
-::method unknown 
-------------------------------------------------------
-expose target -- will receive all of the unknown messages
-use arg name, arguments
-self~SendDebugMessage("Error: Unsupported output command "name" sent to the debugger with args: '" arguments~toString"'")
 
 ------------------------------------------------------
 ::method ReplyWithTraceCommand 
 ------------------------------------------------------
-expose debugdialog shutdown
+expose debugdialog shutdown launched
 if shutdown then return 'exit' 
+if launched = .false then return ''
 else response =self~GetAutoResponse
 if response \= "" | .debug.channel~status = "breakpointcheckgetlocation" then return response 
 
@@ -264,57 +274,44 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse 
 ------------------------------------------------------
-expose debugdialog tracedprograms manualbreak
+expose debugdialog tracedprograms manualbreak breakpoints
 
-response =  ""
-
-if .local~debug.channel = .nil then do
-  .local~debug.channel = .Directory~new
-  .debug.channel~status="getprogramstatus"
-  .debug.channel~frames=.Nil
-  .debug.channel~variables=.Nil
-  response = ''
-end
-if .debug.channel~status="breakpointcheckgetlocation" then do
-  response = '.debug.channel~status="breakpointchecklocationis ".context~line' '.context~package~name'
-  .debug.channel~status = "breakpointchecklocationis"
-end  
-else if .debug.channel~status~word(1)="breakpointchecklocationis" then do
-  parse value .debug.channel~status with ignore linenumber sourcefile -- Is this a breakpoint ?
-  if self~CheckBreakpoint(sourcefile, linenumber) then do  
-    response = 'NOP'
-    .debug.channel~status="getprogramstatus"
- end
- else if \tracedprograms~hasitem(sourcefile) then do -- Is this a new program which traces ?
-    tracedprograms~put(sourcefile)
-    response = 'NOP'
-    .debug.channel~status="getprogramstatus"
+status = .debug.channel~status
+if status="breakpointcheckgetlocation" then return '.debug.channel~status="breakpointchecklocationis ".context~package~name">".context~line'
+else if status~pos("breakpointchecklocationis") = 1 then do
+  parse value status with ignore breakpoint -- Is this a breakpoint ?
+  if breakpoints~hasindex(breakpoint) then do  
+    return '.debug.channel~status="getprogramstatus"'
+  end
+  else if \tracedprograms~hasitem(breakpoint~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
+    tracedprograms~put(breakpoint~makearray('>')[1])
+    return '.debug.channel~status="getprogramstatus"'
   end
   else if manualbreak then do -- Was a break issued from the dialog? 
-   manualbreak = .false
-   response = 'NOP'
-    .debug.channel~status="getprogramstatus"
+    CALL SAY 'Automatic breakpoint hit.'
+    manualbreak = .false
+    return '.debug.channel~status="getprogramstatus"'
   end
   else do       
     .debug.channel~status = "breakpointcheckgetlocation"
     return ''
   end  
 end  
-else if .debug.channel~status~word(1)="getprogramstatus" then do
-  instructions = .debug.channel~status~delword(1,1)~strip
+else if status~word(1)="getprogramstatus" then do
+  instructions = status~delword(1,1)~strip
   if instructions \= '' then do 
-     response = instructions
     .debug.channel~frames= .nil
     .debug.channel~variables= .nil
     .debug.channel~status="getprogramstatus"
+     return instructions
   end
   else do  
-    response = response||'.debug.channel~frames = .context~StackFrames~section(2); .debug.channel~variables=.context~variables;  .debug.channel~status="programstatusupdated"'
     .debug.channel~frames= .nil
     .debug.channel~variables= .nil
+    return '.debug.channel~frames = .context~StackFrames~section(2); .debug.channel~variables=.context~variables;  .debug.channel~status="programstatusupdated"'
   end  
 end      
-else if .debug.channel~status="programstatusupdated" then do
+else if status="programstatusupdated" then do
   if .debug.channel~frames \=.nil then do
     tracedprograms~put(.debug.channel~frames~firstitem~executable~package~name)
     debugDialog~UpdateCodeView(.debug.channel~frames, 1)
@@ -323,27 +320,35 @@ else if .debug.channel~status="programstatusupdated" then do
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
   .debug.channel~status=""
-  response = ''
+  return ''
 end
-else if .debug.channel~status="getvars" then do
+else if status="getvars" then do
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
-  response = response||'.debug.channel~variables=.context~variables;  .debug.channel~status="gotvars"'
+  return '.debug.channel~variables=.context~variables;  .debug.channel~status="gotvars"'
 end      
-else if .debug.channel~status="gotvars" then do
+else if status="gotvars" then do
   if .debug.channel~variables \=.nil then debugDialog~UpdateWatchWindows(.debug.channel~variables)
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
   .debug.channel~status=""
-  response = 'NOP'
+  return '.debug.channel~status=""'
 end
-return response
+return ''
 
 ------------------------------------------------------
 ::method SetManualBreak
 ------------------------------------------------------
 expose manualbreak
-manualbreak = .True
+use arg manualbreak
+
+------------------------------------------------------
+::method GetManualBreak
+------------------------------------------------------
+expose manualbreak
+
+return manualbreak
+
 
 --====================================================
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin
@@ -520,10 +525,16 @@ if waiting then do
   self~HereIsResponse('RUN')
   controls[self~BUTTONRUN]~settext("B&reak")
 end
-else do
-  debugger~SetManualBreak
+else if \debugger~GetManualBreak then do
+  debugger~SetManualBreak(.True)
+  controls[self~BUTTONRUN]~settext("&Run")
+   call SAY 'Automatic breakpoint set for the next line of traceable code.'
 end
-
+else do
+  debugger~SetManualBreak(.False)
+  call SAY 'Automatic breakpoint removed. Program will run normally.'
+  controls[self~BUTTONRUN]~settext("B&reak")
+end   
 ------------------------------------------------------
 ::method OnExitButton 
 ------------------------------------------------------
@@ -755,7 +766,7 @@ if \debugger~isshutdown then do
 end
 
 ------------------------------------------------------
-::method SetListSource 
+::method SetListSource
 ------------------------------------------------------
 expose controls hfnt debugger loadedsources checkedsources
 use arg sourcefile 
@@ -1156,7 +1167,8 @@ if .rexxdebugger.debugger~isA(.RexxDebugger) then .rexxdebugger.debugger~SendDeb
 ------------------------------------------------------
 use arg constname
 constname = translate(constname)
-interpret 'val=.directory~new~~Setmethod("'constname'",.METHODS["'constname'"])~'constname
+val = ''
+if  .METHODS[constname] \= .Nil then interpret 'val=.directory~new~~Setmethod("'constname'",.METHODS["'constname'"])~'constname
 return val
 
 
