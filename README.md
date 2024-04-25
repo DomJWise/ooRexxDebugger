@@ -7,13 +7,13 @@ It is written in ooRexx (version 4.2) and uses the ooDialog framework for its us
 It's still in active development so you may well find bugs but features include:
 
 - A main window with:
--  Source code for the running program
--  Stack trace that allows switching between active source locations and files
--  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
--  A console window to display basic help information, status and (optionally) program and debugger output 
--  Single step or run to breakpoints (*)
--  Break for running code or (useful for event driven based programs) when the next line of traceable code is hit 
--  Toggling of breakpoints in an active session
+  -  Source code for the running program
+  -  Stack trace that allows switching between active source locations and files
+  -  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
+  -  A console window to display basic help information, status and (optionally) program and debugger output 
+  -  Single step or run to breakpoints (*)
+  -  Break for running code or (useful for event driven based programs) when the next line of traceable code is hit 
+  -  Toggling of breakpoints in an active session
 - Watch windows for display of simple variables and drilldown into many collection types
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/)
 
@@ -54,7 +54,7 @@ Before the first line to debug add:
 
   CALL LaunchDebugger [parentWindowName, offsetdirection-LRUD]
 
-At the end of the program add
+At the end of the program add:
 
   ::REQUIRES DeferRexxDebuggerLaunch.rex
 
