@@ -27,7 +27,7 @@ To  use the debugger RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) 
 There are various ways to control the startup depending on your requirements.
 
 Note that global TRACE options are generally a good idea if your program includes METHOD or ROUTINE
-sections so you dont want to add TRACE statements to them manually
+sections so you dont have to add TRACE statements to them manually
 
 Common  usage scenarios are as follows:
 
