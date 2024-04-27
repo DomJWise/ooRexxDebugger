@@ -48,7 +48,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.005"
+::CONSTANT VERSION "1.006"
 
 --====================================================
 ::class RexxDebugger public
@@ -864,7 +864,7 @@ self~setcurrentListIndex(self~LISTSTACK, activateindex)
 controls[self~LISTSOURCE]~hidefast
 
 --Ensure the correct source (if any) is loaded
-if arrstack[activateindex]~executable~package \= .nil then do 
+if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~executable~source~items \= 0 then do 
   thissourcename = arrstack[activateindex]~executable~package~name
   if thissourcename \= activesourcename then do
     if activesourcename \= .nil then debugger~SendDebugMessage('Switching source to 'thissourcename)
