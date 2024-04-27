@@ -48,7 +48,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.006"
+::CONSTANT VERSION "1.007"
 
 --====================================================
 ::class RexxDebugger public
@@ -510,10 +510,12 @@ expose waiting controls
 if waiting then do
   instructions = controls[self~EDITCOMMAND]~gettext~strip
   firstword = instructions~word(1)~translate
-  if "RUN EXIT HELP CAPTURE"~wordpos(instructions~word(1)~translate) \= 0 then do 
+  if "RUN EXIT HELP CAPTURE CAPTUREX"~wordpos(instructions~word(1)~translate) \= 0 then do 
     call SAY 'This command cannot be used with Next at this time'
     return
   end  
+  controls[self~BUTTONRUN]~settext("B&reak")
+  controls[self~BUTTONRUN]~redraw
   if instructions~word(1)~translate\='NEXT' then instructions = 'NEXT 'instructions
   self~HereIsResponse(instructions)
 end
@@ -522,8 +524,9 @@ end
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
-  self~HereIsResponse('RUN')
   controls[self~BUTTONRUN]~settext("B&reak")
+  controls[self~BUTTONRUN]~redraw
+  self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
@@ -1095,6 +1098,8 @@ else do
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
       controls[self~LISTVARS]~makefirstvisible(newfirstvisible)
     end  
+    else if controls[self~LISTVARS]~items \= 0 then controls[self~LISTVARS]~makefirstvisible(1)
+
   end  
   controls[self~LISTVARS]~showfast
   controls[self~LISTVARS]~redraw
