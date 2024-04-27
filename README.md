@@ -18,9 +18,7 @@ It's still in active development so you may well find bugs but features include:
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/) at the start of traceable lines.
 
 (*) Note that this is built around the interactive trace framework included with ooRexx so can only pause
-where that framework would pause. Some statements are never hit at all, other statements only once, 
-and if you have ROUTINE calls, METHOD calls or calls to external programs you may need to add additional 
-TRACE statements and/or use global TRACE options to ensure single stepping and breakpoints work as expected.
+where that framework would pause. Some statements are never hit at all, other statements only once. 
 Note also that global TRACE options are generally a good idea if your program includes METHOD or ROUTINE
 sections so you dont have to add TRACE statements to them manually. TRACE ?R is a good tracing option for 
 keeping the trace output low and minimizing the overhead of processing the trace text, though in many cases the 
