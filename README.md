@@ -2,7 +2,7 @@
 
 A basic interactive dialog based ooRexx debugger for use on Windows.
 
-It is written in ooRexx (version 4.2) and uses the ooDialog framework for its user interface.
+It is written in ooRexx with support from version 4.2 and uses the ooDialog framework for its user interface.
 
 It's still in active development so you may well find bugs but features include:
 
