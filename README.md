@@ -60,3 +60,5 @@ At the end of the program along with the TRACe otpion add:
 With this option the debugger will trace from the start of the program but wont break until the LaunchDebugger call
 
 THe Help button will send more information about the various options to the debugger console window and is worth checking out at least once, even though it's not very structured or pretty.
+
+For an interactive walkthrough of many of the features run tutorial.rex, ideally from a command prompt, and follow the instructions.
