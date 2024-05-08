@@ -24,15 +24,22 @@ SOFTWARE.
 
 if .local~rexxdebugger.debugger \= .nil then  return
 
-parentwindowname = arg(1)
-offsetdirection = arg(2)
+if \ConfigureCommandLineDebuggee(ARG(1)~strip) then do 
+  parentwindowname = arg(1)
+  offsetdirection = arg(2)
+end
+
 if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
 if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
 
 -- Below is the help text List that will initially be added to the source list unless already set by the caller
 if .local~rexxdebugger.startuphelptext = .nil then do 
   .local~rexxdebugger.startuphelptext = .list~of( -
-  "To launch the debugger include the following line:", - 
+  "Command line usage:", - 
+  "Rexxdebugger [/showtrace] <program> <argstring>", - 
+  "Rexxdebugger [/showtrace] CALL <program> [<arg1>] [..<argn>]", - 
+  "", - 
+  "To launch from Rexx source include the following line:", - 
   "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
   "", - 
   "Below this add the following to start debugging:", -
@@ -41,14 +48,21 @@ if .local~rexxdebugger.startuphelptext = .nil then do
   "Source code will be shown when debugging is started.")
 end
 
--- Kick everything off
+-- Launch debugger
 .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
+
+-- Run debuggee (if specified) with or without trace
+if .local~rexxdebugger.runroutine \= .nil then do
+  if .local~rexxdebugger.discardtrace = .True then .local~rexxdebugger.debugger~CaptureAndDiscardTrace
+  .local~rexxdebugger.runroutine~callwith(.local~rexxdebugger.runargs)
+  call say 'Debuggee has finished running.'
+end
 
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.01"
+::CONSTANT VERSION "1.021"
 
 --====================================================
 ::class RexxDebugger public
@@ -89,7 +103,7 @@ debugdialog~popup("SHOWTOP")
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection nulltracer
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugwindowtracer
 
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
@@ -98,7 +112,7 @@ launched = .False
 breakpoints = .Set~new
 tracedprograms = .Set~new
 manualbreak = .false
-nulltracer = .nil
+debugwindowtracer = .DebugWindowTracer~new(self)
 
 .local~debug.channel = .Directory~new
 .debug.channel~status="getprogramstatus"
@@ -179,16 +193,27 @@ use  arg text, newline = .true
 if debugdialog \= .nil then debugdialog~appendtext(text, newline)
 
 ------------------------------------------------------
+::method CaptureAndDiscardTrace 
+------------------------------------------------------
+expose debugwindowtracer
+IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
+  ignore = .traceoutput~destination(debugwindowtracer)
+  debugwindowtracer~SetDiscard(.True)
+  return .True
+END
+else do
+  self~SendDebugMessage("DISCARDTRACE cannot be used while tracing for the debugger is active")
+  return .False
+end
+
+------------------------------------------------------
 ::method CaptureConsoleOutput 
 ------------------------------------------------------
-expose nulltracer
+expose debugwindowtracer
 use arg discardtrace
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-  if discardtrace then do 
-    if \nulltracer~IsA(.NullTracer) Then nulltracer = .NullTracer~new(self)
-    ignore = .traceoutput~destination(nulltracer)
-  end
-  else  ignore = .traceoutput~destination(self)
+  ignore = .traceoutput~destination(debugwindowtracer)
+  debugwindowtracer~SetDiscard(discardtrace)
   ignore = .output~destination(self)
   ignore = .error~destination(self)
   return .True
@@ -258,15 +283,16 @@ if translate(response) = 'UPDATEVARS' then do
   return 'NOP'
 end  
 if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do 
-   if translate(response) = 'CAPTURE' then discardtrace = .False
-   else  discardtrace = .True
-   if self~captureconsoleoutput(discardtrace) then do
-     retstr = 'call SAY "Output redirected to the debugger if the program permits this."'
-     if discardtrace = .False then retstr = retstr||'.endofline||"CAPTUREX does the same but discards trace text."'
-     else retstr = retstr||'.endofline||"All trace apart from runtime error messages will be discarded."'
-     return retstr
-   end  
+  if translate(response) = 'CAPTURE' then discardtrace = .False
+  else  discardtrace = .True
+  if self~captureconsoleoutput(discardtrace) then do
+    retstr = 'call SAY "Output redirected to the debugger if the program permits this."'
+    if discardtrace = .False then retstr = retstr||'.endofline||"CAPTUREX does the same but discards trace text."'
+    else retstr = retstr||'.endofline||"All trace apart from runtime error messages will be discarded."'
+    return retstr
+  end  
 end
+if translate(response) = 'DISCARDTRACE', self~captureanddiscardtrace() then return 'call SAY "Trace (apart from error messages) will be discarded if the program permits console capture."'
   
 .debug.channel~status="getprogramstatus"
 return response
@@ -313,8 +339,10 @@ else if status~word(1)="getprogramstatus" then do
 end      
 else if status="programstatusupdated" then do
   if .debug.channel~frames \=.nil then do
-    tracedprograms~put(.debug.channel~frames~firstitem~executable~package~name)
-    debugDialog~UpdateCodeView(.debug.channel~frames, 1)
+    frames = .debug.channel~frames
+    if .local~rexxdebugger.runroutine \=.nil then frames = frames~section(1, frames~items-2)
+    tracedprograms~put(frames~firstitem~executable~package~name)
+    debugDialog~UpdateCodeView(frames, 1)
   end  
   if .debug.channel~variables \=.nil then debugDialog~UpdateWatchWindows(.debug.channel~variables)
   .debug.channel~frames= .nil
@@ -510,7 +538,7 @@ expose waiting controls
 if waiting then do
   instructions = controls[self~EDITCOMMAND]~gettext~strip
   firstword = instructions~word(1)~translate
-  if "RUN EXIT HELP CAPTURE CAPTUREX"~wordpos(instructions~word(1)~translate) \= 0 then do 
+  if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
     call SAY 'This command cannot be used with Next at this time'
     return
   end  
@@ -558,7 +586,7 @@ end
 ::method OnHelpButton 
 ------------------------------------------------------
 expose debugger
-debugger~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX - use the Exec button to run the command.")
+debugger~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | DISCARDTRACE - use the Exec button to run the command.")
 debugger~SendDebugMessage("- Buttons with the above labels execute the corresponding command.")
 debugger~SendDebugMessage("- Command history for the session can be accessed with the up/down keys.")
 debugger~SendDebugMessage("- The Vars button opens a realtime variables window.")
@@ -576,6 +604,7 @@ debugger~SendDebugMessage("- The instruction CALL SAY ... will always send outpu
 debugger~SendDebugMessage("- So long as SAY is enabled in the target application, other output should appear there.")
 debugger~SendDebugMessage("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
 debugger~SendDebugMessage("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
+debugger~SendDebugMessage("- DISCARDTRACE attempts to capture trace in order to discard it (apart from program errors).")
 debugger~SendDebugMessage("- The source window and watch windows go grey while the program is running and after it has finished.")
 debugger~SendDebugMessage("Happy debugging!")
 
@@ -1139,23 +1168,29 @@ if enablelist & varsvalid then self~EnableControl(self~LISTVARS)
 else  self~DisableControl(self~LISTVARS)
 
 --====================================================
-::class NullTracer
+::class DebugWindowTracer
 --====================================================
 
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger
+expose debugger discard
 use arg debugger
-
+discard = .False
 return 0
+
+------------------------------------------------------
+::method SetDiscard
+------------------------------------------------------
+expose  discard
+use arg discard
 
 ------------------------------------------------------
 ::method LINEOUT
 ------------------------------------------------------
-expose debugger
+expose debugger discard
 use arg tracestring
-if tracestring~word(1)~translate='ERROR' then return debugger~lineout(tracestring)
+if tracestring~word(1)~translate='ERROR' | \discard then return debugger~lineout(tracestring)
 else return 0
 
 /*====================================================
@@ -1175,6 +1210,66 @@ constname = translate(constname)
 val = ''
 if  .METHODS[constname] \= .Nil then interpret 'val=.directory~new~~Setmethod("'constname'",.METHODS["'constname'"])~'constname
 return val
+
+------------------------------------------------------
+::ROUTINE ConfigureCommandLineDebuggee
+------------------------------------------------------
+use arg debuggerargstring
+retval = .False
+entrypackage = .context~stackframes[.context~stackframes~items]~executable~package
+if entrypackage \= .nil, entrypackage~name = .context~package~name then do
+  if debuggerargstring~translate~word(1) = "/SHOWTRACE" then parse value debuggerargstring with . debuggerargstring
+  else .local~rexxdebugger.discardtrace = .true
+  if debuggerargstring~translate~word(1) = "CALL" then do 
+    say debuggerargstring 
+    parse value debuggerargstring with . debuggerargstring
+    multipleargs = .True
+  end
+  else multipleargs = .False
+  if debuggerargstring~left(1) \= '"' then parse value debuggerargstring with rexxfile debuggerargstring 
+  else parse value  debuggerargstring with '"' rexxfile '"' debuggerargstring
+  debuggerargstring = debuggerargstring~strip
+  if \multipleargs then runargs = .array~of(debuggerargstring)
+  else do
+    runargs = .array~new
+    do while debuggerargstring \= ''
+      if debuggerargstring~left(1) \= '"' then parse value debuggerargstring with nextarg debuggerargstring 
+      else parse value  debuggerargstring with '"' nextarg '"' debuggerargstring
+      runargs~append(nextarg~strip)
+      debuggerargstring = debuggerargstring~strip
+    end  
+  end  
+    
+  if rexxfile \= '' then do
+    retval = .True
+    strm = .stream~new(rexxfile)
+    if strm~query('EXISTS') = '' then do 
+      say 'Error: rexx file 'rexxfile ' not found.'
+      .local~rexxdebugger.deferlaunch = .true
+      return .True
+    end  
+    else do  
+      arrsource = strm~arrayin
+      strm~close
+      signal on ANY name HandleSyntaxError
+      runroutine = .routine~new(rexxfile, arrSource~~append('')~~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R'))
+      .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
+      .local~rexxdebugger.runroutine = runroutine
+      .local~rexxdebugger.runargs = runargs
+    end  
+  end
+end
+return retval
+
+HandleSyntaxError: 
+cond = .context~condition
+say .endofline||'Error: Syntax error parsing 'rexxfile' at line 'cond~POSITION||.endofline 
+say cond~POSITION~right(5)' *-* 'arrSource[cond~POSITION]||.endofline
+say 'Error 'cond~RC' : 'cond~ERRORTEXT
+say 'Error 'cond~CODE': 'cond~MESSAGE
+.local~rexxdebugger.deferlaunch = .true
+return  .True
+
 
 
 
