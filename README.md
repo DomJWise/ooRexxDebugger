@@ -1,4 +1,4 @@
-# ooRexxDebugger
+^# ooRexxDebugger
 
 A basic interactive dialog based ooRexx debugger for use on Windows.
 
@@ -7,7 +7,7 @@ It is written in ooRexx with support from version 4.2 and uses the ooDialog fram
 It's still in active development so you may well find bugs but features include:
 
 - A main window with:
-  -  Source code for the running code
+  -  Source display of the running code
   -  Stack trace that allows switching between active source locations and files
   -  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
   -  A console window to display basic help information, status and (optionally) code and debugger output 
