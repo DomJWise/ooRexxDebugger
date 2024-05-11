@@ -1,4 +1,4 @@
-^# ooRexxDebugger
+# ooRexxDebugger
 
 A basic interactive dialog based ooRexx debugger for use on Windows.
 
@@ -7,12 +7,12 @@ It is written in ooRexx with support from version 4.2 and uses the ooDialog fram
 It's still in active development so you may well find bugs but features include:
 
 - A main window with:
-  -  Source display of the running code
+  -  Source display of the code being debugged
   -  Stack trace that allows switching between active source locations and files
   -  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
   -  A console window to display basic help information, status and (optionally) code and debugger output 
   -  Single step or run to breakpoints (*)
-  -  Break for running code or (useful for event driven based code) when the next line of traceable code is hit 
+  -  Break button to interrupt running code or (useful for event driven based code) break when the next line of traceable code is hit 
   -  Toggling of breakpoints in an active session
 - Watch windows for display of simple variables and drilldown into many collection types
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/) at the start of traceable lines.
