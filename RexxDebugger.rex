@@ -75,9 +75,9 @@ The core code of the debugging library follows below
 ------------------------------------------------------
 ::method CreateDialogThread 
 ------------------------------------------------------
-expose debugdialog dialogthreadinitialised
+expose debuggerui dialogthreadinitialised
 
-debugdialog = .nil
+debuggerui = .nil
 dialogthreadinitialised = .False
 
 self~DialogThread
@@ -94,11 +94,14 @@ dialogthreadinitialised = .True
 ------------------------------------------------------
 ::method DialogThread unguarded
 ------------------------------------------------------
-expose debugdialog
-REPLY /* Switch to a new thread */
-debugdialog = .DebugDialog~new(self, .rexxdebugger.startuphelptext)
+expose debuggerui
 
-debugdialog~popup("SHOWTOP")
+REPLY /* Switch to a new thread */
+
+debuggerui = .DebuggerUI~new(self)
+
+debuggerui~RunUI
+
 
 
 
@@ -120,6 +123,9 @@ debugwindowtracer = .DebugWindowTracer~new(self)
 .debug.channel~status="getprogramstatus"
 .debug.channel~frames=.Nil
 .debug.channel~variables=.Nil
+
+-- Load the GUI library module
+call RexxDebuggerWinUI.rex
 
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
@@ -190,9 +196,9 @@ return listBreakpoints
 ------------------------------------------------------
 ::method SendDebugMessage unguarded
 ------------------------------------------------------
-expose debugdialog
+expose debuggerui
 use  arg text, newline = .true
-if debugdialog \= .nil then debugdialog~appendtext(text, newline)
+if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 
 ------------------------------------------------------
 ::method CaptureAndDiscardTrace 
@@ -255,13 +261,13 @@ return self~ReplyWithTraceCommand
 ------------------------------------------------------
 ::method ReplyWithTraceCommand 
 ------------------------------------------------------
-expose debugdialog shutdown launched
+expose debuggerui shutdown launched
 if shutdown then return 'exit' 
 if launched = .false then return ''
 else response =self~GetAutoResponse
 if response \= "" | .debug.channel~status = "breakpointcheckgetlocation" then return response 
 
-response =  debugdialog~GetNextResponse
+response =  debuggerui~GetUINextResponse
 
 if translate(response) = 'EXIT' then do
    self~informshutdown
@@ -302,7 +308,7 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse 
 ------------------------------------------------------
-expose debugdialog tracedprograms manualbreak breakpoints
+expose debuggerui tracedprograms manualbreak breakpoints
 
 status = .debug.channel~status
 if status="breakpointcheckgetlocation" then return '.debug.channel~status="breakpointchecklocationis ".context~package~name">".context~line'
@@ -344,9 +350,9 @@ else if status="programstatusupdated" then do
     frames = .debug.channel~frames
     if .local~rexxdebugger.runroutine \=.nil then frames = frames~section(1, frames~items-2)
     tracedprograms~put(frames~firstitem~executable~package~name)
-    debugDialog~UpdateCodeView(frames, 1)
+    debuggerui~UpdateUICodeView(frames, 1)
   end  
-  if .debug.channel~variables \=.nil then debugDialog~UpdateWatchWindows(.debug.channel~variables)
+  if .debug.channel~variables \=.nil then debuggerui~UpdateUIWatchWindows(.debug.channel~variables)
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
   .debug.channel~status=""
@@ -358,7 +364,7 @@ else if status="getvars" then do
   return '.debug.channel~variables=.context~variables;  .debug.channel~status="gotvars"'
 end      
 else if status="gotvars" then do
-  if .debug.channel~variables \=.nil then debugDialog~UpdateWatchWindows(.debug.channel~variables)
+  if .debug.channel~variables \=.nil then debuggerui~UpdateUIWatchWindows(.debug.channel~variables)
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
   .debug.channel~status=""
@@ -483,6 +489,5 @@ say 'Error 'cond~CODE': 'cond~MESSAGE
 .local~rexxdebugger.deferlaunch = .true
 return  .True
 
-::requires RexxDebuggerWinUI.rex
 
 --::options trace R

@@ -23,7 +23,57 @@ SOFTWARE.
 */
 
 --====================================================
-::class DebugDialog public subclass UserDialog inherit ResizingAdmin 
+::class DebuggerUI public
+--====================================================
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose debugdialog
+use arg debugger
+
+debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
+
+------------------------------------------------------
+::method RunUI
+------------------------------------------------------
+expose debugdialog
+
+debugdialog~popup("SHOWTOP")
+
+------------------------------------------------------
+::method AppendUIConsoleText unguarded
+------------------------------------------------------
+expose debugdialog
+
+use  arg text, newline = .true
+if debugdialog \= .nil then debugdialog~appendtext(text, newline)
+
+------------------------------------------------------
+::method GetUINextResponse unguarded
+------------------------------------------------------
+expose debugdialog
+
+return debugdialog~GetNextResponse
+
+------------------------------------------------------
+::method UpdateUICodeView 
+------------------------------------------------------
+expose debugdialog
+use arg arrStack, activateindex
+
+debugdialog~UpdateCodeView(arrStack, activateindex)
+
+------------------------------------------------------
+::method UpdateUIWatchWindows 
+------------------------------------------------------
+expose debugdialog
+use arg varsroot
+
+debugdialog~UpdateWatchWindows(varsroot)
+
+--====================================================
+::class DebugDialog subclass UserDialog inherit ResizingAdmin 
 --====================================================
 
 ::constant LISTSOURCE   100
@@ -813,5 +863,3 @@ else  self~DisableControl(self~LISTVARS)
 
 
 ::requires oodialog.cls
-
---::options trace R
