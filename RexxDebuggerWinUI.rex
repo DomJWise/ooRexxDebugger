@@ -447,7 +447,7 @@ if "LRUD"~pos(offsetletter) \= 0 then do
   end
 end
 
-debugger~SetDialogThreadInitialised
+debugger~FlagUIStartupComplete
 
 ------------------------------------------------------
 ::method CalculateVisibleListRows 

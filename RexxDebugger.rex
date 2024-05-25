@@ -72,27 +72,16 @@ The core code of the debugging library follows below
 ::attribute windowname unguarded
 ::attribute offsetdirection unguarded
 
-------------------------------------------------------
-::method CreateDialogThread 
-------------------------------------------------------
-expose debuggerui dialogthreadinitialised
-
-debuggerui = .nil
-dialogthreadinitialised = .False
-
-self~DialogThread
-
-guard off when dialogthreadinitialised = .True --Wait for dialog to start up
 
 ------------------------------------------------------
-::method SetDialogThreadInitialised unguarded
+::method FlagUIStartupComplete unguarded
 ------------------------------------------------------
-expose dialogthreadinitialised
+expose uistartupcomplete
 
-dialogthreadinitialised = .True
+uistartupcomplete = .True
 
 ------------------------------------------------------
-::method DialogThread unguarded
+::method StartUIThread unguarded
 ------------------------------------------------------
 expose debuggerui
 
@@ -101,8 +90,6 @@ REPLY /* Switch to a new thread */
 debuggerui = .DebuggerUI~new(self)
 
 debuggerui~RunUI
-
-
 
 
 ------------------------------------------------------
@@ -138,13 +125,20 @@ ignore =  .debuginput~destination(self)
 ------------------------------------------------------
 ::method launch 
 ------------------------------------------------------
-expose launched windowname offsetdirection
+expose launched windowname offsetdirection debuggerui uistartupcomplete
 use arg windowname = "", offsetdirection = ""
 
 if launched = .true then return
 
 launched = .true
-self~CreateDialogThread
+debuggerui = .nil
+uistartupcomplete = .False
+
+self~StartUIThread
+
+guard off when uistartupcomplete = .True --Wait for ui to start up
+
+
 ------------------------------------------------------
 ::method informshutdown unguarded
 ------------------------------------------------------
@@ -321,7 +315,7 @@ else if status~pos("breakpointchecklocationis") = 1 then do
     tracedprograms~put(breakpoint~makearray('>')[1])
     return '.debug.channel~status="getprogramstatus"'
   end
-  else if manualbreak then do -- Was a break issued from the dialog? 
+  else if manualbreak then do -- Was a break issued from the ui? 
     CALL SAY 'Automatic breakpoint hit.'
     manualbreak = .false
     return '.debug.channel~status="getprogramstatus"'
