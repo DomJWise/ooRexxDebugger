@@ -118,7 +118,7 @@ end
 ::method UpdateControlStates 
 ------------------------------------------------------
 expose waiting controls watchwindows
-do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, /*self~BUTTONRUN, */self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
+do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
   if waiting then self~EnableControl(control)
   else self~DisableControl(control)  
 end    
