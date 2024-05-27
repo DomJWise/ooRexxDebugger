@@ -1,3 +1,127 @@
+-- #!/usr/bin/env rexx
+-- The above gives errors with CRLF line  (Unix is LF). The same is true of alternatives.
+-- Using VS CODE, line endings cannot be set for individual lines, just the whole file
+-- Might need a process to rewrite i.e. install script
+-- OR supply an extra rexxdebugger file which IS LF and which calls the REX file with all parameters
+
+/* Test code */
+say 'Test run started'
+.UITest~RunUIOnThread
+--say 'Enter something to exit'
+--pull nothing
+
+::class UITest
+
+::method RunUIOnThread class
+REPLY
+say '>> Creating debugger UI object'
+ui = .DebuggerUI~new
+say '>> Launching UI'
+ui~RunUI
+say '>> UI finished'
+return
+
+/*---- Below code comes from the BSF4ooRexx 1-010_HelloWorld.rxj sample - copyright included -----*/
+
+/*
+   Purpose:  create a window with a button to close it
+
+             This version stresses Object Rexx and the wrapper class "BSF.CLS" which
+             makes Java look like if it was Object Rexx ...
+
+   Needs:    ooRexx, BSF4ooRexx
+
+   Date:    2001-04-18, 2003-01-23, 2003-05-10, 2005-06-05
+
+   Author:   Rony G. Flatscher, University of Essen, WU Wien University,
+             derived from Peter Kalender's proof-of-concept work for the "Essener Ski Seminar",
+             University of Essen (Oct 2000 to Feb 2001)
+
+
+   last change: $Revision: 920 $ $Author: orexx $ $Date: 2022-08-02 19:37:58 +0200 (Di., 02 Aug 2022) $
+
+   changed:
+            2005-12-28, added Apache license
+            2008-06-01, updated text
+            2008-07-19, rgf, added hash-bang line at the top
+            2008-08-23, ---rgf, if using BSF.CLS, then do not use BSF() directly (or
+                                remove the first three chars from its result string)
+            2009-07-05, Walter Pachl add help and correct description
+            2010-05-16, rgf, - replacing bsf.addEventListener[WithEventObject] with a Rexx event handler
+            2012-06-09, rgf, - inhibit callbacks from Java after Rexx ends (if Rexx loaded Java)
+            2016-07-26, Eva Gerger, Julian Reindorf - minor changes of comments
+
+   license:
+
+    ------------------------ Apache Version 2.0 license -------------------------
+       Copyright (C) 2001-2012 Rony G. Flatscher
+
+       Licensed under the Apache License, Version 2.0 (the "License");
+       you may not use this file except in compliance with the License.
+       You may obtain a copy of the License at
+
+           http://www.apache.org/licenses/LICENSE-2.0
+
+       Unless required by applicable law or agreed to in writing, software
+       distributed under the License is distributed on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       See the License for the specific language governing permissions and
+       limitations under the License.
+    -----------------------------------------------------------------------------
+*/
+--=============================================================================
+::CLASS "awtFrame" SUBCLASS bsf
+--=============================================================================
+::METHOD init
+  expose rexxCloseEH
+  
+  -- Create the frame
+  self~init:super('java.awt.Frame', ARG(1, 'A'))
+  
+  -- Create a Java RexxProxy for controlling the closing of the application
+  rexxCloseEH =.RexxCloseAppEventHandler~new   -- Rexx event handler
+  -- Create Java RexxProxy for the Rexx event handler
+  rpCloseEH=BsfCreateRexxProxy(rexxCloseEH, , "java.awt.event.ActionListener", -
+                                              "java.awt.event.WindowListener" )
+
+      
+  self~addWindowListener(rpCloseEH)
+
+  button = .bsf~new("java.awt.Button", 'Press Me !')
+  button~addActionListener(rpCloseEH)
+ 
+  /* create and add a Java awt button  */
+  self~~add(button) ~~pack
+  
+::METHOD WaitForExit 
+expose rexxCloseEH
+
+rexxCloseEH~waitForExit
+
+/* ------------------------------------------------------------------------ */
+/* Rexx event handler to set "close app" indicator */
+::class RexxCloseAppEventHandler
+::method init        /* constructor */
+  expose closeApp
+  closeApp  = .false   -- if set to .true, then it is safe to close the app
+
+::attribute closeApp          -- indicates whether app should be closed
+
+::method unknown              -- intercept unhandled events, do nothing
+
+::method actionPerformed      -- event method (from ActionListener)
+  expose closeApp
+  closeApp=.true              -- indicate that the app should close
+
+::method windowClosing        -- event method (from WindowListener)
+  expose closeApp
+  closeApp=.true              -- indicate that the app should close
+
+::method waitForExit          -- method blocks until attribute is set to .true
+  expose closeApp
+  guard on when closeApp=.true
+
+
 /*
 MIT License
 
@@ -22,7 +146,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-/*
 --====================================================
 ::class DebuggerUI public
 --====================================================
@@ -33,14 +156,28 @@ SOFTWARE.
 expose debugdialog
 use arg debugger
 
-debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
+--TODO: Create dialog
+--debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
+
+/* Create and build the "main" window" */
+debugdialog = .awtFrame~new('Hello World!')
 
 ------------------------------------------------------
 ::method RunUI
 ------------------------------------------------------
 expose debugdialog
 
-debugdialog~popup("SHOWTOP")
+/* Show the window */
+debugdialog~~setVisible(.true) ~~toFront
+
+/* Self explanatory */
+debugdialog~waitForExit -- wait until we are allowed to end the program
+
+/* This will close the window */
+debugdialog~dispose
+
+--TODO: Launch main dialog
+--debugdialog~popup("SHOWTOP")
 
 ------------------------------------------------------
 ::method AppendUIConsoleText unguarded
@@ -73,6 +210,7 @@ use arg varsroot
 
 debugdialog~UpdateWatchWindows(varsroot)
 
+/*
 --====================================================
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin 
 --====================================================
@@ -864,3 +1002,5 @@ else  self~DisableControl(self~LISTVARS)
 
 ::requires oodialog.cls
 */
+
+::REQUIRES BSF.CLS      -- get the Java support
