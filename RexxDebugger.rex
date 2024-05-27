@@ -95,7 +95,7 @@ debuggerui~RunUI
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugwindowtracer
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugwindowtracer uiloaded
 
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
@@ -111,24 +111,43 @@ debugwindowtracer = .DebugWindowTracer~new(self)
 .debug.channel~frames=.Nil
 .debug.channel~variables=.Nil
 
--- Load the GUI library module
-call RexxDebuggerWinUI.rex
+uiloaded = self~findandloadui()
+
+if uiloaded then ignore = .debuginput~destination(self)
+
 
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
   self~launch(windowname, offsetdirection)
 end
 
-
-ignore =  .debuginput~destination(self)
+------------------------------------------------------
+::method findandloadui 
+------------------------------------------------------
+uiloaded = .false
+if .context~package~FindClass('DebuggerUI') \= .nil then do
+  uiloaded = .true
+end  
+else if SysVersion()~translate~pos("WINDOWS") = 1 then do
+  if SysSearchPath('PATH', 'RexxDebuggerWinUI.rex') \= '' then do 
+    call RexxDebuggerWinUI.rex
+    uiloaded = .false
+  end  
+end
+return uiloaded
 
 ------------------------------------------------------
 ::method launch 
 ------------------------------------------------------
-expose launched windowname offsetdirection debuggerui uistartupcomplete
+expose launched windowname offsetdirection debuggerui uistartupcomplete uiloaded
 use arg windowname = "", offsetdirection = ""
 
 if launched = .true then return
+
+if \uiloaded then do 
+  say 'Error: No debugger front end is available to load.'
+  return
+end  
 
 launched = .true
 debuggerui = .nil
