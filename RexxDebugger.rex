@@ -131,7 +131,7 @@ end
 else if SysVersion()~translate~pos("WINDOWS") = 1 then do
   if SysSearchPath('PATH', 'RexxDebuggerWinUI.rex') \= '' then do 
     call RexxDebuggerWinUI.rex
-    uiloaded = .false
+    uiloaded = .true
   end  
 end
 return uiloaded
