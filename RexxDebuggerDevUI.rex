@@ -294,7 +294,7 @@ debugger~SendDebugMessage("  DO statements should be hit unless they mark the st
 debugger~SendDebugMessage("  CALL statements (and what they call) may be hit, depending on what they are calling.")
 debugger~SendDebugMessage("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
 debugger~SendDebugMessage("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
-debugger~SendDebugMessage("- /*<star><slash> at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
+debugger~SendDebugMessage("- <slash><star><star><slash> at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
 debugger~SendDebugMessage("- The instruction CALL SAY ... will always send output here.")
 debugger~SendDebugMessage("- So long as SAY is enabled in the target application, other output should appear there.")
 debugger~SendDebugMessage("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
@@ -501,7 +501,7 @@ use arg sourcefile
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
   do line over arrSource~allIndexes
-    if arrSource[line]~strip~left(4) = '/*<star><slash>' then debugger~SetBreakPoint(sourcefile, line)
+    if arrSource[line]~strip~left(4) = '<slash><star><star><slash>' then debugger~SetBreakPoint(sourcefile, line)
   end
   checkedsources~append(sourcefile)
   end
@@ -651,7 +651,7 @@ controls[self~LISTSOURCE]~selectindex(itemindex)
 -------------------------------------------------------
 parse arg sourceline
 sourceline  = sourceline~strip
-if sourceline~left(4) = '/*<star><slash>' then sourceline = sourceline~substr(5)
+if sourceline~left(4) = '<slash><star><star><slash>' then sourceline = sourceline~substr(5)
 if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- <slash><star>"~wordpos(sourceline~left(2)) \= 0 then return .False
 else return .True
 
