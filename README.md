@@ -26,6 +26,10 @@ CAPTUREX debugger command can be used to discard all TRACE output and speed thin
 
 To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory.
 
+******* >> Fixes in version 1.022
+
+Several scenarios in which the debuggee loses the RESULT value set by a routine or other call have been fixed
+
 ******* >> New in version 1.021 (1.02x is still under development / testing)
 
 Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via new command line options now available to RexxDebugger.rex

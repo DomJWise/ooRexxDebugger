@@ -62,7 +62,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.021"
+::CONSTANT VERSION "1.022"
 
 --====================================================
 ::class RexxDebugger public
@@ -303,20 +303,20 @@ return response
 expose debugdialog tracedprograms manualbreak breakpoints
 
 status = .debug.channel~status
-if status="breakpointcheckgetlocation" then return '.debug.channel~status="breakpointchecklocationis ".context~package~name">".context~line'
+if status="breakpointcheckgetlocation" then return '.debug.channel~result = result;.debug.channel~status="breakpointchecklocationis ".context~package~name">".context~line; result =.debug.channel~result'
 else if status~pos("breakpointchecklocationis") = 1 then do
   parse value status with ignore breakpoint -- Is this a breakpoint ?
   if breakpoints~hasindex(breakpoint) then do  
-    return '.debug.channel~status="getprogramstatus"'
+    return '.debug.channel~result = result;.debug.channel~status="getprogramstatus"; result =.debug.channel~result'
   end
   else if \tracedprograms~hasitem(breakpoint~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
     tracedprograms~put(breakpoint~makearray('>')[1])
-    return '.debug.channel~status="getprogramstatus"'
+    return '.debug.channel~result = result;.debug.channel~status="getprogramstatus"; result =.debug.channel~result'
   end
   else if manualbreak then do -- Was a break issued from the dialog? 
     CALL SAY 'Automatic breakpoint hit.'
     manualbreak = .false
-    return '.debug.channel~status="getprogramstatus"'
+    return '.debug.channel~result = result;.debug.channel~status="getprogramstatus"; result =.debug.channel~result'
   end
   else do       
     .debug.channel~status = "breakpointcheckgetlocation"
@@ -334,7 +334,7 @@ else if status~word(1)="getprogramstatus" then do
   else do  
     .debug.channel~frames= .nil
     .debug.channel~variables= .nil
-    return '.debug.channel~frames = .context~StackFrames~section(2); .debug.channel~variables=.context~variables;  .debug.channel~status="programstatusupdated"'
+    return '.debug.channel~result = result ; .debug.channel~frames = .context~StackFrames~section(2); .debug.channel~variables=.context~variables;  .debug.channel~status="programstatusupdated";  result=.debug.channel~result;'
   end  
 end      
 else if status="programstatusupdated" then do
@@ -353,17 +353,16 @@ end
 else if status="getvars" then do
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
-  return '.debug.channel~variables=.context~variables;  .debug.channel~status="gotvars"'
-end      
+  return '.debug.channel~result = result;.debug.channel~variables=.context~variables;  .debug.channel~status="gotvars"; result = .debug.channel~result ;'
+end     
 else if status="gotvars" then do
   if .debug.channel~variables \=.nil then debugDialog~UpdateWatchWindows(.debug.channel~variables)
   .debug.channel~frames= .nil
   .debug.channel~variables= .nil
   .debug.channel~status=""
-  return '.debug.channel~status=""'
+  return '.debug.channel~result = result;.debug.channel~status=""; result = .debug.channel~result; '
 end
 return ''
-
 ------------------------------------------------------
 ::method SetManualBreak
 ------------------------------------------------------
