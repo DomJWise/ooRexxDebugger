@@ -31,25 +31,28 @@ SOFTWARE.
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 use arg debugger
 
 /* Create and build the "main" window" */
 debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
 
 ------------------------------------------------------
-::method RunUI
+::method RunUI unguarded
 ------------------------------------------------------
-expose debugdialog
-
+expose debugdialog debugger
 /* Show the window */
 debugdialog~~setVisible(.true) ~~toFront
+debugdialog~repaint
+
+debugger~FlagUIStartupComplete
 
 /* Self explanatory */
+
 debugdialog~waitForExit -- wait until we are allowed to end the program
 
 /* This will close the window */
-debugdialog~dispose
+--debugdialog~dispose
 
 --TODO: Launch main dialog
 --debugdialog~popup("SHOWTOP")
@@ -60,30 +63,51 @@ debugdialog~dispose
 expose debugdialog
 
 use  arg text, newline = .true
-if debugdialog \= .nil then debugdialog~appendtext(text, newline)
+if debugdialog \= .nil then do
+  msg = .AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)
+  x = msg~result
+end  
+--debugdialog~appendtext(text, newline)
 
 ------------------------------------------------------
-::method GetUINextResponse unguarded
+::method GetUINextResponse unguarded 
+------------------------------------------------------
+expose debugdialog waiting response
+say '~~enter GetUINextResponse on thread 'SysQueryProcess(TID)
+debugdialog~SetWaiting(.true)
+ignore = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
+call syssleep 0.5
+say '~~leave GetUINextResponse'
+debugdialog~SetWaiting(.false)
+ignore = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
+call syssleep 0.5
+return ''
+------------------------------------------------------
+::method UpdateUICodeView unguarded
 ------------------------------------------------------
 expose debugdialog
-
-return debugdialog~GetNextResponse
-
-------------------------------------------------------
-::method UpdateUICodeView 
-------------------------------------------------------
-expose debugdialog
+say '~~enter UpdateUICodeView on thread 'SysQueryProcess(TID)
 use arg arrStack, activateindex
 
-debugdialog~UpdateCodeView(arrStack, activateindex)
+if debugdialog \= .nil then
+do 
+  debugdialog~debugarrstack = arrStack
+  debugdialog~debugactivateindex = activateindex
+  msg = .AwtGuiThread~runLater(debugdialog, "UpdateCodeView")
+  ignore = msg~result
+end
+--debugdialog~UpdateCodeView(arrStack, activateindex)
+say '~~leave UpdateUICodeView'
 
 ------------------------------------------------------
-::method UpdateUIWatchWindows 
+::method UpdateUIWatchWindows unguarded
 ------------------------------------------------------
 expose debugdialog
 use arg varsroot
+say '~~enter UpdateUIWatchWindows on thread 'SysQueryProcess(TID)
 
-debugdialog~UpdateWatchWindows(varsroot)
+--debugdialog~UpdateWatchWindows(varsroot)
+say '~~leave UpdateUIWatchWindows'
 
 --====================================================
 ::class DebugDialog subclass bsf
@@ -100,6 +124,8 @@ debugdialog~UpdateWatchWindows(varsroot)
 ::constant EDITCOMMAND  108
 ::constant BUTTONEXEC   109
 
+::attribute debugarrstack      unguarded
+::attribute debugactivateindex unguarded
 /*
 ------------------------------------------------------
 ::method ok  
@@ -165,13 +191,17 @@ commandnum = 0
 self~InitDialog
 
 -------------------------------------------------------
-::method WaitForExit
+::method WaitForExit unguarded
 -------------------------------------------------------
 do forever
   call syssleep 1
 end
 
-
+-------------------------------------------------------
+::method SetWaiting
+-------------------------------------------------------
+expose waiting
+use arg waiting
 /*
 ------------------------------------------------------
 ::method GetNextResponse 
@@ -181,7 +211,7 @@ expose  waiting response
 waiting = .True
 response = .Nil
 self~UpdateControlStates
-self~focusControl(self~EDITCOMMAND)
+--self~focusControl(self~EDITCOMMAND)
 guard off when waiting = .False
 returnstring = response
 self~UpdateControlStates
@@ -428,12 +458,6 @@ panellevel1lowercontrols~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
 panellevel1lowercontrols~setPreferredSize(.bsf~new("java.awt.Dimension", 0,250));
 panelmain~add(panellevel1lowercontrols,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
 	   
-week = .array~of( "Monday is the first day of the week","Tuesday is the second","Wednesday is in the middle", -
-                         "Thursday is getting exciting","Friday is is the night to go wild","Saturday is the weekend large","Sunday is the day of rest", "123456789012345678901234567890")                         
-arrjWeek = bsf.createJavaArray("String.class",  week~items)
-do i = 1 to week~items
-  arrjWeek[i] = week[i]
- end 
 listsourcemodel = .bsf~new("javax.swing.DefaultListModel")
 listsource = .bsf~new("javax.swing.JList", listsourcemodel)
 
@@ -448,7 +472,9 @@ listsourcepane~setViewportView(listsource);
 
 panelmain~add(listsourcepane, bsf.getStaticValue("java.awt.BorderLayout", "CENTER"));
 
-liststack = .bsf~new("javax.swing.JList")
+liststackmodel = .bsf~new("javax.swing.DefaultListModel")
+liststack = .bsf~new("javax.swing.JList", liststackmodel)
+
 liststack~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 liststack~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
 liststack~setFont(.bsf~new("java.awt.Font","Courier", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
@@ -588,7 +614,6 @@ if "LRUD"~pos(offsetletter) \= 0 then do
   end
 end
 */
-debugger~FlagUIStartupComplete
 
 /*
 ------------------------------------------------------
@@ -615,24 +640,33 @@ expose controls
 self~newPushButton(self~BUTTONEXEC)~click
 return 0
 
+*/
 ------------------------------------------------------
 ::Method AppendText 
 ------------------------------------------------------
 expose controls debugtext debugger
 use arg newtext, newline = .true
+say 'dialog appendtext started on thread 'SysQueryProcess(TID)
+say '^^^^^^^^^^^^^^  InAppendText '.awtGuiThread~isGuiThread
+say '~~~~~~~~~~~~~~ 'newtext, newline
 
+if newline  then newtext = newtext||.endofline
 debugtext = debugtext||newtext
-if newline  then debugtext = debugtext||.endofline
 if \debugger~isshutdown then do
-  controls[self~EDITDEBUGLOG]~hidefast
-  controls[self~EDITDEBUGLOG]~settext(debugtext)
-  scrollcharpos = debugtext~lastpos(.endofline) + .endofline~length
-  controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
-  controls[self~EDITDEBUGLOG]~showfast
-  controls[self~EDITDEBUGLOG]~ensureCaretVisibility
-  controls[self~EDITDEBUGLOG]~draw
+  --controls[self~EDITDEBUGLOG]~hidefast
+  say '++++++++++++Appending'
+  --controls[self~EDITDEBUGLOG]~setEnabled
+  --controls[self~EDITDEBUGLOG]~seteditable(.true)
+  controls[self~EDITDEBUGLOG]~append(newtext)
+  --controls[self~EDITDEBUGLOG]~seteditable(.false)
+  
+  --scrollcharpos = debugtext~lastpos(.endofline) + .endofline~length
+  --controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
+  --controls[self~EDITDEBUGLOG]~showfast
+  --controls[self~EDITDEBUGLOG]~ensureCaretVisibility
+  controls[self~EDITDEBUGLOG]~repaint
 end
-
+/*
 ------------------------------------------------------
 ::method SetListSource
 ------------------------------------------------------
@@ -699,12 +733,15 @@ else if newrow - firstvisible >= visiblelistrows - topbottomrows then do
   firstrow = newrow - (visiblelistrows - topbottomrows)
   controls[self~LISTSOURCE]~makefirstvisible(firstrow)
 end
+*/
+------------------------------------------------------
+::method UpdateCodeView unguarded
+------------------------------------------------------
+expose controls arrStack activesourcename loadedsources debugger debugarrstack debugactivateindex
+say '~~~~~~  UpdateCodeView on thread 'SysQueryProcess(TID)
 
-------------------------------------------------------
-::method UpdateCodeView 
-------------------------------------------------------
-expose controls arrStack activesourcename loadedsources debugger
-use arg arrStack, activateindex
+arrStack = debugarrstack
+activateindex = debugactivateindex
 
 -- Ensure the (available) sources are loaded
 do stackindex = 1 to arrstack~items
@@ -717,17 +754,21 @@ do stackindex = 1 to arrstack~items
 end    
 
 -- Populate the stack
-controls[self~LISTSTACK]~deleteall
+listdata = controls[self~LISTSTACK]~getModel
+listdata~clear
+
 indent = arrStack~items
-do frame over arrStack
+do frame over arrStack~allitems
   frametext = frame~makestring
   parse value frametext with pre '*-*' post
   finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
-  controls[self~LISTSTACK]~add(finaltext)
+  listdata~addelement(finaltext)
   indent = indent - 1
 end  
-self~setcurrentListIndex(self~LISTSTACK, activateindex)
+controls[self~LISTSTACK]~repaint
 
+--self~setcurrentListIndex(self~LISTSTACK, activateindex)
+/*
 -- Set to not redraw. Switched back on when selecting
 controls[self~LISTSOURCE]~hidefast
 
@@ -740,21 +781,23 @@ if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~ex
     self~SetListSource(thissourcename)
   end  
 
-  self~CalculateVisibleListRows
-  self~SetSourceListSelectedRow
+--  self~CalculateVisibleListRows
+--  self~SetSourceListSelectedRow
  
 end
 
 -- Switch drawing back on
 controls[self~LISTSOURCE]~showfast
 controls[self~LISTSOURCE]~redraw
+*/
+say '~~~~~~ Leave UpdateCodeView'
 
 ------------------------------------------------------
 ::method UpdateWatchWindows 
 ------------------------------------------------------
 expose varsroot watchwindows
 use arg varsroot
-
+/*
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
