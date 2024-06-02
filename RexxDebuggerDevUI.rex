@@ -1,125 +1,3 @@
--- #!/usr/bin/env rexx
--- The above gives errors with CRLF line  (Unix is LF). The same is true of alternatives.
--- Using VS CODE, line endings cannot be set for individual lines, just the whole file
--- Might need a process to rewrite i.e. install script
--- OR supply an extra rexxdebugger file which IS LF and which calls the REX file with all parameters
-
-/* Test code */
-say 'Test run started'
-.UITest~RunUIOnThread
---say 'Enter something to exit'
---pull nothing
-
-::class UITest
-
-::method RunUIOnThread class
-REPLY
-say '>> Creating debugger UI object'
-ui = .DebuggerUI~new
-say '>> Launching UI'
-ui~RunUI
-say '>> UI finished'
-return
-
-/*---- Below code comes from the BSF4ooRexx 1-010_HelloWorld.rxj sample - copyright included -----*/
-
-/*
-   Purpose:  create a window with a button to close it
-
-             This version stresses Object Rexx and the wrapper class "BSF.CLS" which
-             makes Java look like if it was Object Rexx ...
-
-   Needs:    ooRexx, BSF4ooRexx
-
-   Date:    2001-04-18, 2003-01-23, 2003-05-10, 2005-06-05
-
-   Author:   Rony G. Flatscher, University of Essen, WU Wien University,
-             derived from Peter Kalender's proof-of-concept work for the "Essener Ski Seminar",
-             University of Essen (Oct 2000 to Feb 2001)
-
-
-   last change: $Revision: 920 $ $Author: orexx $ $Date: 2022-08-02 19:37:58 +0200 (Di., 02 Aug 2022) $
-
-   changed:
-            2005-12-28, added Apache license
-            2008-06-01, updated text
-            2008-07-19, rgf, added hash-bang line at the top
-            2008-08-23, ---rgf, if using BSF.CLS, then do not use BSF() directly (or
-                                remove the first three chars from its result string)
-            2009-07-05, Walter Pachl add help and correct description
-            2010-05-16, rgf, - replacing bsf.addEventListener[WithEventObject] with a Rexx event handler
-            2012-06-09, rgf, - inhibit callbacks from Java after Rexx ends (if Rexx loaded Java)
-            2016-07-26, Eva Gerger, Julian Reindorf - minor changes of comments
-
-   license:
-
-    ------------------------ Apache Version 2.0 license -------------------------
-       Copyright (C) 2001-2012 Rony G. Flatscher
-
-       Licensed under the Apache License, Version 2.0 (the "License");
-       you may not use this file except in compliance with the License.
-       You may obtain a copy of the License at
-
-           http://www.apache.org/licenses/LICENSE-2.0
-
-       Unless required by applicable law or agreed to in writing, software
-       distributed under the License is distributed on an "AS IS" BASIS,
-       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-       See the License for the specific language governing permissions and
-       limitations under the License.
-    -----------------------------------------------------------------------------
-*/
---=============================================================================
-::CLASS "awtFrame" SUBCLASS bsf
---=============================================================================
-::METHOD init
-  expose rexxCloseEH
-  
-  -- Create the frame
-  self~init:super('java.awt.Frame', ARG(1, 'A'))
-  
-  -- Create a Java RexxProxy for controlling the closing of the application
-  rexxCloseEH =.RexxCloseAppEventHandler~new   -- Rexx event handler
-  -- Create Java RexxProxy for the Rexx event handler
-  rpCloseEH=BsfCreateRexxProxy(rexxCloseEH, , "java.awt.event.ActionListener", -
-                                              "java.awt.event.WindowListener" )
-
-      
-  self~addWindowListener(rpCloseEH)
-
-  button = .bsf~new("java.awt.Button", 'Press Me !')
-  button~addActionListener(rpCloseEH)
- 
-  /* create and add a Java awt button  */
-  self~~add(button) ~~pack
-  
-::METHOD WaitForExit 
-expose rexxCloseEH
-
-rexxCloseEH~waitForExit
-
-/* ------------------------------------------------------------------------ */
-/* Rexx event handler to set "close app" indicator */
-::class RexxCloseAppEventHandler
-::method init        /* constructor */
-  expose closeApp
-  closeApp  = .false   -- if set to .true, then it is safe to close the app
-
-::attribute closeApp          -- indicates whether app should be closed
-
-::method unknown              -- intercept unhandled events, do nothing
-
-::method actionPerformed      -- event method (from ActionListener)
-  expose closeApp
-  closeApp=.true              -- indicate that the app should close
-
-::method windowClosing        -- event method (from WindowListener)
-  expose closeApp
-  closeApp=.true              -- indicate that the app should close
-
-::method waitForExit          -- method blocks until attribute is set to .true
-  expose closeApp
-  guard on when closeApp=.true
 
 
 /*
@@ -156,11 +34,8 @@ SOFTWARE.
 expose debugdialog
 use arg debugger
 
---TODO: Create dialog
---debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
-
 /* Create and build the "main" window" */
-debugdialog = .awtFrame~new('Hello World!')
+debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
 
 ------------------------------------------------------
 ::method RunUI
@@ -210,9 +85,8 @@ use arg varsroot
 
 debugdialog~UpdateWatchWindows(varsroot)
 
-/*
 --====================================================
-::class DebugDialog subclass UserDialog inherit ResizingAdmin 
+::class DebugDialog subclass bsf
 --====================================================
 
 ::constant LISTSOURCE   100
@@ -226,6 +100,7 @@ debugdialog~UpdateWatchWindows(varsroot)
 ::constant EDITCOMMAND  108
 ::constant BUTTONEXEC   109
 
+/*
 ------------------------------------------------------
 ::method ok  
 ------------------------------------------------------
@@ -253,24 +128,27 @@ if close then do
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
 end
 
+*/
 ------------------------------------------------------
 ::method UpdateControlStates 
 ------------------------------------------------------
 expose waiting controls watchwindows
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  if waiting then self~EnableControl(control)
-  else self~DisableControl(control)  
+  if waiting then controls[control]~setEnabled(.true)
+  else  controls[control]~setEnabled(.false)
 end    
+/*
 if waiting & controls[self~BUTTONRUN]~gettext \= "&Run" then controls[self~BUTTONRUN]~settext("&Run")
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
 end
+*/
+
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
 expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
-use strict arg debugger, startuphelptext
-
+use arg debugger,startuphelptext
 arrstack = .nil
 activesourcename = .nil
 loadedsources = .Directory~new
@@ -280,13 +158,21 @@ checkedsources = .List~new
 waiting = .false
 controls = .Directory~new
 
-forward class (super) continue array(.nil)
-self~create(6, 15, 280, 290, "Rexx Debugger Version "||.local~rexxdebugger.version, "THICKFRAME, CENTER, MAXIMIZEBOX,MINIMIZEBOX")
-self~connectResize("onResize")
+--self~connectResize("onResize")
 
 arrcommands = .Array~new
 commandnum = 0
+self~InitDialog
 
+-------------------------------------------------------
+::method WaitForExit
+-------------------------------------------------------
+do forever
+  call syssleep 1
+end
+
+
+/*
 ------------------------------------------------------
 ::method GetNextResponse 
 ------------------------------------------------------
@@ -517,39 +403,155 @@ childready = .True
 expose watchwindows
 use arg watchwindow
 watchwindows~removeitem(watchwindow)
+*/
 
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose u controls debugtext buttonpushed debugger hfnt startuphelptext
+expose controls debugtext buttonpushed debugger hfnt startuphelptext debugger
 
-controls[self~EDITDEBUGLOG] = self~newEdit(.DebugDialog~EDITDEBUGLOG)
-controls[self~EDITDEBUGLOG]~setreadonly
-controls[self~EDITCOMMAND] = self~newEdit(.DebugDialog~EDITCOMMAND)
-controls[self~BUTTONEXEC] = self~newPushButton(self~BUTTONEXEC)
-controls[self~LISTSOURCE] = self~newListBox(self~LISTSOURCE)
-controls[self~LISTSTACK] = self~newListBox(self~LISTSTACK)
-controls[self~BUTTONRUN] = self~newPushButton(self~BUTTONRUN)
 
+-- Create the frame
+self~init:super('java.awt.Frame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
+--self~setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+self~setSize(440, 510);
+self~setMinimumSize(.bsf~new("java.awt.Dimension", 440,510));
+self~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
+self~setLocationRelativeTo(.nil);
+
+panelmain = .bsf~new("javax.swing.JPanel")
+panelmain~setBorder(.bsf~new("javax.swing.border.EmptyBorder",5,5,5,5));
+panelmain~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
+
+panellevel1lowercontrols = .bsf~new("javax.swing.JPanel")
+panellevel1lowercontrols~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
+panellevel1lowercontrols~setPreferredSize(.bsf~new("java.awt.Dimension", 0,250));
+panelmain~add(panellevel1lowercontrols,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
+	   
+week = .array~of( "Monday is the first day of the week","Tuesday is the second","Wednesday is in the middle", -
+                         "Thursday is getting exciting","Friday is is the night to go wild","Saturday is the weekend large","Sunday is the day of rest", "123456789012345678901234567890")                         
+arrjWeek = bsf.createJavaArray("String.class",  week~items)
+do i = 1 to week~items
+  arrjWeek[i] = week[i]
+ end 
+listsourcemodel = .bsf~new("javax.swing.DefaultListModel")
+listsource = .bsf~new("javax.swing.JList", listsourcemodel)
+
+listsource~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
+listsource~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
+listsource~setFont(.bsf~new("java.awt.Font","Courier", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+listsource~setFixedCellHeight(14);
+
+listsourcepane = .bsf~new("javax.swing.JScrollPane")
+listsourcepane~setPreferredSize(.bsf~new("java.awt.Dimension", 440,50));
+listsourcepane~setViewportView(listsource);
+
+panelmain~add(listsourcepane, bsf.getStaticValue("java.awt.BorderLayout", "CENTER"));
+
+liststack = .bsf~new("javax.swing.JList")
+liststack~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
+liststack~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
+liststack~setFont(.bsf~new("java.awt.Font","Courier", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+liststack~setFixedCellHeight(14);
+
+liststackpane = .bsf~new("javax.swing.JScrollPane")
+liststackpane~setPreferredSize(.bsf~new("java.awt.Dimension", 440,50));
+liststackpane~setViewportView(liststack);
+
+panellevel1lowercontrols~add(liststackpane,bsf.getStaticValue("java.awt.BorderLayout", "NORTH"));
+
+	
+panelllevel2forbuttons = .bsf~new("javax.swing.JPanel")
+panelllevel2forbuttons~setPreferredSize(.bsf~new("java.awt.Dimension", 50, 0));
+panelllevel2forbuttons~setLayout(.nil);
+
+buttonnext = .bsf~new("javax.swing.JButton", "Next");
+buttonnext~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_N"));
+buttonnext~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonnext~setBounds(0,0, 50,22);
+panelllevel2forbuttons~add(buttonnext);
+
+buttonrun = .bsf~new("javax.swing.JButton", "Run");
+buttonrun~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_R"));
+buttonrun~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonrun~setBounds(0,27, 50,22);
+panelllevel2forbuttons~add(buttonrun);
+
+buttonexit = .bsf~new("javax.swing.JButton", "Exit");
+buttonexit~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_X"));
+buttonexit~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonexit~setBounds(0,54, 50,22);
+panelllevel2forbuttons~add(buttonexit);
+
+buttonvars = .bsf~new("javax.swing.JButton", "Vars");
+buttonvars~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_V"));
+buttonvars~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonvars~setBounds(0,81, 50,22);
+panelllevel2forbuttons~add(buttonvars);
+
+buttonhelp = .bsf~new("javax.swing.JButton", "Help");
+buttonhelp~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_H"));
+buttonhelp~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonhelp~setBounds(0,108, 50,22);
+panelllevel2forbuttons~add(buttonhelp);
+
+buttonexec = .bsf~new("javax.swing.JButton", "Exec");
+buttonexec~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_E"));
+buttonexec~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonexec~setBounds(0,173, 50,22);
+panelllevel2forbuttons~add(buttonexec);
+
+panellevel1lowercontrols~add(panelllevel2forbuttons,bsf.getStaticValue("java.awt.BorderLayout", "EAST"));
+
+panellevel2entryfields = .bsf~new("javax.swing.JPanel")
+panellevel2entryfields~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
+
+textareaconsoleoutput = .bsf~new("javax.swing.JTextArea")
+textareaconsoleoutput~setFont(textareaconsoleoutput~getFont()~deriveFont(11)~deriveFont(bsf.getStaticValue("java.awt.Font", "BOLD"))); 
+textconsoleoutputpane = .bsf~new("javax.swing.JScrollPane")
+textconsoleoutputpane~setViewportView(textareaconsoleoutput);
+
+panellevel2entryfields~add(textconsoleoutputpane,bsf.getStaticValue("java.awt.BorderLayout", "CENTER"));
+
+textfieldcommand = .bsf~new("javax.swing.JTextField")
+textfieldcommand~setPreferredSize(.bsf~new("java.awt.Dimension", 0,25));
+textfieldcommand~setFont(textfieldcommand~getFont()~deriveFont(11)~deriveFont(bsf.getStaticValue("java.awt.Font", "BOLD"))); 
+
+panellevel2entryfields~add(textfieldcommand,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
+
+panellevel1lowercontrols~add(panellevel2entryfields);
+
+self~add(panelmain);
+
+
+controls[self~EDITDEBUGLOG] = textareaconsoleoutput
+controls[self~EDITDEBUGLOG]~seteditable(.False)
+controls[self~EDITCOMMAND] = textfieldcommand
+controls[self~LISTSOURCE] = listsource
+controls[self~LISTSTACK] = liststack
+controls[self~BUTTONNEXT] = buttonnext
+controls[self~BUTTONRUN] = buttonrun
+controls[self~BUTTONEXIT] = buttonexit
+controls[self~BUTTONVARS] = buttonvars
+controls[self~BUTTONHELP] = buttonhelp
+controls[self~BUTTONEXEC] = buttonexec
+
+/*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
 controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
 controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
+*/
 
 debugtext = ''
 buttonpushed = .False
+
 self~UpdateControlStates
-
-minsize = .Size~new(self~pixelCX, self~pixelCY)
-self~minSize = minsize
-
-hfnt = self~createFontEx("Courier New", 8)
-controls[self~LISTSOURCE]~setFont(hfnt, .true)
-controls[self~LISTSTACK]~setFont(hfnt, .true)
 if startuphelptext~isA(.list) then do listrow over startuphelptext
-  controls[self~LISTSOURCE]~add(listrow)
+  controls[self~LISTSOURCE]~getModel~addElement(listrow)
 end
-else controls[self~LISTSOURCE]~add("No startup help text is available")
+else controls[self~LISTSOURCE]~getModel~addElement("No startup help text is available")
+/*
 self~connectListBoxEvent(self~LISTSTACK, SELCHANGE, "StackFrameChanged")
 self~connectListBoxEvent(self~LISTSOURCE, DBLCLK, "SourceLineDoubleClicked")
 
@@ -585,9 +587,10 @@ if "LRUD"~pos(offsetletter) \= 0 then do
     self~ensurevisible
   end
 end
-
+*/
 debugger~FlagUIStartupComplete
 
+/*
 ------------------------------------------------------
 ::method CalculateVisibleListRows 
 ------------------------------------------------------
