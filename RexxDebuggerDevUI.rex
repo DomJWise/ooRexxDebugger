@@ -28,14 +28,16 @@ SOFTWARE.
 ::class DebuggerUI public
 --====================================================
 
+::attribute awaitingmaindialogresponse  public unguarded
+::attribute debugdialogresponse         public unguarded
+
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
 expose debugdialog debugger
 use arg debugger
-
 /* Create and build the "main" window" */
-debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
+debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
 
 ------------------------------------------------------
 ::method RunUI unguarded
@@ -72,16 +74,21 @@ end
 ------------------------------------------------------
 ::method GetUINextResponse unguarded 
 ------------------------------------------------------
-expose debugdialog waiting response
+expose debugdialog  debugdialogresponse awaitingmaindialogresponse
+
+awaitingmaindialogresponse = .True
+debugdialogresponse = ''
+
 say '~~enter GetUINextResponse on thread 'SysQueryProcess(TID)
 debugdialog~SetWaiting(.true)
-ignore = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
-call syssleep 0.5
-say '~~leave GetUINextResponse'
-debugdialog~SetWaiting(.false)
-ignore = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
-call syssleep 0.5
-return ''
+awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
+
+say '~~waiting for dialog'
+guard off when awaitingmaindialogresponse = .False
+say '~~dialog returned 'debugdialogresponse
+
+return debugdialogresponse
+
 ------------------------------------------------------
 ::method UpdateUICodeView unguarded
 ------------------------------------------------------
@@ -93,8 +100,7 @@ if debugdialog \= .nil then
 do 
   debugdialog~debugarrstack = arrStack
   debugdialog~debugactivateindex = activateindex
-  msg = .AwtGuiThread~runLater(debugdialog, "UpdateCodeView")
-  ignore = msg~result
+  awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateCodeView")~result
 end
 --debugdialog~UpdateCodeView(arrStack, activateindex)
 say '~~leave UpdateUICodeView'
@@ -163,8 +169,9 @@ do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self
   if waiting then controls[control]~setEnabled(.true)
   else  controls[control]~setEnabled(.false)
 end    
+
+if waiting & \controls[self~BUTTONRUN]~gettext()~equals("Run") then controls[self~BUTTONRUN]~settext("Run")
 /*
-if waiting & controls[self~BUTTONRUN]~gettext \= "&Run" then controls[self~BUTTONRUN]~settext("&Run")
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
 end
@@ -173,8 +180,8 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
-use arg debugger,startuphelptext
+expose debugger debuggerui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
+use arg debugger, debuggerui, startuphelptext
 arrstack = .nil
 activesourcename = .nil
 loadedsources = .Directory~new
@@ -202,29 +209,21 @@ end
 -------------------------------------------------------
 expose waiting
 use arg waiting
-/*
-------------------------------------------------------
-::method GetNextResponse 
-------------------------------------------------------
-expose  waiting response
-
-waiting = .True
-response = .Nil
-self~UpdateControlStates
---self~focusControl(self~EDITCOMMAND)
-guard off when waiting = .False
-returnstring = response
-self~UpdateControlStates
-
-return returnstring
 
 ------------------------------------------------------
 ::method HereIsResponse unguarded
 ------------------------------------------------------
-expose waiting response
+expose debuggerui waiting
 use arg response
-waiting = .False
 
+waiting = .False
+self~UpdateControlStates
+
+debuggerui~debugdialogresponse = response
+debuggerui~awaitingmaindialogresponse = .False
+
+
+/*
 ------------------------------------------------------
 ::method defineDialog 
 ------------------------------------------------------
@@ -241,80 +240,49 @@ self~createPushButton(self~BUTTONHELP, 246, 235, 30, 15,  ,"&Help", OnHelpButton
 self~createEdit(self~EDITCOMMAND, 3, 271, 240, 15, "WANTRETURN")
 self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
 
-
-------------------------------------------------------
-::method defineSizing 
-------------------------------------------------------
-
-self~controlLeft(self~LISTSOURCE, 'STATIONARY', 'LEFT') 
-self~controlRight(self~LISTSOURCE, 'STATIONARY', 'RIGHT') 
-self~controlTop(self~LISTSOURCE, 'STATIONARY', 'TOP') 
-self~controlBottom(self~LISTSOURCE, 'STATIONARY', 'BOTTOM') 
-
-self~controlLeft(self~LISTSTACK, 'STATIONARY', 'LEFT') 
-self~controlRight(self~LISTSTACK, 'STATIONARY', 'RIGHT') 
-self~controlTop(self~LISTSTACK, 'STATIONARY', 'BOTTOM', self~LISTSOURCE) 
-self~controlBottom(self~LISTSTACK, 'STATIONARY', 'BOTTOM') 
-
-
-self~controlLeft(self~EDITDEBUGLOG, 'STATIONARY', 'LEFT') 
-self~controlRight(self~EDITDEBUGLOG, 'STATIONARY', 'RIGHT') 
-self~controlTop(self~EDITDEBUGLOG, 'STATIONARY', 'BOTTOM', self~LISTSTACK) 
-self~controlBottom(self~EDITDEBUGLOG, 'STATIONARY', 'BOTTOM') 
-
-
-do id over .List~of(self~BUTTONRUN, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONEXEC, self~BUTTONVARS, self~EDITCOMMAND, self~BUTTONHELP)
-  self~controlLeft(id, 'STATIONARY', 'RIGHT') 
-  self~controlRight(id, 'MYLEFT', 'LEFT') 
-  self~controlTop(id, 'STATIONARY', 'BOTTOM', self~LISTSTACK) 
-  self~controlBottom(id, 'MYTOP', 'TOP') 
-end
-self~controlTop(self~BUTTONEXEC, 'STATIONARY', 'BOTTOM') 
-
-
-self~controlLeft(self~EDITCOMMAND, 'STATIONARY', 'LEFT') 
-self~controlRight(self~EDITCOMMAND, 'STATIONARY', 'RIGHT') 
-self~controlTop(self~EDITCOMMAND, 'STATIONARY', 'BOTTOM') 
-self~controlBottom(self~EDITCOMMAND, 'MYTOP', 'BOTTOM') 
-
-
-return 0
-
+*/
 ------------------------------------------------------
 ::method OnNextButton 
 ------------------------------------------------------
 expose waiting controls
+say '@@OnNextButton'
 if waiting then do
-  instructions = controls[self~EDITCOMMAND]~gettext~strip
+  say 'OnNextbutton in "waiting" code'
+  /*instructions = controls[self~EDITCOMMAND]~gettext~strip*/
+  instructions = ''
   firstword = instructions~word(1)~translate
   if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
     call SAY 'This command cannot be used with Next at this time'
     return
   end  
-  controls[self~BUTTONRUN]~settext("B&reak")
-  controls[self~BUTTONRUN]~redraw
+  controls[self~BUTTONRUN]~settext("Break")
+  /*controls[self~BUTTONRUN]~redraw*/
   if instructions~word(1)~translate\='NEXT' then instructions = 'NEXT 'instructions
   self~HereIsResponse(instructions)
 end
+
+
 ------------------------------------------------------
 ::method OnRunButton 
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
-  controls[self~BUTTONRUN]~settext("B&reak")
-  controls[self~BUTTONRUN]~redraw
+  controls[self~BUTTONRUN]~settext("Break")
+  /*controls[self~BUTTONRUN]~redraw*/
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
-  controls[self~BUTTONRUN]~settext("&Run")
+  controls[self~BUTTONRUN]~settext("Run")
    call SAY 'Automatic breakpoint set for the next line of traceable code.'
 end
 else do
   debugger~SetManualBreak(.False)
   call SAY 'Automatic breakpoint removed. Program will run normally.'
-  controls[self~BUTTONRUN]~settext("B&reak")
+  controls[self~BUTTONRUN]~settext("Break")
 end   
+
+/*
 ------------------------------------------------------
 ::method OnExitButton 
 ------------------------------------------------------
@@ -562,6 +530,10 @@ controls[self~BUTTONVARS] = buttonvars
 controls[self~BUTTONHELP] = buttonhelp
 controls[self~BUTTONEXEC] = buttonexec
 
+
+controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONNEXT, "java.awt.event.ActionListener"))
+controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
+
 /*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
 controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
@@ -614,6 +586,14 @@ if "LRUD"~pos(offsetletter) \= 0 then do
   end
 end
 */
+------------------------------------------------------
+::method actionPerformed unguarded
+------------------------------------------------------
+expose controls 
+use arg eventobj, slotdir
+id = slotdir~userdata
+if id = self~BUTTONNEXT then self~OnNextButton
+if id = self~BUTTONRUN then self~OnRunButton
 
 /*
 ------------------------------------------------------
