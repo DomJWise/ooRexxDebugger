@@ -73,13 +73,13 @@ end
 
 ------------------------------------------------------
 ::method GetUINextResponse unguarded 
-------------------------------------------------------
+----------------------------q--------------------------
 expose debugdialog  debugdialogresponse awaitingmaindialogresponse
 
 awaitingmaindialogresponse = .True
 debugdialogresponse = ''
 
-say '~~enter GetUINextResponse on thread 'SysQueryProcess(TID)
+say '~~enter GetUINextResponse on thread 'GetWindowsThreadID()
 debugdialog~SetWaiting(.true)
 awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
 
@@ -93,7 +93,7 @@ return debugdialogresponse
 ::method UpdateUICodeView unguarded
 ------------------------------------------------------
 expose debugdialog
-say '~~enter UpdateUICodeView on thread 'SysQueryProcess(TID)
+say '~~enter UpdateUICodeView on thread 'GetWindowsThreadID()
 use arg arrStack, activateindex
 
 if debugdialog \= .nil then
@@ -110,7 +110,7 @@ say '~~leave UpdateUICodeView'
 ------------------------------------------------------
 expose debugdialog
 use arg varsroot
-say '~~enter UpdateUIWatchWindows on thread 'SysQueryProcess(TID)
+say '~~enter UpdateUIWatchWindows on thread 'GetWindowsThreadID()
 
 --debugdialog~UpdateWatchWindows(varsroot)
 say '~~leave UpdateUIWatchWindows'
@@ -626,8 +626,8 @@ return 0
 ------------------------------------------------------
 expose controls debugtext debugger
 use arg newtext, newline = .true
-say 'dialog appendtext started on thread 'SysQueryProcess(TID)
-say '^^^^^^^^^^^^^^  InAppendText '.awtGuiThread~isGuiThread
+say 'dialog appendtext started on thread 'GetWindowsThreadID()
+say '^^^^^^^^^^^^^^  InAppendText '|.awtGuiThread~isGuiThread
 say '~~~~~~~~~~~~~~ 'newtext, newline
 
 if newline  then newtext = newtext||.endofline
@@ -718,7 +718,7 @@ end
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
 expose controls arrStack activesourcename loadedsources debugger debugarrstack debugactivateindex
-say '~~~~~~  UpdateCodeView on thread 'SysQueryProcess(TID)
+say '~~~~~~  UpdateCodeView on thread 'GetWindowsThreadID()
 
 arrStack = debugarrstack
 activateindex = debugactivateindex
@@ -1028,5 +1028,9 @@ else  self~DisableControl(self~LISTVARS)
 
 ::requires oodialog.cls
 */
+
+::ROUTINE GetWindowsThreadID
+if SysVersion()~translate~pos("WINDOWS") = 1 then return SysQueryProcess(TID) 
+else return '?'
 
 ::REQUIRES BSF.CLS      -- get the Java support
