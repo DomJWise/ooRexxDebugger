@@ -52,6 +52,14 @@ debugger~FlagUIStartupComplete
 
 self~WaitForExit 
 
+awaitresult = .AwtGuiThread~runLaterLatest(self, "NoOp")~result
+
+call BSF.terminateRexxEngine
+
+------------------------------------------------------
+::method NoOp unguarded
+------------------------------------------------------
+
 ------------------------------------------------------
 ::method AppendUIConsoleText unguarded
 ------------------------------------------------------
@@ -167,10 +175,8 @@ if waiting = .True then do
   if ret = 1 then close = .False
 end  
 if close then do
-/*  controls[self~LISTSOURCE]~deleteall
-  controls[self~LISTSTACK]~deleteall
-  self~deletefont(hfnt)
-  watchlist = watchwindows~allitems~section(1)
+/*
+watchlist = watchwindows~allitems~section(1)
   do watchwindow over watchlist~allitems
      watchwindow~cancel
   end   
@@ -212,7 +218,6 @@ checkedsources = .List~new
 waiting = .false
 controls = .Directory~new
 
---self~connectResize("onResize")
 
 arrcommands = .Array~new
 commandnum = 0
@@ -258,15 +263,13 @@ expose waiting controls
 --say '@@OnNextButton'
 if waiting then do
 --  say 'OnNextbutton in "waiting" code'
-  /*instructions = controls[self~EDITCOMMAND]~gettext~strip*/
-  instructions = ''
+  instructions = controls[self~EDITCOMMAND]~gettext~strip
   firstword = instructions~word(1)~translate
   if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
     self~appendtext('This command cannot be used with Next at this time')
     return
   end  
   controls[self~BUTTONRUN]~settext("Break")
-  /*controls[self~BUTTONRUN]~redraw*/
   if instructions~word(1)~translate\='NEXT' then instructions = 'NEXT 'instructions
   self~HereIsResponse(instructions)
 end
@@ -278,7 +281,6 @@ end
 expose waiting debugger controls
 if waiting then do
   controls[self~BUTTONRUN]~settext("Break")
-  /*controls[self~BUTTONRUN]~redraw*/
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
@@ -340,14 +342,20 @@ self~appendtext("  CAPTUREX is similar but will discard (eXclude) all trace outp
 self~appendtext("- DISCARDTRACE attempts to capture trace in order to discard it (apart from program errors).")
 self~appendtext("- The source window and watch windows go grey while the program is running and after it has finished.")
 self~appendtext("Happy debugging!")
-/*
+
 ------------------------------------------------------
 ::method OnExecButton unguarded
 ------------------------------------------------------
 expose waiting controls arrCommands commandnum
+
 if waiting then do
   returnstring = controls[self~EDITCOMMAND]~gettext~strip
-  controls[self~EDITCOMMAND]~select()
+  
+  --controls[self~EDITCOMMAND]~select()
+  /* These ought to select but dont
+    controls[self~EDITCOMMAND]~setselectionstart(0)
+    controls[self~EDITCOMMAND]~setSelectionend(2)
+  */  
   if returnstring \= '' then do
     if \arrCommands~hasitem(returnstring) then do
       arrCommands~append(returnstring)
@@ -358,6 +366,7 @@ if waiting then do
   self~HereIsResponse(returnstring)
 end
 
+/*
 ------------------------------------------------------
 ::method OnPrevCommand 
 ------------------------------------------------------
@@ -554,6 +563,7 @@ controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
 controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
 controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXIT, "java.awt.event.ActionListener"))
+controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXEC, "java.awt.event.ActionListener"))
 
 /*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
@@ -620,6 +630,7 @@ if id = self~BUTTONNEXT then self~OnNextButton
 if id = self~BUTTONRUN then self~OnRunButton
 if id = self~BUTTONHELP then self~OnHelpButton
 if id = self~BUTTONEXIT then self~OnExitButton
+if id = self~BUTTONEXEC then self~OnExecButton
 
 /*
 ------------------------------------------------------
