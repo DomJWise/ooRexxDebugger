@@ -70,13 +70,13 @@ expose debugdialog  debugdialogresponse awaitingmaindialogresponse
 awaitingmaindialogresponse = .True
 debugdialogresponse = ''
 
-say '~~enter GetUINextResponse on thread 'GetWindowsThreadID()
+--say '~~enter GetUINextResponse on thread 'GetWindowsThreadID()
 debugdialog~SetWaiting(.true)
 awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
 
-say '~~waiting for dialog'
+--say '~~waiting for dialog'
 guard off when awaitingmaindialogresponse = .False
-say '~~dialog returned 'debugdialogresponse
+--say '~~dialog returned 'debugdialogresponse
 
 return debugdialogresponse
 
@@ -84,7 +84,6 @@ return debugdialogresponse
 ::method UpdateUICodeView unguarded
 ------------------------------------------------------
 expose debugdialog
-say '~~enter UpdateUICodeView on thread 'GetWindowsThreadID()
 use arg arrStack, activateindex
 
 if debugdialog \= .nil then
@@ -93,18 +92,20 @@ do
   debugdialog~debugactivateindex = activateindex
   awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateCodeView")~result
 end
---debugdialog~UpdateCodeView(arrStack, activateindex)
-say '~~leave UpdateUICodeView'
+--say '~~leave UpdateUICodeView'
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows unguarded
 ------------------------------------------------------
 expose debugdialog
 use arg varsroot
-say '~~enter UpdateUIWatchWindows on thread 'GetWindowsThreadID()
 
---debugdialog~UpdateWatchWindows(varsroot)
-say '~~leave UpdateUIWatchWindows'
+/*
+debugdialog~UpdateWatchWindows(varsroot)
+*/
+
+
+--say '~~leave UpdateUIWatchWindows'
 
 -------------------------------------------------------
 ::method SetExit unguarded
@@ -118,6 +119,7 @@ expose doexit
 
 doexit = .False
 guard on when doexit = .True
+--say 'Wait for exit is complete'
 
 
 --====================================================
@@ -135,10 +137,6 @@ use arg eventobj, slotdir
 dialog = slotdir~userdata
 dialog~Cancel          
 
-::method unknown
-use arg name, arguments
-say '______ unknown :'name
-
 
 --====================================================
 ::class DebugDialog subclass bsf
@@ -154,6 +152,7 @@ say '______ unknown :'name
 ::constant BUTTONHELP   107
 ::constant EDITCOMMAND  108
 ::constant BUTTONEXEC   109
+::constant PANESOURCE   110
 
 ::attribute debugarrstack      unguarded
 ::attribute debugactivateindex unguarded
@@ -177,9 +176,9 @@ if close then do
   end   
 */  
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
-  debuggerui~SetExit
   debugger~informshutdown
   self~dispose
+  debuggerui~SetExit
 end
 
 
@@ -256,9 +255,9 @@ self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Ex
 ::method OnNextButton 
 ------------------------------------------------------
 expose waiting controls 
-say '@@OnNextButton'
+--say '@@OnNextButton'
 if waiting then do
-  say 'OnNextbutton in "waiting" code'
+--  say 'OnNextbutton in "waiting" code'
   /*instructions = controls[self~EDITCOMMAND]~gettext~strip*/
   instructions = ''
   firstword = instructions~word(1)~translate
@@ -428,7 +427,6 @@ expose controls debugtext buttonpushed debugger hfnt startuphelptext debugger
 
 -- Create the frame
 self~init:super('java.awt.Frame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
---self~setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 self~setSize(440, 510);
 self~setMinimumSize(.bsf~new("java.awt.Dimension", 440,510));
 self~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
@@ -448,7 +446,7 @@ listsource = .bsf~new("javax.swing.JList", listsourcemodel)
 
 listsource~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 listsource~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-listsource~setFont(.bsf~new("java.awt.Font","Courier", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+listsource~setFont(.bsf~new("java.awt.Font","Courier New", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
 listsource~setFixedCellHeight(14);
 
 listsourcepane = .bsf~new("javax.swing.JScrollPane")
@@ -462,7 +460,7 @@ liststack = .bsf~new("javax.swing.JList", liststackmodel)
 
 liststack~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 liststack~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-liststack~setFont(.bsf~new("java.awt.Font","Courier", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+liststack~setFont(.bsf~new("java.awt.Font","Courier New", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
 liststack~setFixedCellHeight(14);
 
 liststackpane = .bsf~new("javax.swing.JScrollPane")
@@ -546,12 +544,12 @@ controls[self~BUTTONEXIT] = buttonexit
 controls[self~BUTTONVARS] = buttonvars
 controls[self~BUTTONHELP] = buttonhelp
 controls[self~BUTTONEXEC] = buttonexec
+controls[self~PANESOURCE] = listsourcepane
 
 windowlistener = .DebugDialogWindowListener~new
 windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
 self~addWindowListener(windowlistenerEH)
 
---self~addWindowListener(BsfCreateRexxProxy(self, .nil, "java.awt.event.ActionListener", "java.awt.event.WindowListener"))
 controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONNEXT, "java.awt.event.ActionListener"))
 controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
 controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
@@ -654,15 +652,15 @@ return 0
 ------------------------------------------------------
 expose controls debugtext debugger
 use arg newtext, newline = .true
-say 'dialog appendtext started on thread 'GetWindowsThreadID()
-say '^^^^^^^^^^^^^^  InAppendText '||.awtGuiThread~isGuiThread
-say '~~~~~~~~~~~~~~ 'newtext, newline
+--say 'dialog appendtext started on thread 'GetWindowsThreadID()
+--say '^^^^^^^^^^^^^^  InAppendText '||.awtGuiThread~isGuiThread
+--say '~~~~~~~~~~~~~~ 'newtext, newline
 
 if newline  then newtext = newtext||.endofline
 debugtext = debugtext||newtext
 if \debugger~isshutdown then do
   --controls[self~EDITDEBUGLOG]~hidefast
-  say '++++++++++++Appending'
+  --say '++++++++++++Appending'
   --controls[self~EDITDEBUGLOG]~setEnabled
   --controls[self~EDITDEBUGLOG]~seteditable(.true)
   controls[self~EDITDEBUGLOG]~append(newtext)
@@ -672,9 +670,9 @@ if \debugger~isshutdown then do
   --controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
   --controls[self~EDITDEBUGLOG]~showfast
   --controls[self~EDITDEBUGLOG]~ensureCaretVisibility
-  controls[self~EDITDEBUGLOG]~repaint
+  --controls[self~EDITDEBUGLOG]~repaint
 end
-/*
+
 ------------------------------------------------------
 ::method SetListSource
 ------------------------------------------------------
@@ -684,16 +682,18 @@ use arg sourcefile
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
   do line over arrSource~allIndexes
-    if arrSource[line]~strip~left(4) = '<slash><star><star><slash>' then debugger~SetBreakPoint(sourcefile, line)
+    if arrSource[line]~strip~left(4) = '/'||'**'||'/' then do
+      debugger~SetBreakPoint(sourcefile, line)
+    end
   end
   checkedsources~append(sourcefile)
   end
 listbreakpoints = debugger~GetBreakpoints(sourcefile)
 
-controls[self~LISTSOURCE]~deleteall
-dc = self~getControlDC(self~LISTSOURCE)
-oldfont = self~fonttodc(dc, hfnt)
-maxwidth = 0
+
+listdata = controls[self~LISTSOURCE]~getModel
+listdata~clear
+
 linecount = arrSource~items
 do line over arrSource~allIndexes
   if listbreakpoints~hasItem(line) then do
@@ -702,14 +702,9 @@ do line over arrSource~allIndexes
     end
   else text=' '
   text = text||line~right(linecount~length)' 'arrSource[line]
-  width = self~getTextExtent(dc, text)~width
-  if width > maxwidth then maxwidth = width
-  controls[self~LISTSOURCE]~add(text)
-end
+  listdata~addelement(text)
 
-self~fonttodc(dc, oldfont)
-self~freecontroldc(self~LISTSOURCE, oldfont)
-self~setListWidthpx(self~LISTSOURCE, maxwidth)
+end
 
 
 ------------------------------------------------------
@@ -717,36 +712,44 @@ self~setListWidthpx(self~LISTSOURCE, maxwidth)
 ------------------------------------------------------
 expose visiblelistrows controls arrStack
 
+
 -- Assumes the correct source is already loaded
 -- This is just to set the position in the source listbox
+newrow = arrStack[controls[self~LISTSTACK]~getSelectedIndex + 1]~line
 
-newrow = arrStack[controls[self~LISTSTACK]~selectedindex]~line
-if newrow <  1 | newrow >  self~getListItems(self~LISTSOURCE) then return
+if newrow <  0 | newrow >=  controls[self~LISTSOURCE]~getmodel~getsize then return
+currentrow = controls[self~LISTSOURCE]~getSelectedIndex + 1
+visiblelistrows = controls[self~LISTSOURCE]~getlastVisibleIndex - controls[self~LISTSOURCE]~getfirstVisibleIndex
 
-currentrow = self~GetcurrentListIndex(self~LISTSOURCE)
-firstvisible =  controls[self~LISTSOURCE]~getfirstvisible
+firstrow = 1
+firstvisible =  controls[self~LISTSOURCE]~getfirstVisibleIndex + 1
+controls[self~LISTSOURCE]~setSelectedIndex(newrow - 1)
 topbottomrows = min((visiblelistrows / 10)~ceiling, 4)
-self~setcurrentListIndex(self~LISTSOURCE, newrow)
+newfirstvisible = -1
 if newrow < firstvisible | newrow > visiblelistrows + firstvisible then do 
   firstrow = newrow - (visiblelistrows / 2)~floor
-  if firstrow < 1 then firstrow = 1
-  controls[self~LISTSOURCE]~makefirstvisible(firstrow)
+ if firstrow < 1 then firstrow = 1
+   newfirstvisible  = firstrow
 end
 else if newrow - firstvisible < topbottomrows then do 
   firstrow = newrow - topbottomrows
   if firstrow < 1 then firstrow = 1
-  controls[self~LISTSOURCE]~makefirstvisible(firstrow)
+   newfirstvisible  = firstrow
 end
 else if newrow - firstvisible >= visiblelistrows - topbottomrows then do 
   firstrow = newrow - (visiblelistrows - topbottomrows)
-  controls[self~LISTSOURCE]~makefirstvisible(firstrow)
+   newfirstvisible  = firstrow
 end
-*/
+if newfirstvisible \= -1 then do
+  originpoint = controls[self~LISTSOURCE]~indexToLocation(newfirstvisible - 1)
+  controls[self~PANESOURCE]~getViewPort~setViewPosition(originpoint)
+end  
+
 ------------------------------------------------------
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
 expose controls arrStack activesourcename loadedsources debugger debugarrstack debugactivateindex
-say '~~~~~~  UpdateCodeView on thread 'GetWindowsThreadID()
+--say '~~~~~~  UpdateCodeView on thread 'GetWindowsThreadID()
 
 arrStack = debugarrstack
 activateindex = debugactivateindex
@@ -773,12 +776,9 @@ do frame over arrStack~allitems
   listdata~addelement(finaltext)
   indent = indent - 1
 end  
-controls[self~LISTSTACK]~repaint
 
---self~setcurrentListIndex(self~LISTSTACK, activateindex)
-/*
--- Set to not redraw. Switched back on when selecting
-controls[self~LISTSOURCE]~hidefast
+controls[self~LISTSTACK]~setSelectedIndex(activateindex - 1)
+
 
 --Ensure the correct source (if any) is loaded
 if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~executable~source~items \= 0 then do 
@@ -789,16 +789,11 @@ if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~ex
     self~SetListSource(thissourcename)
   end  
 
---  self~CalculateVisibleListRows
---  self~SetSourceListSelectedRow
+self~SetSourceListSelectedRow
  
 end
 
--- Switch drawing back on
-controls[self~LISTSOURCE]~showfast
-controls[self~LISTSOURCE]~redraw
-*/
-say '~~~~~~ Leave UpdateCodeView'
+--say '~~~~~~ Leave UpdateCodeView'
 
 ------------------------------------------------------
 ::method UpdateWatchWindows 
@@ -838,15 +833,18 @@ end
 controls[self~LISTSOURCE]~modify(itemindex, listtext)
 controls[self~LISTSOURCE]~selectindex(itemindex)
 
+*/
 -------------------------------------------------------
 ::method IsBreakpointLikelyToBeHit
 -------------------------------------------------------
 parse arg sourceline
 sourceline  = sourceline~strip
-if sourceline~left(4) = '<slash><star><star><slash>' then sourceline = sourceline~substr(5)
+commentmarker='/'||'**'||'/'
+if sourceline~left(4) = '/'||'**'||'/' then sourceline = sourceline~substr(5)
 if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- <slash><star>"~wordpos(sourceline~left(2)) \= 0 then return .False
 else return .True
 
+/*
  --====================================================
 ::class WatchDialog subclass UserDialog inherit ResizingAdmin
 --====================================================
