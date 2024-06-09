@@ -66,14 +66,12 @@ expose debugdialog
 
 use  arg text, newline = .true
 if debugdialog \= .nil then do
-  msg = .AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)
-  x = msg~result
+  awaitresult = .AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)
 end  
---debugdialog~appendtext(text, newline)
 
 ------------------------------------------------------
 ::method GetUINextResponse unguarded 
-----------------------------q--------------------------
+------------------------------------------------------
 expose debugdialog  debugdialogresponse awaitingmaindialogresponse
 
 awaitingmaindialogresponse = .True
@@ -244,7 +242,7 @@ self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Ex
 ------------------------------------------------------
 ::method OnNextButton 
 ------------------------------------------------------
-expose waiting controls
+expose waiting controls 
 say '@@OnNextButton'
 if waiting then do
   say 'OnNextbutton in "waiting" code'
@@ -252,7 +250,7 @@ if waiting then do
   instructions = ''
   firstword = instructions~word(1)~translate
   if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
-    call SAY 'This command cannot be used with Next at this time'
+    self~appendtext('This command cannot be used with Next at this time')
     return
   end  
   controls[self~BUTTONRUN]~settext("Break")
@@ -274,11 +272,11 @@ end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
   controls[self~BUTTONRUN]~settext("Run")
-   call SAY 'Automatic breakpoint set for the next line of traceable code.'
+  self~appendtext('Automatic breakpoint set for the next line of traceable code.')
 end
 else do
   debugger~SetManualBreak(.False)
-  call SAY 'Automatic breakpoint removed. Program will run normally.'
+  self~appendtext('Automatic breakpoint removed. Program will run normally.')
   controls[self~BUTTONRUN]~settext("Break")
 end   
 
@@ -299,32 +297,34 @@ expose waiting watchdialog debugger varsroot
 if waiting then do
   self~AddWatchWindow(self)
 end
-  ---------------------------------------------------
+
+*/
+---------------------------------------------------
 ::method OnHelpButton 
 ------------------------------------------------------
 expose debugger
-debugger~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | DISCARDTRACE - use the Exec button to run the command.")
-debugger~SendDebugMessage("- Buttons with the above labels execute the corresponding command.")
-debugger~SendDebugMessage("- Command history for the session can be accessed with the up/down keys.")
-debugger~SendDebugMessage("- The Vars button opens a realtime variables window.")
-debugger~SendDebugMessage("- Double clicking many collection object types in a variables window will expand them in a new window.")
-debugger~SendDebugMessage("- Clicking a stack row takes you to the specified source location and file.")
-debugger~SendDebugMessage("- Double clicking a source row toggles a breakpoint, but this does not guarantee that the line will be hit.")
-debugger~SendDebugMessage("  Some simple hit checks are carried out but there is no detailed code analysis.")
-debugger~SendDebugMessage("  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
-debugger~SendDebugMessage("  DO statements should be hit unless they mark the start of a loop that has looped once already.")
-debugger~SendDebugMessage("  CALL statements (and what they call) may be hit, depending on what they are calling.")
-debugger~SendDebugMessage("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
-debugger~SendDebugMessage("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
-debugger~SendDebugMessage("- <slash><star><star><slash> at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
-debugger~SendDebugMessage("- The instruction CALL SAY ... will always send output here.")
-debugger~SendDebugMessage("- So long as SAY is enabled in the target application, other output should appear there.")
-debugger~SendDebugMessage("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
-debugger~SendDebugMessage("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
-debugger~SendDebugMessage("- DISCARDTRACE attempts to capture trace in order to discard it (apart from program errors).")
-debugger~SendDebugMessage("- The source window and watch windows go grey while the program is running and after it has finished.")
-debugger~SendDebugMessage("Happy debugging!")
-
+self~appendtext("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | DISCARDTRACE - use the Exec button to run the command.")
+self~appendtext("- Buttons with the above labels execute the corresponding command.")
+self~appendtext("- Command history for the session can be accessed with the up/down keys.")
+self~appendtext("- The Vars button opens a realtime variables window.")
+self~appendtext("- Double clicking many collection object types in a variables window will expand them in a new window.")
+self~appendtext("- Clicking a stack row takes you to the specified source location and file.")
+self~appendtext("- Double clicking a source row toggles a breakpoint, but this does not guarantee that the line will be hit.")
+self~appendtext("  Some simple hit checks are carried out but there is no detailed code analysis.")
+self~appendtext("  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
+self~appendtext("  DO statements should be hit unless they mark the start of a loop that has looped once already.")
+self~appendtext("  CALL statements (and what they call) may be hit, depending on what they are calling.")
+self~appendtext("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
+self~appendtext("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
+self~appendtext("- <slash><star><star><slash> at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
+self~appendtext("- The instruction CALL SAY ... will always send output here.")
+self~appendtext("- So long as SAY is enabled in the target application, other output should appear there.")
+self~appendtext("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
+self~appendtext("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
+self~appendtext("- DISCARDTRACE attempts to capture trace in order to discard it (apart from program errors).")
+self~appendtext("- The source window and watch windows go grey while the program is running and after it has finished.")
+self~appendtext("Happy debugging!")
+/*
 ------------------------------------------------------
 ::method OnExecButton unguarded
 ------------------------------------------------------
@@ -533,6 +533,7 @@ controls[self~BUTTONEXEC] = buttonexec
 
 controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONNEXT, "java.awt.event.ActionListener"))
 controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
+controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
 
 /*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
@@ -594,6 +595,7 @@ use arg eventobj, slotdir
 id = slotdir~userdata
 if id = self~BUTTONNEXT then self~OnNextButton
 if id = self~BUTTONRUN then self~OnRunButton
+if id = self~BUTTONHELP then self~OnHelpButton
 
 /*
 ------------------------------------------------------
@@ -627,7 +629,7 @@ return 0
 expose controls debugtext debugger
 use arg newtext, newline = .true
 say 'dialog appendtext started on thread 'GetWindowsThreadID()
-say '^^^^^^^^^^^^^^  InAppendText '|.awtGuiThread~isGuiThread
+say '^^^^^^^^^^^^^^  InAppendText '||.awtGuiThread~isGuiThread
 say '~~~~~~~~~~~~~~ 'newtext, newline
 
 if newline  then newtext = newtext||.endofline
