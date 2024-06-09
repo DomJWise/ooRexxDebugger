@@ -230,11 +230,7 @@ expose u
 self~createListBox(self~LISTSOURCE, 3, 2, 273, 135, "HSCROLL VSCROLL NOTIFY")
 self~createListBox(self~LISTSTACK, 3, 136, 273, 43, "VSCROLL AUTOVSCROLL NOTIFY")
 self~createEdit(self~EDITDEBUGLOG, 3, 167, 240, 102, "HSCROLL VSCROLL MULTILINE")
-self~createPushButton(self~BUTTONNEXT, 246, 167, 30, 15,  ,"&Next", OnNextButton) 
-self~createPushButton(self~BUTTONRUN, 246, 184, 30, 15,  ,"&Run", OnRunButton) 
-self~createPushButton(self~BUTTONEXIT, 246, 201, 30, 15,  ,"E&xit", OnExitButton) 
 self~createPushButton(self~BUTTONVARS, 246, 218, 30, 15,  ,"&Vars", OnVarsButton) 
-self~createPushButton(self~BUTTONHELP, 246, 235, 30, 15,  ,"&Help", OnHelpButton) 
 self~createEdit(self~EDITCOMMAND, 3, 271, 240, 15, "WANTRETURN")
 self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
 
@@ -280,16 +276,20 @@ else do
   controls[self~BUTTONRUN]~settext("Break")
 end   
 
-/*
+
 ------------------------------------------------------
 ::method OnExitButton 
 ------------------------------------------------------
 expose waiting 
 if waiting then do
-   ret = RxMessageBox("Do you really want to exit the program?", "Program still running", "YESNO", "QUESTION")
-   if ret \= 7 then  self~HereIsResponse('EXIT')
+  ret = .bsf.dialog~dialogbox("Do you really want to exit the program ?", "Program still running","question", "YesNo")
+  if ret = 0 then do
+    self~appendtext("Program requested to exit.")
+    self~HereIsResponse('EXIT')
+  end  
 end
 
+/*
 ------------------------------------------------------
 ::method OnVarsButton 
 ------------------------------------------------------
@@ -534,6 +534,7 @@ controls[self~BUTTONEXEC] = buttonexec
 controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONNEXT, "java.awt.event.ActionListener"))
 controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
 controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
+controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXIT, "java.awt.event.ActionListener"))
 
 /*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
@@ -596,6 +597,7 @@ id = slotdir~userdata
 if id = self~BUTTONNEXT then self~OnNextButton
 if id = self~BUTTONRUN then self~OnRunButton
 if id = self~BUTTONHELP then self~OnHelpButton
+if id = self~BUTTONEXIT then self~OnExitButton
 
 /*
 ------------------------------------------------------
