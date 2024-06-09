@@ -34,10 +34,29 @@ SOFTWARE.
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugdialog debugger
+expose debugdialog debugger fixedfont
 use arg debugger
+
+graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
+jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
+arr = bsf.wrap(jarrfontfamilies)
+
+fixedfont = ''
+do i = 1 to arr~items
+  if arr[i]~pos("Courier") = 1 then do
+    fixedfont = arr[i]
+    leave
+  end
+end    
+
 /* Create and build the "main" window" */
 debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
+
+------------------------------------------------------
+::method GetFixedFont unguarded
+------------------------------------------------------
+expose fixedfont
+return fixedfont
 
 ------------------------------------------------------
 ::method RunUI unguarded
@@ -144,6 +163,39 @@ guard on when doexit = .True
 use arg eventobj, slotdir
 dialog = slotdir~userdata
 dialog~Cancel          
+
+--====================================================
+::class DebugDialogListStackMouseListener public
+--====================================================
+::method mousepressed
+::method mousereleased
+::method mouseexited
+::method mouseentered
+
+------------------------------------------------------
+::method mouseclicked
+------------------------------------------------------
+use arg eventobj, slotdir
+say eventobj~getclickcount
+dialog = slotdir~userdata
+dialog~StackFrameChanged
+
+--====================================================
+::class DebugDialogListSourceMouseListener public
+--====================================================
+::method mousepressed
+::method mousereleased
+::method mouseexited
+::method mouseentered
+
+------------------------------------------------------
+::method mouseclicked
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~getclickcount == 2 then do
+  dialog = slotdir~userdata
+  dialog~SourceLineDoubleClicked
+end
 
 
 --====================================================
@@ -431,7 +483,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose controls debugtext buttonpushed debugger hfnt startuphelptext debugger 
+expose controls debugtext buttonpushed debugger hfnt startuphelptext debuggerui
 
 
 -- Create the frame
@@ -449,13 +501,14 @@ panellevel1lowercontrols = .bsf~new("javax.swing.JPanel")
 panellevel1lowercontrols~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
 panellevel1lowercontrols~setPreferredSize(.bsf~new("java.awt.Dimension", 0,250));
 panelmain~add(panellevel1lowercontrols,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
-	   
+
+fixedfont = debuggerui~GetFixedFont
 listsourcemodel = .bsf~new("javax.swing.DefaultListModel")
 listsource = .bsf~new("javax.swing.JList", listsourcemodel)
 
 listsource~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 listsource~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-listsource~setFont(.bsf~new("java.awt.Font","Courier New", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+if fixedfont \= '' then listsource~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 11));
 listsource~setFixedCellHeight(14);
 
 listsourcepane = .bsf~new("javax.swing.JScrollPane")
@@ -469,7 +522,7 @@ liststack = .bsf~new("javax.swing.JList", liststackmodel)
 
 liststack~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 liststack~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-liststack~setFont(.bsf~new("java.awt.Font","Courier New", bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+if fixedfont \= '' then liststack~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 11));
 liststack~setFixedCellHeight(14);
 
 liststackpane = .bsf~new("javax.swing.JScrollPane")
@@ -525,7 +578,6 @@ panellevel2entryfields = .bsf~new("javax.swing.JPanel")
 panellevel2entryfields~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
 
 textareaconsoleoutput = .bsf~new("javax.swing.JTextArea")
-textareaconsoleoutput~setFont(textareaconsoleoutput~getFont()~deriveFont(11)~deriveFont(bsf.getStaticValue("java.awt.Font", "BOLD"))); 
 textconsoleoutputpane = .bsf~new("javax.swing.JScrollPane")
 textconsoleoutputpane~setViewportView(textareaconsoleoutput);
 
@@ -533,7 +585,6 @@ panellevel2entryfields~add(textconsoleoutputpane,bsf.getStaticValue("java.awt.Bo
 
 textfieldcommand = .bsf~new("javax.swing.JTextField")
 textfieldcommand~setPreferredSize(.bsf~new("java.awt.Dimension", 0,25));
-textfieldcommand~setFont(textfieldcommand~getFont()~deriveFont(11)~deriveFont(bsf.getStaticValue("java.awt.Font", "BOLD"))); 
 
 panellevel2entryfields~add(textfieldcommand,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
 
@@ -565,6 +616,16 @@ controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXIT, "java.awt.event.ActionListener"))
 controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXEC, "java.awt.event.ActionListener"))
 
+
+stackmouselistener = .DebugDialogListStackMouseListener~new
+stackmouselistenerEH = BsfCreateRexxProxy(stackmouselistener, self, "java.awt.event.MouseListener")
+controls[self~LISTSTACK]~addMouseListener(stackmouselistenerEH)
+
+sourcemouselistener = .DebugDialogListSourceMouseListener~new
+sourcemouselistenerEH = BsfCreateRexxProxy(sourcemouselistener, self, "java.awt.event.MouseListener")
+controls[self~LISTSOURCE]~addMouseListener(sourcemouselistenerEH)
+
+
 /*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
 controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
@@ -581,8 +642,6 @@ if startuphelptext~isA(.list) then do listrow over startuphelptext
 end
 else controls[self~LISTSOURCE]~getModel~addElement("No startup help text is available")
 /*
-self~connectListBoxEvent(self~LISTSTACK, SELCHANGE, "StackFrameChanged")
-self~connectListBoxEvent(self~LISTSOURCE, DBLCLK, "SourceLineDoubleClicked")
 
 offsetDirection = debugger~offsetdirection 
 offsetletter = offsetDirection~left(1)~upper 
@@ -633,15 +692,6 @@ if id = self~BUTTONEXIT then self~OnExitButton
 if id = self~BUTTONEXEC then self~OnExecButton
 
 /*
-------------------------------------------------------
-::method CalculateVisibleListRows 
-------------------------------------------------------
-expose visiblelistrows controls
-rowheight =  controls[self~LISTSOURCE]~itemHeightPX
-listrect = self~getcontrolRect(self~LISTSOURCE)
-listheight = listrect~bottom - listrect~top
-visiblelistrows = (listheight / rowheight)~floor - 2
-
 
 ------------------------------------------------------
 ::method EditCommandChar 
@@ -760,11 +810,12 @@ end
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
 expose controls arrStack activesourcename loadedsources debugger debugarrstack debugactivateindex
---say '~~~~~~  UpdateCodeView on thread 'GetWindowsThreadID()
+use arg arrstack,activateindex
 
-arrStack = debugarrstack
-activateindex = debugactivateindex
-
+if arg() = 0 then do 
+  arrStack = debugarrstack
+  activateindex = debugactivateindex
+end
 -- Ensure the (available) sources are loaded
 do stackindex = 1 to arrstack~items
    if arrstack[stackindex]~executable~package \= .nil then do
@@ -815,12 +866,13 @@ use arg varsroot
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
+*/
 
 ------------------------------------------------------
 ::method StackFrameChanged 
 ------------------------------------------------------
 expose controls arrstack
-self~UpdateCodeView(arrstack, controls[self~LISTSTACK]~selectedindex)
+self~UpdateCodeView(arrstack, controls[self~LISTSTACK]~getSelectedIndex + 1)
 return 0
 
 ------------------------------------------------------
@@ -828,8 +880,8 @@ return 0
 ------------------------------------------------------
 expose controls debugger activesourcename 
 
-itemindex = controls[self~LISTSOURCE]~selectedindex
-listtext = controls[self~LISTSOURCE]~selected
+itemindex = controls[self~LISTSOURCE]~getSelectedIndex + 1
+listtext = controls[self~LISTSOURCE]~getSelectedValue
 if listtext~left(1) = ' ' then do
   checktext = listtext~delword(1,1)~translate~strip
   debugchar = '*'
@@ -841,10 +893,8 @@ else do
   listtext = ' '||listtext~substr(2)
   debugger~ClearBreakpoint(activesourcename, itemindex)
 end
-controls[self~LISTSOURCE]~modify(itemindex, listtext)
-controls[self~LISTSOURCE]~selectindex(itemindex)
+controls[self~LISTSOURCE]~getmodel~set(itemindex - 1, listtext)
 
-*/
 -------------------------------------------------------
 ::method IsBreakpointLikelyToBeHit
 -------------------------------------------------------
