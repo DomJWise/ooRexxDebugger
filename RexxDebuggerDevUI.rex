@@ -300,12 +300,8 @@ debuggerui~awaitingmaindialogresponse = .False
 ------------------------------------------------------
 expose u 
 
-self~createListBox(self~LISTSOURCE, 3, 2, 273, 135, "HSCROLL VSCROLL NOTIFY")
-self~createListBox(self~LISTSTACK, 3, 136, 273, 43, "VSCROLL AUTOVSCROLL NOTIFY")
-self~createEdit(self~EDITDEBUGLOG, 3, 167, 240, 102, "HSCROLL VSCROLL MULTILINE")
 self~createPushButton(self~BUTTONVARS, 246, 218, 30, 15,  ,"&Vars", OnVarsButton) 
 self~createEdit(self~EDITCOMMAND, 3, 271, 240, 15, "WANTRETURN")
-self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
 
 */
 ------------------------------------------------------
@@ -487,7 +483,7 @@ expose controls debugtext buttonpushed debugger hfnt startuphelptext debuggerui
 
 
 -- Create the frame
-self~init:super('java.awt.Frame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
+self~init:super('javax.swing.JFrame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
 self~setSize(440, 510);
 self~setMinimumSize(.bsf~new("java.awt.Dimension", 440,510));
 self~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
@@ -625,6 +621,7 @@ sourcemouselistener = .DebugDialogListSourceMouseListener~new
 sourcemouselistenerEH = BsfCreateRexxProxy(sourcemouselistener, self, "java.awt.event.MouseListener")
 controls[self~LISTSOURCE]~addMouseListener(sourcemouselistenerEH)
 
+self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
 /*
 controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
