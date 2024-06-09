@@ -159,7 +159,9 @@ guard on when doexit = .True
 ::method windowdeiconified
 ::method windowclosed
 
+------------------------------------------------------
 ::method windowclosing
+------------------------------------------------------
 use arg eventobj, slotdir
 dialog = slotdir~userdata
 dialog~Cancel          
@@ -176,7 +178,7 @@ dialog~Cancel
 ::method mouseclicked
 ------------------------------------------------------
 use arg eventobj, slotdir
-say eventobj~getclickcount
+
 dialog = slotdir~userdata
 dialog~StackFrameChanged
 
@@ -197,6 +199,29 @@ if eventobj~getclickcount == 2 then do
   dialog~SourceLineDoubleClicked
 end
 
+--====================================================
+::class DebugDialogCommandKeyListener public
+--====================================================
+::method keyTyped
+::method keyReleased
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose vkup vkdown
+
+vkup = bsf.getstaticvalue("java.awt.event.KeyEvent", "VK_UP")
+vkdown = bsf.getstaticvalue("java.awt.event.KeyEvent", "VK_DOWN")
+
+------------------------------------------------------
+::method keyPressed
+------------------------------------------------------
+expose vkup vkdown
+use arg event, slotdir
+dialog = slotdir~userdata
+
+if event~getKeycode = vkup then dialog~OnPrevCommand
+if event~getKeycode = vkdown then dialog~OnNextCommand
 
 --====================================================
 ::class DebugDialog subclass bsf
@@ -302,7 +327,6 @@ debuggerui~awaitingmaindialogresponse = .False
 expose u 
 
 self~createPushButton(self~BUTTONVARS, 246, 218, 30, 15,  ,"&Vars", OnVarsButton) 
-self~createEdit(self~EDITCOMMAND, 3, 271, 240, 15, "WANTRETURN")
 
 */
 ------------------------------------------------------
@@ -411,7 +435,7 @@ if waiting then do
   self~HereIsResponse(returnstring)
 end
 
-/*
+
 ------------------------------------------------------
 ::method OnPrevCommand 
 ------------------------------------------------------
@@ -434,6 +458,7 @@ if commandnum > arrCommands~items then do
 end  
 else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(arrCommands[commandnum])
 
+/*
 ------------------------------------------------------
 ::METHOD AddWatchWindow
 ------------------------------------------------------
@@ -618,14 +643,12 @@ sourcemouselistener = .DebugDialogListSourceMouseListener~new
 sourcemouselistenerEH = BsfCreateRexxProxy(sourcemouselistener, self, "java.awt.event.MouseListener")
 controls[self~LISTSOURCE]~addMouseListener(sourcemouselistenerEH)
 
+commandkeylistener = .DebugDialogCommandKeyListener~new
+commandkeylistenerEH = BsfCreateRexxProxy(commandkeylistener, self, "java.awt.event.KeyListener")
+controls[self~EDITCOMMAND]~addKeyListener(commandkeylistenerEH)
+
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
-/*
-controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
-controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
-controls[self~EDITCOMMAND]~wantreturn("EditReturn")
-controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
-*/
 
 debugtext = ''
 buttonpushed = .False
@@ -685,47 +708,16 @@ if id = self~BUTTONHELP then self~OnHelpButton
 if id = self~BUTTONEXIT then self~OnExitButton
 if id = self~BUTTONEXEC then self~OnExecButton
 
-/*
-
-------------------------------------------------------
-::method EditCommandChar 
-------------------------------------------------------
-use arg char
-if char \= 13 then return .true
-else return .false
-
-------------------------------------------------------
-::method EditReturn 
-------------------------------------------------------
-expose controls
-self~newPushButton(self~BUTTONEXEC)~click
-return 0
-
-*/
 ------------------------------------------------------
 ::Method AppendText 
 ------------------------------------------------------
 expose controls debugtext debugger
 use arg newtext, newline = .true
---say 'dialog appendtext started on thread 'GetWindowsThreadID()
---say '^^^^^^^^^^^^^^  InAppendText '||.awtGuiThread~isGuiThread
---say '~~~~~~~~~~~~~~ 'newtext, newline
 
 if newline  then newtext = newtext||.endofline
 debugtext = debugtext||newtext
 if \debugger~isshutdown then do
-  --controls[self~EDITDEBUGLOG]~hidefast
-  --say '++++++++++++Appending'
-  --controls[self~EDITDEBUGLOG]~setEnabled
-  --controls[self~EDITDEBUGLOG]~seteditable(.true)
   controls[self~EDITDEBUGLOG]~append(newtext)
-  --controls[self~EDITDEBUGLOG]~seteditable(.false)
-  
-  --scrollcharpos = debugtext~lastpos(.endofline) + .endofline~length
-  --controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
-  --controls[self~EDITDEBUGLOG]~showfast
-  --controls[self~EDITDEBUGLOG]~ensureCaretVisibility
-  --controls[self~EDITDEBUGLOG]~repaint
 end
 
 ------------------------------------------------------
