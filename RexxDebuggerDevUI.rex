@@ -250,6 +250,7 @@ do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self
 end    
 
 if waiting & \controls[self~BUTTONRUN]~gettext()~equals("Run") then controls[self~BUTTONRUN]~settext("Run")
+if waiting then controls[self~EDITCOMMAND]~requestFocus
 /*
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
@@ -399,11 +400,7 @@ expose waiting controls arrCommands commandnum
 if waiting then do
   returnstring = controls[self~EDITCOMMAND]~gettext~strip
   
-  --controls[self~EDITCOMMAND]~select()
-  /* These ought to select but dont
-    controls[self~EDITCOMMAND]~setselectionstart(0)
-    controls[self~EDITCOMMAND]~setSelectionend(2)
-  */  
+  controls[self~EDITCOMMAND]~selectall
   if returnstring \= '' then do
     if \arrCommands~hasitem(returnstring) then do
       arrCommands~append(returnstring)
