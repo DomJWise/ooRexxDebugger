@@ -49,15 +49,8 @@ debugdialog~repaint
 
 debugger~FlagUIStartupComplete
 
-/* Self explanatory */
 
-debugdialog~waitForExit -- wait until we are allowed to end the program
-
-/* This will close the window */
---debugdialog~dispose
-
---TODO: Launch main dialog
---debugdialog~popup("SHOWTOP")
+self~WaitForExit 
 
 ------------------------------------------------------
 ::method AppendUIConsoleText unguarded
@@ -113,6 +106,40 @@ say '~~enter UpdateUIWatchWindows on thread 'GetWindowsThreadID()
 --debugdialog~UpdateWatchWindows(varsroot)
 say '~~leave UpdateUIWatchWindows'
 
+-------------------------------------------------------
+::method SetExit unguarded
+-------------------------------------------------------
+expose doexit
+doexit = .True
+-------------------------------------------------------
+::method WaitForExit unguarded
+-------------------------------------------------------
+expose doexit
+
+doexit = .False
+guard on when doexit = .True
+
+
+--====================================================
+::class DebugDialogWindowListener public
+--====================================================
+::method windowopened
+::method windowactivated
+::method windowdeactivated
+::method windowiconified
+::method windowdeiconified
+::method windowclosed
+
+::method windowclosing
+use arg eventobj, slotdir
+dialog = slotdir~userdata
+dialog~Cancel          
+
+::method unknown
+use arg name, arguments
+say '______ unknown :'name
+
+
 --====================================================
 ::class DebugDialog subclass bsf
 --====================================================
@@ -130,35 +157,32 @@ say '~~leave UpdateUIWatchWindows'
 
 ::attribute debugarrstack      unguarded
 ::attribute debugactivateindex unguarded
-/*
-------------------------------------------------------
-::method ok  
-------------------------------------------------------
-return .False
 
 ------------------------------------------------------
-::method cancel unguarded
+::method Cancel unguarded
 ------------------------------------------------------
-expose waiting debugger hfnt watchwindows controls
+expose waiting debugger hfnt watchwindows controls debuggerui
 close = .True
 if waiting = .True then do
-   ret = RxMessageBox("Do you really want to quit and end the program?", "Program still running", "YESNO", "QUESTION")
-   if ret = 7 then close = .False
-end
+  ret = .bsf.dialog~dialogbox("Do you really want to quit and end the program ?", "Program still running","question", "YesNo")
+  if ret = 1 then close = .False
+end  
 if close then do
-  controls[self~LISTSOURCE]~deleteall
+/*  controls[self~LISTSOURCE]~deleteall
   controls[self~LISTSTACK]~deleteall
   self~deletefont(hfnt)
   watchlist = watchwindows~allitems~section(1)
   do watchwindow over watchlist~allitems
      watchwindow~cancel
   end   
-  self~CANCEL:super
-  debugger~informshutdown
+*/  
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
+  debuggerui~SetExit
+  debugger~informshutdown
+  self~dispose
 end
 
-*/
+
 ------------------------------------------------------
 ::method UpdateControlStates 
 ------------------------------------------------------
@@ -194,13 +218,6 @@ controls = .Directory~new
 arrcommands = .Array~new
 commandnum = 0
 self~InitDialog
-
--------------------------------------------------------
-::method WaitForExit unguarded
--------------------------------------------------------
-do forever
-  call syssleep 1
-end
 
 -------------------------------------------------------
 ::method SetWaiting
@@ -406,7 +423,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose controls debugtext buttonpushed debugger hfnt startuphelptext debugger
+expose controls debugtext buttonpushed debugger hfnt startuphelptext debugger 
 
 
 -- Create the frame
@@ -530,7 +547,11 @@ controls[self~BUTTONVARS] = buttonvars
 controls[self~BUTTONHELP] = buttonhelp
 controls[self~BUTTONEXEC] = buttonexec
 
+windowlistener = .DebugDialogWindowListener~new
+windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
+self~addWindowListener(windowlistenerEH)
 
+--self~addWindowListener(BsfCreateRexxProxy(self, .nil, "java.awt.event.ActionListener", "java.awt.event.WindowListener"))
 controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONNEXT, "java.awt.event.ActionListener"))
 controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
 controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
@@ -588,6 +609,9 @@ if "LRUD"~pos(offsetletter) \= 0 then do
   end
 end
 */
+
+
+
 ------------------------------------------------------
 ::method actionPerformed unguarded
 ------------------------------------------------------
