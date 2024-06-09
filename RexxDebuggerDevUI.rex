@@ -508,7 +508,7 @@ listsource = .bsf~new("javax.swing.JList", listsourcemodel)
 
 listsource~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 listsource~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-if fixedfont \= '' then listsource~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+if fixedfont \= '' then listsource~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 12));
 listsource~setFixedCellHeight(14);
 
 listsourcepane = .bsf~new("javax.swing.JScrollPane")
@@ -522,7 +522,7 @@ liststack = .bsf~new("javax.swing.JList", liststackmodel)
 
 liststack~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
 liststack~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-if fixedfont \= '' then liststack~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 11));
+if fixedfont \= '' then liststack~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 12));
 liststack~setFixedCellHeight(14);
 
 liststackpane = .bsf~new("javax.swing.JScrollPane")
