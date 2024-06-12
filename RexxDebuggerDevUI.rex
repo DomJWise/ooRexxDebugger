@@ -73,12 +73,11 @@ self~WaitForExit
 
 awaitresult = .AwtGuiThread~runLaterLatest(self, "NoOp")~result
 
-call BSF.terminateRexxEngine
+
 
 ------------------------------------------------------
 ::method NoOp unguarded
 ------------------------------------------------------
-
 ------------------------------------------------------
 ::method AppendUIConsoleText unguarded
 ------------------------------------------------------
@@ -160,11 +159,11 @@ guard on when doexit = .True
 ::method windowclosed
 
 ------------------------------------------------------
-::method windowclosing
+::method windowclosing 
 ------------------------------------------------------
 use arg eventobj, slotdir
 dialog = slotdir~userdata
-dialog~Cancel          
+dialog~Cancel
 
 --====================================================
 ::class DebugDialogListStackMouseListener public
@@ -506,6 +505,7 @@ expose controls debugtext buttonpushed debugger hfnt startuphelptext debuggerui
 
 -- Create the frame
 self~init:super('javax.swing.JFrame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
+self~setDefaultCloseOperation(bsf.getStaticValue("javax.swing.WindowConstants","DO_NOTHING_ON_CLOSE"))
 self~setSize(440, 510);
 self~setMinimumSize(.bsf~new("java.awt.Dimension", 440,510));
 self~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
