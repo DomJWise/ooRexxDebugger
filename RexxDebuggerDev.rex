@@ -22,7 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-if .local~rexxdebugger.debugger \= .nil then  return
+if .local~rexxdebugger.debuggerinit \= .nil then  return
+.local~rexxdebugger.debuggerinit = .Object~new
 
 if \ConfigureCommandLineDebuggee(ARG(1)~strip) then do 
   parentwindowname = arg(1)
