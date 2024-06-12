@@ -423,7 +423,8 @@ use arg discard
 ------------------------------------------------------
 expose debugger discard
 use arg tracestring
-if tracestring~word(1)~translate='ERROR' | \discard then return debugger~lineout(tracestring)
+if tracestring~word(1)~translate='ERROR' | tracestring~pos('+++ Interactive trace.  Error') = 1 | \discard then return debugger~lineout(tracestring)
+
 else return 0
 
 /*====================================================
