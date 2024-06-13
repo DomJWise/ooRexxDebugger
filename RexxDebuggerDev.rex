@@ -130,12 +130,14 @@ uiloaded = .false
 if .context~package~FindClass('DebuggerUI') \= .nil then do
   uiloaded = .true
 end  
+/*
 else if SysVersion()~translate~pos("WINDOWS") = 1 then do
   if SysSearchPath('PATH','RexxDebuggerWinUI.rex') \= '' then do 
     call RexxDebuggerWinUI.rex
     uiloaded = .true
   end  
 end
+*/
 if \uiloaded then do
     if (SysSearchPath('PATH','RexxDebuggerBSFUI.rex')  \= '' | .File~new('RexxDebuggerBSFUI.rex')~canread) & SysSearchPath('PATH','BSF.cls') \= .Nil then do 
     call RexxDebuggerBSFUI.rex
@@ -219,7 +221,7 @@ return listBreakpoints
 ------------------------------------------------------
 ::method SendDebugMessage unguarded
 ------------------------------------------------------
-expose debuggerui 
+expose debuggerui
 use  arg text, newline = .true
 if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 
@@ -399,6 +401,7 @@ else if status="gotvars" then do
   return '.debug.channel~result = result;.debug.channel~status=""; result = .debug.channel~result; '
 end
 return ''
+
 ------------------------------------------------------
 ::method SetManualBreak
 ------------------------------------------------------
