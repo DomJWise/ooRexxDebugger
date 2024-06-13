@@ -132,14 +132,14 @@ if .context~package~FindClass('DebuggerUI') \= .nil then do
 end  
 /*
 else if SysVersion()~translate~pos("WINDOWS") = 1 then do
-  if .File~SearchPath('RexxDebuggerWinUI.rex') \= .Nil then do 
+  if SysSearchPath('PATH','RexxDebuggerWinUI.rex') \= '' then do 
     call RexxDebuggerWinUI.rex
     uiloaded = .true
   end  
 end
 */
 if \uiloaded then do
-    if .File~SearchPath('RexxDebuggerBSFUI.rex') \= .Nil & .File~SearchPath('BSF.cls') \= .Nil then do 
+    if (SysSearchPath('PATH','RexxDebuggerBSFUI.rex')  \= '' | .File~new('RexxDebuggerBSFUI.rex')~canread) & SysSearchPath('PATH','BSF.cls') \= .Nil then do 
     call RexxDebuggerBSFUI.rex
     uiloaded = .true
   end  
