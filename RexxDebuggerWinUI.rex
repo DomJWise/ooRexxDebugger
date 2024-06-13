@@ -233,7 +233,7 @@ if waiting then do
   instructions = controls[self~EDITCOMMAND]~gettext~strip
   firstword = instructions~word(1)~translate
   if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
-    call SAY 'This command cannot be used with Next at this time'
+    self~appendtext('This command cannot be used with Next at this time')
     return
   end  
   controls[self~BUTTONRUN]~settext("B&reak")
@@ -253,11 +253,11 @@ end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
   controls[self~BUTTONRUN]~settext("&Run")
-   call SAY 'Automatic breakpoint set for the next line of traceable code.'
+   self~appendtext('Automatic breakpoint set for the next line of traceable code.')
 end
 else do
   debugger~SetManualBreak(.False)
-  call SAY 'Automatic breakpoint removed. Program will run normally.'
+  self~appendtext('Automatic breakpoint removed. Program will run normally.')
   controls[self~BUTTONRUN]~settext("B&reak")
 end   
 ------------------------------------------------------
