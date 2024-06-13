@@ -96,7 +96,7 @@ debuggerui~RunUI
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugwindowtracer uiloaded
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugwindowtracer uiloaded debuggerui
 
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
@@ -106,6 +106,7 @@ breakpoints = .Set~new
 tracedprograms = .Set~new
 manualbreak = .false
 debugwindowtracer = .DebugWindowTracer~new(self)
+debuggerui = .nil
 
 .local~debug.channel = .Directory~new
 .debug.channel~status="getprogramstatus"
@@ -129,12 +130,21 @@ uiloaded = .false
 if .context~package~FindClass('DebuggerUI') \= .nil then do
   uiloaded = .true
 end  
---else if SysVersion()~translate~pos("WINDOWS") = 1 then do
---  if SysSearchPath('PATH', 'RexxDebuggerWinUI.rex') \= '' then do 
-    call RexxDebuggerDevUI.rex
+/*
+else if SysVersion()~translate~pos("WINDOWS") = 1 then do
+  if .File~SearchPath('RexxDebuggerWinUI.rex') \= .Nil then do 
+    call RexxDebuggerWinUI.rex
     uiloaded = .true
---  end  
---end
+  end  
+end
+*/
+if \uiloaded then do
+    if .File~SearchPath('RexxDebuggerBSFUI.rex') \= .Nil & .File~SearchPath('BSF.cls') \= .Nil then do 
+    call RexxDebuggerBSFUI.rex
+    uiloaded = .true
+  end  
+end
+
 return uiloaded
 
 ------------------------------------------------------
@@ -144,9 +154,10 @@ expose launched windowname offsetdirection debuggerui uistartupcomplete uiloaded
 use arg windowname = "", offsetdirection = ""
 
 if launched = .true then return
-
 if \uiloaded then do 
   say 'Error: No debugger front end is available to load.'
+  if SysVersion()~translate~pos("WINDOWS") = 1 then say 'A front end for Windows is implemented in RexxDebuggerWinUI.rex'
+  say 'A front end for Java + bsf4ooRexx is implemented in RexxDebuggerBSFUI.rex'
   return
 end  
 
@@ -217,10 +228,13 @@ if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 ------------------------------------------------------
 ::method CaptureAndDiscardTrace 
 ------------------------------------------------------
-expose debugwindowtracer
+expose debugwindowtracer uiloaded
+
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-  ignore = .traceoutput~destination(debugwindowtracer)
-  debugwindowtracer~SetDiscard(.True)
+  if uiloaded then do
+    ignore = .traceoutput~destination(debugwindowtracer)
+    debugwindowtracer~SetDiscard(.True)
+  end  
   return .True
 END
 else do
@@ -231,13 +245,15 @@ end
 ------------------------------------------------------
 ::method CaptureConsoleOutput 
 ------------------------------------------------------
-expose debugwindowtracer
+expose debugwindowtracer uiloaded
 use arg discardtrace
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-  ignore = .traceoutput~destination(debugwindowtracer)
-  debugwindowtracer~SetDiscard(discardtrace)
-  ignore = .output~destination(self)
-  ignore = .error~destination(self)
+  if uiloaded then do 
+    ignore = .traceoutput~destination(debugwindowtracer)
+    debugwindowtracer~SetDiscard(discardtrace)
+    ignore = .output~destination(self)
+    ignore = .error~destination(self)
+  end  
   return .True
 END
 else do
@@ -398,7 +414,6 @@ use arg manualbreak
 expose manualbreak
 
 return manualbreak
-
 
 --====================================================
 ::class DebugWindowTracer
