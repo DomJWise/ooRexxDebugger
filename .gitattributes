@@ -1,1 +1,2 @@
 rexxdebugger eol=lf
+.git* export-ignore
