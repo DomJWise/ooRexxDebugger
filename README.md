@@ -36,16 +36,18 @@ along with one of the user interface modules below:
    RexxDebuggerWinUI.rex is required for the Windows ooDialog version
    RexxDebuggerBSFUI.rxx in required for the Swing/AWT version
 
+On Unix platforms the (bash script) rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
+invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
 
 Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via  command line options  available to RexxDebugger.rex
 
 For a standalone program  where a single argument string is passed unaltered to the program you would use:
 
-RexxDebugger [/showtrace] myprogram.rex [{argstring}]
+rexxdebugger [/showtrace] myprogram.rex [{argstring}]
 
 For a 'routine' program that expects multiple ARG(n) arguments you would use:
 
-RexxDebugger [/showtrace] CALL myroutine.rex [{arg1}] ... [{argn}]
+rexxdebugger [/showtrace] CALL myroutine.rex [{arg1}] ... [{argn}]
 
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 

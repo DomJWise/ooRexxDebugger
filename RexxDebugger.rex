@@ -138,7 +138,7 @@ else if SysVersion()~translate~pos("WINDOWS") = 1 then do
 end
 if \uiloaded then do
     if (SysSearchPath('PATH','RexxDebuggerBSFUI.rex')  \= '' | .File~new('RexxDebuggerBSFUI.rex')~canread) & SysSearchPath('PATH','BSF.cls') \= .Nil then do 
-    call RexxDebuggerBSFUI.rex
+    call 'RexxDebuggerBSFUI.rex'
     uiloaded = .true
   end  
 end
