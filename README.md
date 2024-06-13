@@ -1,10 +1,16 @@
 # ooRexxDebugger
 
-A basic interactive dialog based ooRexx debugger for use on Windows.
+A cross platform dialog based ooRexx debugger
 
-It is written in ooRexx with support from version 4.2 and uses the ooDialog framework for its user interface.
+Written in ooRexx with support from version 4.2 on Windows where ooDialog is used for the user interface, 
+and on platforms with Java and bsf4ooRexx (minimum versions bsf4ooRexx850 + ooRexx 5.0) where the Swing/AWT 
+libraries are used.
 
-It's still in active development so you may well find bugs but features include:
+Note that the Swing/AWT version is currently partially implemented and the main dialog is supported (without
+windows placement control) but watch windows cannot be launched. Testing has been carried out on Windows and 
+Ubuntu but no other platforms at this time.
+
+It's still in active development so you will likely find bugs but features include:
 
 - A main window with:
   -  Source display of the code being debugged
@@ -24,15 +30,14 @@ sections so you dont have to add TRACE statements to them manually. TRACE ?R is 
 keeping the trace output low and minimizing the overhead of processing the trace text, though in many cases the 
 CAPTUREX debugger command can be used to discard all TRACE output and speed things up considerably.
 
-To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory.
+To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory,
+along with one of the user interface modules below:
 
-******* >> Fixes in version 1.022
+   RexxDebuggerWinUI.rex is required for the Windows ooDialog version
+   RexxDebuggerBSFUI.rxx in required for the Swing/AWT version
 
-Several scenarios in which the debuggee loses the RESULT value set by a routine or other call have been fixed
 
-******* >> New in version 1.021 (1.02x is still under development / testing)
-
-Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via new command line options now available to RexxDebugger.rex
+Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via  command line options  available to RexxDebugger.rex
 
 For a standalone program  where a single argument string is passed unaltered to the program you would use:
 
@@ -45,8 +50,6 @@ RexxDebugger [/showtrace] CALL myroutine.rex [{arg1}] ... [{argn}]
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 
 For both of the above, all trace output is configured to be captured to the debugger then discarded to improve performance and reduce "noise" unless the /showtrace option is specifed, in which case it will be left to run to the console. The ability to discard trace output while leaving standard output with the target application is also available in other debug session types by running the DISCARDTRACE command. Note that as with CAPTURE[X] some embedded environments will not allow redirection of trace output in which case ths option will have no effect.
-
-******* << End new 1.02x features
 
 If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
 
