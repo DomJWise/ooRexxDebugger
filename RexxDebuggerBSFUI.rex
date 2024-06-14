@@ -34,8 +34,15 @@ SOFTWARE.
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugdialog debugger fixedfont
+expose debugger
 use arg debugger
+
+awaitresult = .AwtGuiThread~runLater(self, "InitSafe")~result
+
+------------------------------------------------------
+::method InitSafe unguarded
+------------------------------------------------------
+expose  debugdialog debugger fixedfont
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -62,18 +69,20 @@ return fixedfont
 ::method RunUI unguarded
 ------------------------------------------------------
 expose debugdialog debugger
-/* Show the window */
-debugdialog~~setVisible(.true) ~~toFront
-debugdialog~repaint
 
+awaitresult = .AwtGuiThread~runLater(self, "ShowMainDialogSafe")~result
 debugger~FlagUIStartupComplete
 
-
 self~WaitForExit 
-
 awaitresult = .AwtGuiThread~runLaterLatest(self, "NoOp")~result
 
+------------------------------------------------------
+::method ShowMainDialogSafe unguarded
+-----------------------------------------------------
+expose debugdialog
 
+debugdialog~~setVisible(.true) ~~toFront
+debugdialog~repaint
 
 ------------------------------------------------------
 ::method NoOp unguarded
