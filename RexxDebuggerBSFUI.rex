@@ -152,9 +152,11 @@ use arg arrStack, activateindex
 
 if debugdialog \= .nil then
 do 
-  debugdialog~debugarrstack = arrStack
-  debugdialog~debugactivateindex = activateindex
+  debugdialog~rexxarg1 = arrStack
+  debugdialog~rexxarg2 = activateindex
   awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateCodeView")~result
+  debugdialog~rexxarg1 = .nil
+  debugdialog~rexxarg2 = .nil
 end
 --say '~~leave UpdateUICodeView'
 
@@ -164,9 +166,12 @@ end
 expose debugdialog
 use arg varsroot
 
-/*
-debugdialog~UpdateWatchWindows(varsroot)
-*/
+if debugdialog \= .nil then
+do 
+  debugdialog~rexxarg1 = varsroot
+  awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows")~result
+  debugdialog~rexxarg1 = .Nil
+end  
 
 
 --say '~~leave UpdateUIWatchWindows'
@@ -276,8 +281,8 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::constant BUTTONEXEC   109
 ::constant PANESOURCE   110
 
-::attribute debugarrstack      unguarded
-::attribute debugactivateindex unguarded
+::attribute rexxarg1     unguarded
+::attribute rexxarg2     unguarded
 
 ------------------------------------------------------
 ::method Cancel unguarded
@@ -289,12 +294,12 @@ if waiting = .True then do
   if ret = 1 then close = .False
 end  
 if close then do
-/*
-watchlist = watchwindows~allitems~section(1)
+
+  watchlist = watchwindows~allitems~section(1)
   do watchwindow over watchlist~allitems
      watchwindow~cancel
   end   
-*/  
+  
   debugger~informshutdown
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
   self~dispose
@@ -357,15 +362,6 @@ gui~debugdialogresponse = response
 gui~awaitingmaindialogresponse = .False
 
 
-/*
-------------------------------------------------------
-::method defineDialog 
-------------------------------------------------------
-expose u 
-
-self~createPushButton(self~BUTTONVARS, 246, 218, 30, 15,  ,"&Vars", OnVarsButton) 
-
-*/
 ------------------------------------------------------
 ::method OnNextButton 
 ------------------------------------------------------
@@ -417,16 +413,17 @@ if waiting then do
   end  
 end
 
-/*
+
 ------------------------------------------------------
 ::method OnVarsButton 
 ------------------------------------------------------
 expose waiting watchdialog debugger varsroot
 if waiting then do
+  --say 'Adding watch!'
   self~AddWatchWindow(self)
 end
 
-*/
+
 ---------------------------------------------------
 ::method OnHelpButton 
 ------------------------------------------------------
@@ -495,11 +492,10 @@ if commandnum > arrCommands~items then do
 end  
 else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(arrCommands[commandnum])
 
-/*
 ------------------------------------------------------
 ::METHOD AddWatchWindow
 ------------------------------------------------------
-expose watchwindows  childready rootlist
+expose watchwindows  childready rootlist gui
 use arg  parentwindow, parentlist = .nil
 if parentlist = .nil then do
   if \rootlist~isA(.List) then rootlist = .list~new
@@ -510,16 +506,18 @@ do item over parentlist
   watchwindowid = watchwindowid||':'||item~makestring
 end  
 if \watchwindows~hasindex(watchwindowid) then do
+
   childready = .False
-  watchdialog = .Watchdialog~new(self, parentwindow, parentlist)
-  watchdialog~popup("SHOWTOP")
+  watchdialog = .Watchdialog~new(self, gui, parentwindow, parentlist)
+  --watchdialog~popup("SHOWTOP")
   watchwindows[watchwindowid] = watchdialog
   guard off when childready = .True
+  
 end
-else self~setforegroundWindow(watchwindows[watchwindowid]~hwnd)
-
+watchwindows[watchwindowid]~tofront
 
 self~HereIsResponse("UPDATEVARS")
+
 
 ------------------------------------------------------
 ::METHOD NotifyChildReady unguarded
@@ -533,7 +531,7 @@ childready = .True
 expose watchwindows
 use arg watchwindow
 watchwindows~removeitem(watchwindow)
-*/
+
 
 ------------------------------------------------------
 ::method InitDialog 
@@ -562,7 +560,7 @@ listsource = gui~clsJList~new(listsourcemodel)
 
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL);
-if fixedfont \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12));
+if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12));
 listsource~setFixedCellHeight(14);
 
 listsourcepane = gui~clsJScrollPane~new
@@ -576,7 +574,7 @@ liststack = gui~clsJlist~new(liststackmodel)
 
 liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
 liststack~setLayoutOrientation(gui~clsJlist~VERTICAL);
-if fixedfont \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12));
+if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12));
 liststack~setFixedCellHeight(14);
 
 liststackpane = gui~clsJScrollPane~new
@@ -669,6 +667,7 @@ controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONR
 controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
 controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXIT, "java.awt.event.ActionListener"))
 controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXEC, "java.awt.event.ActionListener"))
+controls[self~BUTTONVARS]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONVARS, "java.awt.event.ActionListener"))
 
 
 stackmouselistener = .DebugDialogListStackMouseListener~new
@@ -743,6 +742,7 @@ if id = self~BUTTONRUN then self~OnRunButton
 if id = self~BUTTONHELP then self~OnHelpButton
 if id = self~BUTTONEXIT then self~OnExitButton
 if id = self~BUTTONEXEC then self~OnExecButton
+if id = self~BUTTONVARS then self~OnVarsButton
 
 ------------------------------------------------------
 ::Method AppendText 
@@ -831,12 +831,12 @@ end
 ------------------------------------------------------
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
-expose controls arrStack activesourcename loadedsources debugger debugarrstack debugactivateindex
+expose controls arrStack activesourcename loadedsources debugger rexxarg1 rexxarg2
 use arg arrstack,activateindex
 
 if arg() = 0 then do 
-  arrStack = debugarrstack
-  activateindex = debugactivateindex
+  arrStack      = rexxarg1
+  activateindex = rexxarg2
 end
 -- Ensure the (available) sources are loaded
 do stackindex = 1 to arrstack~items
@@ -882,14 +882,16 @@ end
 ------------------------------------------------------
 ::method UpdateWatchWindows 
 ------------------------------------------------------
-expose varsroot watchwindows
+expose varsroot watchwindows rexxarg1
 use arg varsroot
-/*
+
+if arg() = 0 then do 
+  varsroot = rexxarg1
+end
+
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
-*/
-
 ------------------------------------------------------
 ::method StackFrameChanged 
 ------------------------------------------------------
@@ -927,9 +929,44 @@ if sourceline~left(4) = '/'||'**'||'/' then sourceline = sourceline~substr(5)
 if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- <slash><star>"~wordpos(sourceline~left(2)) \= 0 then return .False
 else return .True
 
-/*
+
+--====================================================
+::class WatchDialogWindowListener public
+--====================================================
+::method windowopened
+::method windowactivated
+::method windowdeactivated
+::method windowiconified
+::method windowdeiconified
+::method windowclosed
+
+------------------------------------------------------
+::method windowclosing 
+------------------------------------------------------
+use arg eventobj, slotdir
+dialog = slotdir~userdata
+dialog~Cancel
+
+--====================================================
+::class WatchDialogListVarsMouseListener public
+--====================================================
+::method mousepressed
+::method mousereleased
+::method mouseexited
+::method mouseentered
+
+------------------------------------------------------
+::method mouseclicked
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~getclickcount == 2 then do
+  dialog = slotdir~userdata
+  dialog~VariableDoubleClicked
+end
+
+
  --====================================================
-::class WatchDialog subclass UserDialog inherit ResizingAdmin
+::class WatchDialog subclass bsf
 --====================================================
  
 ::CONSTANT LISTVARS 101
@@ -937,17 +974,17 @@ else return .True
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 
 
+
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow parentlist currentselectioninfo varsvalid
-use arg debugwindow, parentwindow, parentlist
+expose debugwindow controls parentwindow parentlist currentselectioninfo varsvalid dialogtitle gui
+use arg debugwindow, gui, parentwindow, parentlist
 
 
 controls = .Directory~new
 currentselectioninfo = ""
 varsvalid = .False
-forward class (super) continue array(.nil)
 
 dialogtitle = "Watch"
 do elementname over parentlist
@@ -956,63 +993,76 @@ do elementname over parentlist
   else dialogtitle = dialogtitle || elementname
 end
 
-self~create(0, 0, 104, 56, dialogtitle, "THICKFRAME")
+self~Initdialog
+
+
+self~~setVisible(.true) ~~toFront
+self~repaint
 
 ------------------------------------------------------
-::method defineDialog 
+::method InitDialog 
 ------------------------------------------------------
-expose variablescollection
-style = "HSCROLL VSCROLL NOTIFY"
-self~createListBox(self~LISTVARS, 2, 2, 100, 52, style)
+expose controls debugwindow hfnt  parentwindow dialogtitle gui
+--say 'Creating watch:' dialogtitle
+self~init:super('javax.swing.JFrame',.array~of(dialogtitle))
+self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
+self~setSize(175, 130);
+self~setMinimumSize(gui~clsDimension~new(175,130));
+self~setLayout(gui~clsBorderLayout~new(5,5));
+self~setLocationRelativeTo(.nil);
 
-------------------------------------------------------
-::method defineSizing 
-------------------------------------------------------
+windowlistener = .WatchDialogWindowListener~new
+windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
+self~addWindowListener(windowlistenerEH)
 
-self~controlLeft(self~LISTVARS, 'STATIONARY', 'LEFT') 
-self~controlRight(self~LISTVARS, 'STATIONARY', 'RIGHT') 
-self~controlTop(self~LISTVARS, 'STATIONARY', 'TOP') 
-self~controlBottom(self~LISTVARS, 'STATIONARY', 'BOTTOM') 
+panelmain = gui~clsJPanel~new
+panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5));
+panelmain~setLayout(gui~clsBorderLayout~new(5,5));
 
-return 0
+listvarsmodel = gui~clsDefaultListModel~new
+listvars = gui~clsJList~new(listvarsmodel)
+listvarsmodel~addelement("Hello")
+listvarsmodel~addelement("fabulously wonderful")
+listvarsmodel~addelement("World")
+listvarsmodel~addelement("in")
+listvarsmodel~addelement("which")
+listvarsmodel~addelement("I")
+listvarsmodel~addelement("Live!")
+listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
+listvars~setLayoutOrientation(gui~clsJlist~VERTICAL);
+if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12));
+listvars~setFixedCellHeight(14);
 
-------------------------------------------------------
-::method initdialog 
-------------------------------------------------------
-expose controls debugwindow hfnt  parentwindow 
+listvarspane = gui~clsJScrollPane~new
+listvarspane~setPreferredSize(gui~clsDimension~new(440,50));
+listvarspane~setViewportView(listvars);
 
-controls[self~LISTVARS] = self~newListBox(self~LISTVARS)
+panelmain~add(listvarspane, gui~clsBorderLayout~CENTER);
+self~add(panelmain);
 
-minsize = .Size~new(self~pixelCX, self~pixelCY)
-self~minSize = minsize
+controls[self~LISTVARS] = listvars
 
-hfnt = self~createFontEx("Courier New", 8)
-controls[self~LISTVARS]~setFont(hfnt, .true)
+varsmouselistener = .WatchDialogListVarsMouseListener~new
+varsmouselistenerEH = BsfCreateRexxProxy(varsmouselistener, self, "java.awt.event.MouseListener")
+controls[self~LISTVARS]~addMouseListener(varsmouselistenerEH)
 
-self~connectListBoxEvent(self~LISTVARS, DBLCLK, "VariableDoubleClicked")
-self~connectListBoxEvent(self~LISTVARS, SELCHANGE, "VariableSelected")
+parentrect = parentwindow~getbounds
+myrect = self~getbounds
+if parentwindow = debugwindow then self~setlocation(parentrect~x + parentrect~width + 10, parentrect~y)
+else self~setlocation(parentrect~x, parentrect~y + parentrect~height + 10)
 
-parentsize = parentwindow~getrealsize
-parentpos = parentwindow~getrealpos
-mysize= self~getrealsize
-if parentwindow = debugwindow then mystartpos = parentpos~~incr(parentsize~width, 0)
-else mystartpos = parentpos~~incr(0, parentsize~height)
-self~moveto(mystartpos)
-
-self~ensurevisible
 debugwindow~NotifyChildReady
-------------------------------------------------------
-::method ok  
-------------------------------------------------------
-return .False
+
 
 ------------------------------------------------------
-::method cancel 
+::method Cancel 
 ------------------------------------------------------
+
 expose hfnt debugwindow
-self~deletefont(hfnt)
+--say 'Watch~Cancel'
 debugwindow~RemoveWatchWindow(self)
-self~CANCEL:super
+self~dispose
+
 
 ------------------------------------------------------
 ::METHOD VariableSelected
@@ -1032,7 +1082,7 @@ end
 ------------------------------------------------------
 expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
 use arg root
-
+--SAY 'UpdateWatchWindow -vars = 'root
 variablescollection = root
 do nextchild over parentlist
   variablescollection = variablescollection[nextchild]
@@ -1040,17 +1090,13 @@ do nextchild over parentlist
 end
 
 if variablescollection = .nil then do
- self~setcurrentListIndex(self~LISTVARS, 0)
+-- self~setcurrentListIndex(self~LISTVARS, 0)
  varsvalid = .False
 end
 else do
   varsvalid = .True
-  controls[self~LISTVARS]~hidefast
-  controls[self~LISTVARS]~deleteall
-  dc = self~getControlDC(self~LISTVARS)
-  oldfont = self~fonttodc(dc, hfnt)
-
-  maxwidth = 0
+  listdata = controls[self~LISTVARS]~getModel
+  listdata~clear
   if variablescollection~isA(.Directory) | -
        variablescollection~isA(.Properties) | -
        variablescollection~isA(.Stem) -
@@ -1071,16 +1117,10 @@ else do
       varvalue = varvalue||')'
     end  
     text= vardisplayname' = 'varvalue
-    width = self~getTextExtent(dc, text)~width
-    if width > maxwidth then maxwidth = width
-    controls[self~LISTVARS]~add(text)
+    listdata~addelement(text)
     itemclasses~append(variablescollection[varname]~class)
   end
-
-  self~fonttodc(dc, oldfont)
-  self~freecontroldc(self~LISTVARS, oldfont)
-  self~setListWidthpx(self~LISTVARS, maxwidth)
-
+/*
   parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
   if currentselectioninfo \= "" then do 
     indextoselect = 0
@@ -1100,14 +1140,16 @@ else do
   end  
   controls[self~LISTVARS]~showfast
   controls[self~LISTVARS]~redraw
- 
+*/ 
 end
+
 
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
 expose controls debugwindow itemidentifiers itemclasses parentlist
-
+--say 'Variable double clicked!'
+/*
 itemindex = controls[self~LISTVARS]~selectedindex
 if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
@@ -1126,6 +1168,7 @@ if itemindex \= 0 then do
     debugwindow~AddWatchWindow(self, newlist)
   end
 end  
+
 ------------------------------------------------------
 ::method SetListState
 ------------------------------------------------------
