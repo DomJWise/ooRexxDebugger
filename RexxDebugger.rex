@@ -65,7 +65,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.100"
+::CONSTANT VERSION "1.101"
 
 --====================================================
 ::class RexxDebugger public
@@ -290,7 +290,7 @@ return self~ReplyWithTraceCommand
 ::method ReplyWithTraceCommand 
 ------------------------------------------------------
 expose debuggerui shutdown launched
-if shutdown then return 'exit' 
+if shutdown then return 'trace off; exit' 
 if launched = .false then return ''
 else response =self~GetAutoResponse
 if response \= "" | .debug.channel~status = "breakpointcheckgetlocation" then return response 
@@ -299,7 +299,7 @@ response =  debuggerui~GetUINextResponse
 
 if translate(response) = 'EXIT' then do
    self~informshutdown
-   return 'say "Exiting as instructed by the debugger"; exit'
+   return 'say "Exiting as instructed by the debugger"; trace off; exit'
    end
 if translate(response) = 'RUN' then do
   .debug.channel~status="breakpointcheckgetlocation"
@@ -330,7 +330,10 @@ if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do
 end
 if translate(response) = 'DISCARDTRACE', self~captureanddiscardtrace() then return 'call SAY "Trace (apart from error messages) will be discarded if the program permits console capture."'
   
+if shutdown & reponse \= '' then response = response||'; trace off; exit'
+
 .debug.channel~status="getprogramstatus"
+
 return response
 
 ------------------------------------------------------

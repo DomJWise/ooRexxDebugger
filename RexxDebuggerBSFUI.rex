@@ -295,8 +295,8 @@ watchlist = watchwindows~allitems~section(1)
      watchwindow~cancel
   end   
 */  
-  if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
   debugger~informshutdown
+  if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
   self~dispose
   gui~SetExit
 end
