@@ -134,13 +134,10 @@ expose debugdialog  debugdialogresponse awaitingmaindialogresponse
 awaitingmaindialogresponse = .True
 debugdialogresponse = ''
 
---say '~~enter GetUINextResponse on thread 'GetWindowsThreadID()
 debugdialog~SetWaiting(.true)
 awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
 
---say '~~waiting for dialog'
 guard off when awaitingmaindialogresponse = .False
---say '~~dialog returned 'debugdialogresponse
 
 return debugdialogresponse
 
@@ -158,7 +155,6 @@ do
   debugdialog~rexxarg1 = .nil
   debugdialog~rexxarg2 = .nil
 end
---say '~~leave UpdateUICodeView'
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows unguarded
@@ -173,9 +169,6 @@ do
   debugdialog~rexxarg1 = .Nil
 end  
 
-
---say '~~leave UpdateUIWatchWindows'
-
 -------------------------------------------------------
 ::method SetExit unguarded
 -------------------------------------------------------
@@ -188,7 +181,6 @@ expose doexit
 
 doexit = .False
 guard on when doexit = .True
---say 'Wait for exit is complete'
 
 
 --====================================================
@@ -318,11 +310,11 @@ end
 
 if waiting & \controls[self~BUTTONRUN]~gettext()~equals("Run") then controls[self~BUTTONRUN]~settext("Run")
 if waiting then controls[self~EDITCOMMAND]~requestFocus
-/*
+
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
 end
-*/
+
 
 ------------------------------------------------------
 ::method init 
@@ -366,9 +358,7 @@ gui~awaitingmaindialogresponse = .False
 ::method OnNextButton 
 ------------------------------------------------------
 expose waiting controls 
---say '@@OnNextButton'
 if waiting then do
---  say 'OnNextbutton in "waiting" code'
   instructions = controls[self~EDITCOMMAND]~gettext~strip
   firstword = instructions~word(1)~translate
   if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
@@ -419,12 +409,11 @@ end
 ------------------------------------------------------
 expose waiting watchdialog debugger varsroot
 if waiting then do
-  --say 'Adding watch!'
   self~AddWatchWindow(self)
 end
 
 
----------------------------------------------------
+------------------------------------------------------
 ::method OnHelpButton 
 ------------------------------------------------------
 expose debugger
@@ -493,7 +482,7 @@ end
 else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(arrCommands[commandnum])
 
 ------------------------------------------------------
-::METHOD AddWatchWindow
+::METHOD AddWatchWindow unguarded
 ------------------------------------------------------
 expose watchwindows  childready rootlist gui
 use arg  parentwindow, parentlist = .nil
@@ -509,7 +498,6 @@ if \watchwindows~hasindex(watchwindowid) then do
 
   childready = .False
   watchdialog = .Watchdialog~new(self, gui, parentwindow, parentlist)
-  --watchdialog~popup("SHOWTOP")
   watchwindows[watchwindowid] = watchdialog
   guard off when childready = .True
   
@@ -526,7 +514,7 @@ expose childready
 childready = .True
 
 ------------------------------------------------------
-::METHOD RemoveWatchWindow
+::METHOD RemoveWatchWindow unguarded
 ------------------------------------------------------
 expose watchwindows
 use arg watchwindow
@@ -541,108 +529,108 @@ expose controls debugtext buttonpushed debugger hfnt startuphelptext gui
 -- Create the frame
 self~init:super('javax.swing.JFrame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(440, 510);
-self~setMinimumSize(gui~clsDimension~new(440,510));
-self~setLayout(gui~clsBorderLayout~new(5,5));
-self~setLocationRelativeTo(.nil);
+self~setSize(440, 510)
+self~setMinimumSize(gui~clsDimension~new(440,510))
+self~setLayout(gui~clsBorderLayout~new(5,5))
+self~setLocationRelativeTo(.nil)
 
 panelmain = gui~clsJPanel~new
-panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5));
-panelmain~setLayout(gui~clsBorderLayout~new(5,5));
+panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5))
+panelmain~setLayout(gui~clsBorderLayout~new(5,5))
 
 panellevel1lowercontrols = gui~clsJPanel~new
-panellevel1lowercontrols~setLayout(gui~clsBorderLayout~new(3,3));
-panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,250));
-panelmain~add(panellevel1lowercontrols,gui~clsBorderLayout~SOUTH);
+panellevel1lowercontrols~setLayout(gui~clsBorderLayout~new(3,3))
+panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,250))
+panelmain~add(panellevel1lowercontrols,gui~clsBorderLayout~SOUTH)
 
 listsourcemodel = gui~clsDefaultListModel~new
 listsource = gui~clsJList~new(listsourcemodel)
 
-listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
-listsource~setLayoutOrientation(gui~clsJlist~VERTICAL);
-if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12));
-listsource~setFixedCellHeight(14);
+listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
+listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
+if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
+listsource~setFixedCellHeight(14)
 
 listsourcepane = gui~clsJScrollPane~new
-listsourcepane~setPreferredSize(gui~clsDimension~new(440,50));
-listsourcepane~setViewportView(listsource);
+listsourcepane~setPreferredSize(gui~clsDimension~new(440,50))
+listsourcepane~setViewportView(listsource)
 
-panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER);
+panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER)
 
 liststackmodel =  gui~clsDefaultListModel~new
 liststack = gui~clsJlist~new(liststackmodel)
 
-liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
-liststack~setLayoutOrientation(gui~clsJlist~VERTICAL);
-if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12));
-liststack~setFixedCellHeight(14);
+liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
+liststack~setLayoutOrientation(gui~clsJlist~VERTICAL)
+if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12))
+liststack~setFixedCellHeight(14)
 
 liststackpane = gui~clsJScrollPane~new
-liststackpane~setPreferredSize(gui~clsDimension~new(440,50));
-liststackpane~setViewportView(liststack);
+liststackpane~setPreferredSize(gui~clsDimension~new(440,50))
+liststackpane~setViewportView(liststack)
 
-panellevel1lowercontrols~add(liststackpane,gui~clsBorderLayout~NORTH);
+panellevel1lowercontrols~add(liststackpane,gui~clsBorderLayout~NORTH)
 
 	
 panelllevel2forbuttons  = gui~clsjPanel~new
-panelllevel2forbuttons~setPreferredSize(gui~clsDimension~new(50, 0));
-panelllevel2forbuttons~setLayout(.nil);
+panelllevel2forbuttons~setPreferredSize(gui~clsDimension~new(50, 0))
+panelllevel2forbuttons~setLayout(.nil)
 
-buttonnext = gui~clsJButton~new("Next");
-buttonnext~setMnemonic(gui~clsKeyEvent~VK_N);
-buttonnext~setMargin(gui~clsInsets~new(0,0,0,0));
-buttonnext~setBounds(0,0, 50,22);
-panelllevel2forbuttons~add(buttonnext);
+buttonnext = gui~clsJButton~new("Next")
+buttonnext~setMnemonic(gui~clsKeyEvent~VK_N)
+buttonnext~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonnext~setBounds(0,0, 50,22)
+panelllevel2forbuttons~add(buttonnext)
 
-buttonrun = gui~clsJButton~new("Run");
-buttonrun~setMnemonic(gui~clsKeyEvent~VK_R);
-buttonrun~setMargin(gui~clsInsets~new(0,0,0,0));
-buttonrun~setBounds(0,27, 50,22);
-panelllevel2forbuttons~add(buttonrun);
+buttonrun = gui~clsJButton~new("Run")
+buttonrun~setMnemonic(gui~clsKeyEvent~VK_R)
+buttonrun~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonrun~setBounds(0,27, 50,22)
+panelllevel2forbuttons~add(buttonrun)
 
-buttonexit = gui~clsJButton~new("Exit");
-buttonexit~setMnemonic(gui~clsKeyEvent~VK_X);
-buttonexit~setMargin(gui~clsInsets~new(0,0,0,0));
-buttonexit~setBounds(0,54, 50,22);
-panelllevel2forbuttons~add(buttonexit);
+buttonexit = gui~clsJButton~new("Exit")
+buttonexit~setMnemonic(gui~clsKeyEvent~VK_X)
+buttonexit~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonexit~setBounds(0,54, 50,22)
+panelllevel2forbuttons~add(buttonexit)
 
-buttonvars = gui~clsJButton~new("Vars");
-buttonvars~setMnemonic(gui~clsKeyEvent~VK_V);
-buttonvars~setMargin(gui~clsInsets~new(0,0,0,0));
-buttonvars~setBounds(0,81, 50,22);
-panelllevel2forbuttons~add(buttonvars);
+buttonvars = gui~clsJButton~new("Vars")
+buttonvars~setMnemonic(gui~clsKeyEvent~VK_V)
+buttonvars~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonvars~setBounds(0,81, 50,22)
+panelllevel2forbuttons~add(buttonvars)
 
-buttonhelp = gui~clsJButton~new("Help");
-buttonhelp~setMnemonic(gui~clsKeyEvent~VK_H);
-buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0));
-buttonhelp~setBounds(0,108, 50,22);
-panelllevel2forbuttons~add(buttonhelp);
+buttonhelp = gui~clsJButton~new("Help")
+buttonhelp~setMnemonic(gui~clsKeyEvent~VK_H)
+buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonhelp~setBounds(0,108, 50,22)
+panelllevel2forbuttons~add(buttonhelp)
 
-buttonexec = gui~clsJButton~new("Next");
-buttonexec~setMnemonic(gui~clsKeyEvent~VK_E);
-buttonexec~setMargin(gui~clsInsets~new(0,0,0,0));
-buttonexec~setBounds(0,173, 50,22);
-panelllevel2forbuttons~add(buttonexec);
+buttonexec = gui~clsJButton~new("Next")
+buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
+buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonexec~setBounds(0,173, 50,22)
+panelllevel2forbuttons~add(buttonexec)
 
-panellevel1lowercontrols~add(panelllevel2forbuttons,gui~clsBorderLayout~EAST);
+panellevel1lowercontrols~add(panelllevel2forbuttons,gui~clsBorderLayout~EAST)
 
 panellevel2entryfields = gui~clsjPanel~new
-panellevel2entryfields~setLayout(gui~clsBorderLayout~new(3,3));
+panellevel2entryfields~setLayout(gui~clsBorderLayout~new(3,3))
 
 textareaconsoleoutput = gui~clsJTextArea~new
 textconsoleoutputpane = gui~clsJScrollPane~new
-textconsoleoutputpane~setViewportView(textareaconsoleoutput);
+textconsoleoutputpane~setViewportView(textareaconsoleoutput)
 
-panellevel2entryfields~add(textconsoleoutputpane,gui~clsBorderLayout~CENTER);
+panellevel2entryfields~add(textconsoleoutputpane,gui~clsBorderLayout~CENTER)
 
 textfieldcommand = gui~clsJTextField~new
-textfieldcommand~setPreferredSize(gui~clsDimension~new(0,25));
+textfieldcommand~setPreferredSize(gui~clsDimension~new(0,25))
 
-panellevel2entryfields~add(textfieldcommand,gui~clsBorderLayout~SOUTH);
+panellevel2entryfields~add(textfieldcommand,gui~clsBorderLayout~SOUTH)
 
-panellevel1lowercontrols~add(panellevel2entryfields);
+panellevel1lowercontrols~add(panellevel2entryfields)
 
-self~add(panelmain);
+self~add(panelmain)
 
 
 controls[self~EDITDEBUGLOG] = textareaconsoleoutput
@@ -877,10 +865,8 @@ self~SetSourceListSelectedRow
  
 end
 
---say '~~~~~~ Leave UpdateCodeView'
-
 ------------------------------------------------------
-::method UpdateWatchWindows 
+::method UpdateWatchWindows  unguarded
 ------------------------------------------------------
 expose varsroot watchwindows rexxarg1
 use arg varsroot
@@ -959,8 +945,15 @@ dialog~Cancel
 ::method mouseclicked
 ------------------------------------------------------
 use arg eventobj, slotdir
+if eventobj~getclickcount == 1 then do
+
+  dialog = slotdir~userdata
+  dialog~VariableSelected
+end
+
 if eventobj~getclickcount == 2 then do
   dialog = slotdir~userdata
+  say 'Event double clicked'
   dialog~VariableDoubleClicked
 end
 
@@ -970,6 +963,8 @@ end
 --====================================================
  
 ::CONSTANT LISTVARS 101
+::CONSTANT PANEVARS 102
+
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 
@@ -1003,44 +998,39 @@ self~repaint
 ::method InitDialog 
 ------------------------------------------------------
 expose controls debugwindow hfnt  parentwindow dialogtitle gui
---say 'Creating watch:' dialogtitle
+
 self~init:super('javax.swing.JFrame',.array~of(dialogtitle))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(175, 130);
-self~setMinimumSize(gui~clsDimension~new(175,130));
-self~setLayout(gui~clsBorderLayout~new(5,5));
-self~setLocationRelativeTo(.nil);
+self~setSize(220, 130)
+self~setMinimumSize(gui~clsDimension~new(220,130))
+self~setLayout(gui~clsBorderLayout~new(5,5))
+self~setLocationRelativeTo(.nil)
 
 windowlistener = .WatchDialogWindowListener~new
 windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
 self~addWindowListener(windowlistenerEH)
 
 panelmain = gui~clsJPanel~new
-panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5));
-panelmain~setLayout(gui~clsBorderLayout~new(5,5));
+panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5))
+panelmain~setLayout(gui~clsBorderLayout~new(5,5))
 
 listvarsmodel = gui~clsDefaultListModel~new
 listvars = gui~clsJList~new(listvarsmodel)
-listvarsmodel~addelement("Hello")
-listvarsmodel~addelement("fabulously wonderful")
-listvarsmodel~addelement("World")
-listvarsmodel~addelement("in")
-listvarsmodel~addelement("which")
-listvarsmodel~addelement("I")
-listvarsmodel~addelement("Live!")
-listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
-listvars~setLayoutOrientation(gui~clsJlist~VERTICAL);
-if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12));
-listvars~setFixedCellHeight(14);
+
+listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
+listvars~setLayoutOrientation(gui~clsJlist~VERTICAL)
+if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
+listvars~setFixedCellHeight(14)
 
 listvarspane = gui~clsJScrollPane~new
-listvarspane~setPreferredSize(gui~clsDimension~new(440,50));
-listvarspane~setViewportView(listvars);
+listvarspane~setPreferredSize(gui~clsDimension~new(440,50))
+listvarspane~setViewportView(listvars)
 
-panelmain~add(listvarspane, gui~clsBorderLayout~CENTER);
-self~add(panelmain);
+panelmain~add(listvarspane, gui~clsBorderLayout~CENTER)
+self~add(panelmain)
 
 controls[self~LISTVARS] = listvars
+controls[self~PANEVARS] = listvarspane
 
 varsmouselistener = .WatchDialogListVarsMouseListener~new
 varsmouselistenerEH = BsfCreateRexxProxy(varsmouselistener, self, "java.awt.event.MouseListener")
@@ -1059,7 +1049,6 @@ debugwindow~NotifyChildReady
 ------------------------------------------------------
 
 expose hfnt debugwindow
---say 'Watch~Cancel'
 debugwindow~RemoveWatchWindow(self)
 self~dispose
 
@@ -1068,21 +1057,19 @@ self~dispose
 ::METHOD VariableSelected
 ------------------------------------------------------
 expose controls itemidentifiers currentselectioninfo
-
-itemindex = controls[self~LISTVARS]~selectedindex
+itemindex = controls[self~LISTVARS]~getselectedindex + 1
 if itemindex \= 0 then do
   selectedidentifierstring = itemidentifiers[itemindex]~makestring
-  rowsbefore = itemindex - controls[self~LISTVARS]~getfirstvisible
+  rowsbefore = itemindex - (controls[self~LISTVARS]~getfirstVisibleIndex + 1)
   currentselectioninfo = rowsbefore':'selectedidentifierstring
 end  
- 
+
 
 ------------------------------------------------------
 ::METHOD UpdateWatchWindow
 ------------------------------------------------------
 expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
 use arg root
---SAY 'UpdateWatchWindow -vars = 'root
 variablescollection = root
 do nextchild over parentlist
   variablescollection = variablescollection[nextchild]
@@ -1090,17 +1077,19 @@ do nextchild over parentlist
 end
 
 if variablescollection = .nil then do
--- self~setcurrentListIndex(self~LISTVARS, 0)
  varsvalid = .False
 end
 else do
   varsvalid = .True
   listdata = controls[self~LISTVARS]~getModel
   listdata~clear
+  dosort = .False
   if variablescollection~isA(.Directory) | -
        variablescollection~isA(.Properties) | -
        variablescollection~isA(.Stem) -
-  then  itemidentifiers = variablescollection~allindexes~sort
+  then  dosort = .True
+  if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
+  if dosort then itemidentifiers = variablescollection~allindexes~sort
   else  itemidentifiers = variablescollection~allindexes
 
   itemclasses = .Array~new
@@ -1120,10 +1109,11 @@ else do
     listdata~addelement(text)
     itemclasses~append(variablescollection[varname]~class)
   end
-/*
+  
   parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
   if currentselectioninfo \= "" then do 
     indextoselect = 0
+    newfirstvisible = -1
     if prevselectedidentifierstring \= "" then do i = 1 to itemidentifiers~items
       if itemidentifiers[i]~makestring = prevselectedidentifierstring then do
         indextoselect = i
@@ -1131,30 +1121,30 @@ else do
       end
     end    
     if indextoselect \= 0 then do
-      self~setcurrentListIndex(self~LISTVARS, indextoselect)
+      controls[self~LISTVARS]~setSelectedIndex(indextoselect - 1)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
-      controls[self~LISTVARS]~makefirstvisible(newfirstvisible)
     end  
-    else if controls[self~LISTVARS]~items \= 0 then controls[self~LISTVARS]~makefirstvisible(1)
-
+    else if controls[self~LISTVARS]~getFirstVisibleIndex \= -1  then newfirsvisible = 1
+    if newfirstvisible \= -1 then do
+      originpoint = controls[self~LISTVARS]~indexToLocation(newfirstvisible - 1)
+      controls[self~PANEVARS]~getViewPort~setViewPosition(originpoint)
+    end
   end  
-  controls[self~LISTVARS]~showfast
-  controls[self~LISTVARS]~redraw
-*/ 
-end
+
+end  
 
 
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
 expose controls debugwindow itemidentifiers itemclasses parentlist
---say 'Variable double clicked!'
-/*
-itemindex = controls[self~LISTVARS]~selectedindex
+
+itemindex = controls[self~LISTVARS]~getselectedindex + 1
 if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
   itemclass = itemclasses[itemindex]
   if itemclass =.Directory | -
+     itemclass =.StringTable | -
      itemclass =.Properties | -
      itemclass =.Stem | -
      itemclass =.List | -
@@ -1168,18 +1158,15 @@ if itemindex \= 0 then do
     debugwindow~AddWatchWindow(self, newlist)
   end
 end  
-
 ------------------------------------------------------
 ::method SetListState
 ------------------------------------------------------
 expose controls varsvalid
 use arg enablelist
+if enablelist & varsvalid then controls[self~LISTVARS]~setEnabled(.true)
+else  controls[self~LISTVARS]~setEnabled(.false)
 
-if enablelist & varsvalid then self~EnableControl(self~LISTVARS)
-else  self~DisableControl(self~LISTVARS)
 
-::requires oodialog.cls
-*/
 
 ::ROUTINE GetWindowsThreadID
 if SysVersion()~translate~pos("WINDOWS") = 1 then return SysQueryProcess(TID) 

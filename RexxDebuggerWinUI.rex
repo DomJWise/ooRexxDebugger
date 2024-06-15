@@ -777,10 +777,13 @@ else do
   oldfont = self~fonttodc(dc, hfnt)
 
   maxwidth = 0
+  dosort = .False
   if variablescollection~isA(.Directory) | -
        variablescollection~isA(.Properties) | -
        variablescollection~isA(.Stem) -
-  then  itemidentifiers = variablescollection~allindexes~sort
+  then  dosort = .True
+  if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
+  if dosort then itemidentifiers = variablescollection~allindexes~sort
   else  itemidentifiers = variablescollection~allindexes
 
   itemclasses = .Array~new
@@ -839,6 +842,7 @@ if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
   itemclass = itemclasses[itemindex]
   if itemclass =.Directory | -
+     itemclass =.StringTable | -
      itemclass =.Properties | -
      itemclass =.Stem | -
      itemclass =.List | -

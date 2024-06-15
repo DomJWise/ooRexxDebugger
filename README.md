@@ -3,12 +3,11 @@
 A cross platform dialog based ooRexx debugger
 
 Written in ooRexx with support from version 4.2 on Windows where ooDialog is used for the user interface, 
-and on platforms with Java and bsf4ooRexx (minimum versions bsf4ooRexx850 + ooRexx 5.0) where the Swing/AWT 
-libraries are used.
+and on platforms with Java and bsf4ooRexx (minimum tested versions bsf4ooRexx 850 + ooRexx 5.0) where the 
+Swing/AWT libraries are used. The JRE/JDK version should not matter unless it is especially ancient or
+specifically excludes Swing and/or AWT.
 
-Note that the Swing/AWT version is currently partially implemented and the main dialog is supported (without
-windows placement control) but watch windows cannot be launched. Testing has been carried out on Windows and 
-Ubuntu but no other platforms at this time.
+Valdation testing for the  Swing/AWT version is limited to  Windows and Ubuntu 24.04 at this time.
 
 It's still in active development so you will likely find bugs but features include:
 
@@ -57,7 +56,7 @@ If more fine-grained control over debugging is needed or when your Rexx code is 
 
 Example usage scenarios are as follows:
 
-(1) There are global TRACE options but debugger placement and start point of debugging don't matter
+(1) There are global TRACE options but debugger window placement and start point of debugging don't matter
 
 At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended)  add:
 
@@ -65,7 +64,7 @@ At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recomm
 
 With this option the debugger will break at the start of the code
 
-(2) There are no global TRACE options but debugger placement and/or start point of debugging matter.
+(2) There are no global TRACE options but debugger window placement and/or start point of debugging matter (*)
 
 Before the first line of code to debug add:
   
@@ -74,7 +73,7 @@ Before the first line of code to debug add:
 
 With this option the debugger will break after the TRACE ?R statement
   
-(3) There are global TRACE options (::OPTIONS TRACE ?R is recommended) and debugger placement and/or start point of debugging matter.
+(3) There are global TRACE options (::OPTIONS TRACE ?R is recommended) and debugger window placement and/or start point of debugging matter (*)
 
 Before the first line to debug add:
 
@@ -85,6 +84,8 @@ At the end of the code along with the TRACE option add:
   ::REQUIRES DeferRexxDebuggerLaunch.rex
 
 With this option the debugger will trace from the start of the code  but wont break until the LaunchDebugger call
+
+(*) Debugger window placement is only supported on the Windows ooDialog version
 
 THe Help button will send more information about the various options to the debugger console window and is worth checking out at least once, even though it's not very structured or pretty.
 

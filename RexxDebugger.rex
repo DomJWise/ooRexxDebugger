@@ -46,7 +46,9 @@ if .local~rexxdebugger.startuphelptext = .nil then do
   "Below this add the following to start debugging:", -
   "TRACE ?R ", - 
   "", -
-  "Source code will be shown when debugging is started.")
+  "Source code will be shown when debugging is started.", -
+  "", -
+  "Note: Window positioning is for Windows/ooDialog only.")
 end
 
 -- Set version
@@ -65,7 +67,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.101"
+::CONSTANT VERSION "1.200"
 
 --====================================================
 ::class RexxDebugger public
