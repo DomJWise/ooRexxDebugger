@@ -30,40 +30,69 @@ SOFTWARE.
 
 ::attribute awaitingmaindialogresponse  public unguarded
 ::attribute debugdialogresponse         public unguarded
+::attribute fontFixed                   public unguarded
+
+::attribute clsBorderLayout        public unguarded
+::attribute clsDefaultListModel    public unguarded
+::attribute clsDimension           public unguarded
+::attribute clsEmptyBorder         public unguarded
+::attribute clsFont                public unguarded
+::attribute clsInsets              public unguarded 
+::attribute clsJButton             public unguarded
+::attribute clsJList               public unguarded
+::attribute clsJPanel              public unguarded
+::attribute clsJScrollPane         public unguarded
+::attribute clsJTextField          public unguarded
+::attribute clsJTextArea           public unguarded
+::attribute clsKeyEvent            public unguarded
+::attribute clsListSelectionModel  public unguarded
+::attribute clsWindowConstants     public unguarded
+
 
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger
+expose debugger 
 use arg debugger
+
+self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")
+self~clsDefaultListModel   = bsf.importclass("javax.swing.DefaultListModel")
+self~clsDimension          = bsf.importclass("java.awt.Dimension")
+self~clsEmptyBorder        = bsf.importclass("javax.swing.border.EmptyBorder")
+self~clsFont               = bsf.importclass("java.awt.Font") 
+self~clsInsets             = bsf.importclass("java.awt.Insets") 
+self~clsJButton            = bsf.importclass("javax.swing.JButton")
+self~clsJList              = bsf.importclass("javax.swing.JList") 
+self~clsJPanel             = bsf.importclass("javax.swing.JPanel")
+self~clsJScrollPane        = bsf.importclass("javax.swing.JScrollPane")
+self~clsJTextArea          = bsf.importclass("javax.swing.JTextArea")
+self~clsJTextField         = bsf.importclass("javax.swing.JTextField")
+self~clsKeyEvent           = bsf.importclass("java.awt.event.KeyEvent")
+self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
+self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
+
+graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
+jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
+arr = bsf.wrap(jarrfontfamilies)
+
+self~fontFixed = ''
+do i = 1 to arr~items
+  if arr[i]~pos("Courier") = 1 then do
+    self~fontFixed = arr[i]
+    leave
+  end
+end 
 
 awaitresult = .AwtGuiThread~runLater(self, "InitSafe")~result
 
 ------------------------------------------------------
 ::method InitSafe unguarded
 ------------------------------------------------------
-expose  debugdialog debugger fixedfont
-
-graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
-jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
-arr = bsf.wrap(jarrfontfamilies)
-
-fixedfont = ''
-do i = 1 to arr~items
-  if arr[i]~pos("Courier") = 1 then do
-    fixedfont = arr[i]
-    leave
-  end
-end    
-
+expose  debugdialog debugger
+ 
 /* Create and build the "main" window" */
 debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
 
-------------------------------------------------------
-::method GetFixedFont unguarded
-------------------------------------------------------
-expose fixedfont
-return fixedfont
 
 ------------------------------------------------------
 ::method RunUI unguarded
@@ -253,7 +282,7 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ------------------------------------------------------
 ::method Cancel unguarded
 ------------------------------------------------------
-expose waiting debugger hfnt watchwindows controls debuggerui
+expose waiting debugger hfnt watchwindows controls gui
 close = .True
 if waiting = .True then do
   ret = .bsf.dialog~dialogbox("Do you really want to quit and end the program ?", "Program still running","question", "YesNo")
@@ -269,7 +298,7 @@ watchlist = watchwindows~allitems~section(1)
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
   debugger~informshutdown
   self~dispose
-  debuggerui~SetExit
+  gui~SetExit
 end
 
 
@@ -293,8 +322,8 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger debuggerui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
-use arg debugger, debuggerui, startuphelptext
+expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
+use arg debugger, gui, startuphelptext
 arrstack = .nil
 activesourcename = .nil
 loadedsources = .Directory~new
@@ -318,14 +347,14 @@ use arg waiting
 ------------------------------------------------------
 ::method HereIsResponse unguarded
 ------------------------------------------------------
-expose debuggerui waiting
+expose gui waiting
 use arg response
 
 waiting = .False
 self~UpdateControlStates
 
-debuggerui~debugdialogresponse = response
-debuggerui~awaitingmaindialogresponse = .False
+gui~debugdialogresponse = response
+gui~awaitingmaindialogresponse = .False
 
 
 /*
@@ -509,111 +538,109 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose controls debugtext buttonpushed debugger hfnt startuphelptext debuggerui
-
+expose controls debugtext buttonpushed debugger hfnt startuphelptext gui
 
 -- Create the frame
 self~init:super('javax.swing.JFrame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
-self~setDefaultCloseOperation(bsf.getStaticValue("javax.swing.WindowConstants","DO_NOTHING_ON_CLOSE"))
+self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
 self~setSize(440, 510);
-self~setMinimumSize(.bsf~new("java.awt.Dimension", 440,510));
-self~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
+self~setMinimumSize(gui~clsDimension~new(440,510));
+self~setLayout(gui~clsBorderLayout~new(5,5));
 self~setLocationRelativeTo(.nil);
 
-panelmain = .bsf~new("javax.swing.JPanel")
-panelmain~setBorder(.bsf~new("javax.swing.border.EmptyBorder",5,5,5,5));
-panelmain~setLayout(.bsf~new("java.awt.BorderLayout", 5,5));
+panelmain = gui~clsJPanel~new
+panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5));
+panelmain~setLayout(gui~clsBorderLayout~new(5,5));
 
-panellevel1lowercontrols = .bsf~new("javax.swing.JPanel")
-panellevel1lowercontrols~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
-panellevel1lowercontrols~setPreferredSize(.bsf~new("java.awt.Dimension", 0,250));
-panelmain~add(panellevel1lowercontrols,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
+panellevel1lowercontrols = gui~clsJPanel~new
+panellevel1lowercontrols~setLayout(gui~clsBorderLayout~new(3,3));
+panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,250));
+panelmain~add(panellevel1lowercontrols,gui~clsBorderLayout~SOUTH);
 
-fixedfont = debuggerui~GetFixedFont
-listsourcemodel = .bsf~new("javax.swing.DefaultListModel")
-listsource = .bsf~new("javax.swing.JList", listsourcemodel)
+listsourcemodel = gui~clsDefaultListModel~new
+listsource = gui~clsJList~new(listsourcemodel)
 
-listsource~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
-listsource~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-if fixedfont \= '' then listsource~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 12));
+listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
+listsource~setLayoutOrientation(gui~clsJlist~VERTICAL);
+if fixedfont \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12));
 listsource~setFixedCellHeight(14);
 
-listsourcepane = .bsf~new("javax.swing.JScrollPane")
-listsourcepane~setPreferredSize(.bsf~new("java.awt.Dimension", 440,50));
+listsourcepane = gui~clsJScrollPane~new
+listsourcepane~setPreferredSize(gui~clsDimension~new(440,50));
 listsourcepane~setViewportView(listsource);
 
-panelmain~add(listsourcepane, bsf.getStaticValue("java.awt.BorderLayout", "CENTER"));
+panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER);
 
-liststackmodel = .bsf~new("javax.swing.DefaultListModel")
-liststack = .bsf~new("javax.swing.JList", liststackmodel)
+liststackmodel =  gui~clsDefaultListModel~new
+liststack = gui~clsJlist~new(liststackmodel)
 
-liststack~setSelectionMode(bsf.getStaticValue("javax.swing.ListSelectionModel","SINGLE_SELECTION"));
-liststack~setLayoutOrientation(bsf.getStaticValue("javax.swing.JList","VERTICAL"));
-if fixedfont \= '' then liststack~setFont(.bsf~new("java.awt.Font",fixedfont, bsf.getStaticValue("java.awt.Font","BOLD"), 12));
+liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION);
+liststack~setLayoutOrientation(gui~clsJlist~VERTICAL);
+if fixedfont \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12));
 liststack~setFixedCellHeight(14);
 
-liststackpane = .bsf~new("javax.swing.JScrollPane")
-liststackpane~setPreferredSize(.bsf~new("java.awt.Dimension", 440,50));
+liststackpane = gui~clsJScrollPane~new
+liststackpane~setPreferredSize(gui~clsDimension~new(440,50));
 liststackpane~setViewportView(liststack);
 
-panellevel1lowercontrols~add(liststackpane,bsf.getStaticValue("java.awt.BorderLayout", "NORTH"));
+panellevel1lowercontrols~add(liststackpane,gui~clsBorderLayout~NORTH);
 
 	
-panelllevel2forbuttons = .bsf~new("javax.swing.JPanel")
-panelllevel2forbuttons~setPreferredSize(.bsf~new("java.awt.Dimension", 50, 0));
+panelllevel2forbuttons  = gui~clsjPanel~new
+panelllevel2forbuttons~setPreferredSize(gui~clsDimension~new(50, 0));
 panelllevel2forbuttons~setLayout(.nil);
 
-buttonnext = .bsf~new("javax.swing.JButton", "Next");
-buttonnext~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_N"));
-buttonnext~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonnext = gui~clsJButton~new("Next");
+buttonnext~setMnemonic(gui~clsKeyEvent~VK_N);
+buttonnext~setMargin(gui~clsInsets~new(0,0,0,0));
 buttonnext~setBounds(0,0, 50,22);
 panelllevel2forbuttons~add(buttonnext);
 
-buttonrun = .bsf~new("javax.swing.JButton", "Run");
-buttonrun~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_R"));
-buttonrun~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonrun = gui~clsJButton~new("Run");
+buttonrun~setMnemonic(gui~clsKeyEvent~VK_R);
+buttonrun~setMargin(gui~clsInsets~new(0,0,0,0));
 buttonrun~setBounds(0,27, 50,22);
 panelllevel2forbuttons~add(buttonrun);
 
-buttonexit = .bsf~new("javax.swing.JButton", "Exit");
-buttonexit~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_X"));
-buttonexit~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonexit = gui~clsJButton~new("Exit");
+buttonexit~setMnemonic(gui~clsKeyEvent~VK_X);
+buttonexit~setMargin(gui~clsInsets~new(0,0,0,0));
 buttonexit~setBounds(0,54, 50,22);
 panelllevel2forbuttons~add(buttonexit);
 
-buttonvars = .bsf~new("javax.swing.JButton", "Vars");
-buttonvars~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_V"));
-buttonvars~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonvars = gui~clsJButton~new("Vars");
+buttonvars~setMnemonic(gui~clsKeyEvent~VK_V);
+buttonvars~setMargin(gui~clsInsets~new(0,0,0,0));
 buttonvars~setBounds(0,81, 50,22);
 panelllevel2forbuttons~add(buttonvars);
 
-buttonhelp = .bsf~new("javax.swing.JButton", "Help");
-buttonhelp~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_H"));
-buttonhelp~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonhelp = gui~clsJButton~new("Help");
+buttonhelp~setMnemonic(gui~clsKeyEvent~VK_H);
+buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0));
 buttonhelp~setBounds(0,108, 50,22);
 panelllevel2forbuttons~add(buttonhelp);
 
-buttonexec = .bsf~new("javax.swing.JButton", "Exec");
-buttonexec~setMnemonic(bsf.getStaticValue("java.awt.event.KeyEvent", "VK_E"));
-buttonexec~setMargin(.bsf~new("java.awt.Insets", 0,0,0,0));
+buttonexec = gui~clsJButton~new("Next");
+buttonexec~setMnemonic(gui~clsKeyEvent~VK_E);
+buttonexec~setMargin(gui~clsInsets~new(0,0,0,0));
 buttonexec~setBounds(0,173, 50,22);
 panelllevel2forbuttons~add(buttonexec);
 
-panellevel1lowercontrols~add(panelllevel2forbuttons,bsf.getStaticValue("java.awt.BorderLayout", "EAST"));
+panellevel1lowercontrols~add(panelllevel2forbuttons,gui~clsBorderLayout~EAST);
 
-panellevel2entryfields = .bsf~new("javax.swing.JPanel")
-panellevel2entryfields~setLayout(.bsf~new("java.awt.BorderLayout", 3,3));
+panellevel2entryfields = gui~clsjPanel~new
+panellevel2entryfields~setLayout(gui~clsBorderLayout~new(3,3));
 
-textareaconsoleoutput = .bsf~new("javax.swing.JTextArea")
-textconsoleoutputpane = .bsf~new("javax.swing.JScrollPane")
+textareaconsoleoutput = gui~clsJTextArea~new
+textconsoleoutputpane = gui~clsJScrollPane~new
 textconsoleoutputpane~setViewportView(textareaconsoleoutput);
 
-panellevel2entryfields~add(textconsoleoutputpane,bsf.getStaticValue("java.awt.BorderLayout", "CENTER"));
+panellevel2entryfields~add(textconsoleoutputpane,gui~clsBorderLayout~CENTER);
 
-textfieldcommand = .bsf~new("javax.swing.JTextField")
-textfieldcommand~setPreferredSize(.bsf~new("java.awt.Dimension", 0,25));
+textfieldcommand = gui~clsJTextField~new
+textfieldcommand~setPreferredSize(gui~clsDimension~new(0,25));
 
-panellevel2entryfields~add(textfieldcommand,bsf.getStaticValue("java.awt.BorderLayout", "SOUTH"));
+panellevel2entryfields~add(textfieldcommand,gui~clsBorderLayout~SOUTH);
 
 panellevel1lowercontrols~add(panellevel2entryfields);
 
