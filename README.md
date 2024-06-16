@@ -7,7 +7,7 @@ and on platforms with Java and bsf4ooRexx (minimum tested versions bsf4ooRexx 85
 Swing/AWT libraries are used. The JRE/JDK version should not matter unless it is especially ancient or
 specifically excludes Swing and/or AWT.
 
-Valdation testing for the  Swing/AWT version is limited to  Windows and Ubuntu 24.04 at this time.
+Validation testing for the  Swing/AWT version is limited to  Windows, Mac OS and Ubuntu 24.04 at this time.
 
 It's still in active development so you will likely find bugs but features include:
 
@@ -39,6 +39,7 @@ along with one of the user interface modules below:
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
 
+On Mac OS X it may be necessary to 
 Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via  command line options  available to RexxDebugger.rex
 
 For a standalone program  where a single argument string is passed unaltered to the program you would use:
@@ -52,6 +53,10 @@ rexxdebugger [/showtrace] CALL myroutine.rex [{arg1}] ... [{argn}]
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 
 For both of the above, all trace output is configured to be captured to the debugger then discarded to improve performance and reduce "noise" unless the /showtrace option is specifed, in which case it will be left to run to the console. The ability to discard trace output while leaving standard output with the target application is also available in other debug session types by running the DISCARDTRACE command. Note that as with CAPTURE[X] some embedded environments will not allow redirection of trace output in which case ths option will have no effect.
+
+NB: On Mac OS it may be that the rexxdebugger script cannot be used and so to run either of the above you will need to use the Rexx+Java launcher script and the full name of the debugger rexx file
+
+e.g. rexxjh.sh RexxDebugger.rex [/showtrace] myprogram.rex [{argstring}]
 
 If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
 
