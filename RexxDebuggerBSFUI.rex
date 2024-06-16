@@ -952,7 +952,6 @@ end
 
 if eventobj~getclickcount == 2 then do
   dialog = slotdir~userdata
-  say 'Event double clicked'
   dialog~VariableDoubleClicked
 end
 
