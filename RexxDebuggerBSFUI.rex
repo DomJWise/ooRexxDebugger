@@ -606,7 +606,7 @@ buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0))
 buttonhelp~setBounds(0,108, 50,22)
 panelllevel2forbuttons~add(buttonhelp)
 
-buttonexec = gui~clsJButton~new("Next")
+buttonexec = gui~clsJButton~new("Exec")
 buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
 buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
 buttonexec~setBounds(0,173, 50,22)
