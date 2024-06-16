@@ -83,7 +83,7 @@ do i = 1 to arr~items
   end
 end 
 
-awaitresult = .AwtGuiThread~runLater(self, "InitSafe")~result
+success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "InitSafe")~~result~errorCondition, .context)
 
 ------------------------------------------------------
 ::method InitSafe unguarded
@@ -99,11 +99,13 @@ debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
 ------------------------------------------------------
 expose debugdialog debugger
 
-awaitresult = .AwtGuiThread~runLater(self, "ShowMainDialogSafe")~result
+success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "ShowMainDialogSafe")~~result~errorCondition, .context)
+
 debugger~FlagUIStartupComplete
 
 self~WaitForExit 
-awaitresult = .AwtGuiThread~runLaterLatest(self, "NoOp")~result
+
+success = self~DidUICallSucceed(.AwtGuiThread~runLaterLatest(self, "NoOp")~~result~errorCondition, .context)
 
 ------------------------------------------------------
 ::method ShowMainDialogSafe unguarded
@@ -122,9 +124,8 @@ debugdialog~repaint
 expose debugdialog
 
 use  arg text, newline = .true
-if debugdialog \= .nil then do
-  awaitresult = .AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)
-end  
+if debugdialog \= .nil then success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)~~result~errorCondition, .context)
+
 
 ------------------------------------------------------
 ::method GetUINextResponse unguarded 
@@ -135,7 +136,7 @@ awaitingmaindialogresponse = .True
 debugdialogresponse = ''
 
 debugdialog~SetWaiting(.true)
-awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~result
+success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
 
 guard off when awaitingmaindialogresponse = .False
 
@@ -147,14 +148,7 @@ return debugdialogresponse
 expose debugdialog
 use arg arrStack, activateindex
 
-if debugdialog \= .nil then
-do 
-  debugdialog~rexxarg1 = arrStack
-  debugdialog~rexxarg2 = activateindex
-  awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateCodeView")~result
-  debugdialog~rexxarg1 = .nil
-  debugdialog~rexxarg2 = .nil
-end
+if debugdialog \= .nil then  success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateCodeView", "I", arrStack, activateindex)~~result~errorCondition, .context)
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows unguarded
@@ -162,12 +156,7 @@ end
 expose debugdialog
 use arg varsroot
 
-if debugdialog \= .nil then
-do 
-  debugdialog~rexxarg1 = varsroot
-  awaitresult = .AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows")~result
-  debugdialog~rexxarg1 = .Nil
-end  
+if debugdialog \= .nil then success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows", "I", varsroot)~~result~errorCondition, .context)
 
 -------------------------------------------------------
 ::method SetExit unguarded
@@ -181,6 +170,27 @@ expose doexit
 
 doexit = .False
 guard on when doexit = .True
+
+-------------------------------------------------------
+::method DidUICallSucceed
+-------------------------------------------------------
+use arg cond, callercontext
+success = .true
+if cond \= .nil then do 
+  success = .False
+  say 'Error in UI thread call at line 'cond~POSITION' of '.context~package~name 
+  say 'Error 'cond~RC' : 'cond~ERRORTEXT
+  if SysVersion()~translate~pos("WINDOWS") = 1 then message = cond~MESSAGE~changestr(d2c(10), .endofline)
+  else message = cond~MESSAGE  
+  say 'Error 'cond~CODE': 'message
+  say 'UI Stack:'
+  say cond~TRACEBACK~makearray~makestring
+  say
+  say 'Caller Stack:'
+  say callercontext~stackframes~section(2)
+  say 
+end  
+return success
 
 
 --====================================================
@@ -272,9 +282,6 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::constant EDITCOMMAND  108
 ::constant BUTTONEXEC   109
 ::constant PANESOURCE   110
-
-::attribute rexxarg1     unguarded
-::attribute rexxarg2     unguarded
 
 ------------------------------------------------------
 ::method Cancel unguarded
@@ -819,13 +826,9 @@ end
 ------------------------------------------------------
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
-expose controls arrStack activesourcename loadedsources debugger rexxarg1 rexxarg2
+expose controls arrStack activesourcename loadedsources debugger 
 use arg arrstack,activateindex
 
-if arg() = 0 then do 
-  arrStack      = rexxarg1
-  activateindex = rexxarg2
-end
 -- Ensure the (available) sources are loaded
 do stackindex = 1 to arrstack~items
    if arrstack[stackindex]~executable~package \= .nil then do
@@ -868,12 +871,8 @@ end
 ------------------------------------------------------
 ::method UpdateWatchWindows  unguarded
 ------------------------------------------------------
-expose varsroot watchwindows rexxarg1
+expose varsroot watchwindows 
 use arg varsroot
-
-if arg() = 0 then do 
-  varsroot = rexxarg1
-end
 
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
