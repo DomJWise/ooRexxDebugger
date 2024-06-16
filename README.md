@@ -33,6 +33,7 @@ To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used)
 along with one of the user interface modules below:
 
    - RexxDebuggerWinUI.rex is required for the Windows ooDialog version
+
    - RexxDebuggerBSFUI.rex in required for the Swing/AWT version
 
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
