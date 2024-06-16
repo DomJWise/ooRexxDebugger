@@ -437,7 +437,7 @@ self~appendtext("  DO statements should be hit unless they mark the start of a l
 self~appendtext("  CALL statements (and what they call) may be hit, depending on what they are calling.")
 self~appendtext("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
 self~appendtext("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
-self~appendtext("- <slash><star><star><slash> at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
+self~appendtext("- /"||"**"||"/ at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
 self~appendtext("- The instruction CALL SAY ... will always send output here.")
 self~appendtext("- So long as SAY is enabled in the target application, other output should appear there.")
 self~appendtext("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
