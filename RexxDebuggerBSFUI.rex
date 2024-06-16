@@ -911,7 +911,7 @@ parse arg sourceline
 sourceline  = sourceline~strip
 commentmarker='/'||'**'||'/'
 if sourceline~left(4) = '/'||'**'||'/' then sourceline = sourceline~substr(5)
-if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- <slash><star>"~wordpos(sourceline~left(2)) \= 0 then return .False
+if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | (":: -- /"||"*")~wordpos(sourceline~left(2)) \= 0 then return .False
 else return .True
 
 
