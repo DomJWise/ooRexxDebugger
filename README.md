@@ -32,10 +32,10 @@ CAPTUREX debugger command can be used to discard all TRACE output and speed thin
 To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory,
 along with one of the user interface modules below:
 
-   RexxDebuggerWinUI.rex is required for the Windows ooDialog version
-   RexxDebuggerBSFUI.rxx in required for the Swing/AWT version
+   - RexxDebuggerWinUI.rex is required for the Windows ooDialog version
+   - RexxDebuggerBSFUI.rex in required for the Swing/AWT version
 
-On Unix platforms the (bash script) rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
+On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
 
 Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via  command line options  available to RexxDebugger.rex
