@@ -1,27 +1,3 @@
-/*
-MIT License
-
-Copyright (c) 2024 Dominic Wise
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 CALL SAY 'Unless indicated otherwise use the Next button to step through this demo/tutorial'
 CALL SAY 'The options at the end ensure debugging starts at the top and that everything is debugged' 
 CALL SAY 'The debugger pauses AFTER executing the line it has stopped on'
@@ -88,7 +64,7 @@ SAY 'The same will be true for calls to code blocks which use PROCEDURE'
 SAY 'That''s all for this tutorial'
 SAY 'For more information hit the Help button'
 SAY ''
-SAY 'NOTE: The debugger can''t tell when the program has finished but windows will stay grey'
+SAY 'NOTE: The debugger can''t tell when the program has finished but the windows will stay grey'
 exit
 
 ::ROUTINE TestRoutine
@@ -99,6 +75,30 @@ SAY 'You can see where this was called from by selecting a row in the stack view
 NOP
 return
 
+/*
+MIT License
+
+Copyright (c) 2024 Dominic Wise
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 ::requires RexxDebugger.rex
 ::options TRACE ?A
+
