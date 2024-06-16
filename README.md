@@ -39,7 +39,6 @@ along with one of the user interface modules below:
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
 
-On Mac OS X it may be necessary to 
 Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via  command line options  available to RexxDebugger.rex
 
 For a standalone program  where a single argument string is passed unaltered to the program you would use:
