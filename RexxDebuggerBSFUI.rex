@@ -307,7 +307,7 @@ end
 
 
 ------------------------------------------------------
-::method UpdateControlStates 
+::method UpdateControlStates unguarded
 ------------------------------------------------------
 expose waiting controls watchwindows
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
@@ -1064,7 +1064,7 @@ end
 
 
 ------------------------------------------------------
-::METHOD UpdateWatchWindow
+::METHOD UpdateWatchWindow unguarded
 ------------------------------------------------------
 expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
 use arg root
@@ -1157,7 +1157,7 @@ if itemindex \= 0 then do
   end
 end  
 ------------------------------------------------------
-::method SetListState
+::method SetListState unguarded
 ------------------------------------------------------
 expose controls varsvalid
 use arg enablelist
