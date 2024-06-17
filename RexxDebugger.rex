@@ -67,7 +67,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.203"
+::CONSTANT VERSION "1.250"
 
 --====================================================
 ::class RexxDebugger public
@@ -424,9 +424,13 @@ return manualbreak
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger discard
+expose debugger discard canusetraceobjects
 use arg debugger
 discard = .False
+
+canusetraceobjects = .False
+if .TraceObject~class~defaultname = .class~defaultname then canusetraceobjects = .True
+
 return 0
 
 ------------------------------------------------------
@@ -438,8 +442,12 @@ use arg discard
 ------------------------------------------------------
 ::method LINEOUT
 ------------------------------------------------------
-expose debugger discard
-use arg tracestring
+expose debugger discard canusetraceobjects
+use arg tracething
+
+if canusetraceobjects, tracething~isA(.Traceobject) then tracestring = tracething~traceline
+else tracestring = tracething
+
 if tracestring~word(1)~translate='ERROR' | tracestring~pos('+++ Interactive trace.  Error') = 1 | \discard then return debugger~lineout(tracestring)
 
 else return 0
