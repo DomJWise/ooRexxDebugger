@@ -67,7 +67,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.250"
+::CONSTANT VERSION "1.2501"
 
 --====================================================
 ::class RexxDebugger public
@@ -445,7 +445,7 @@ use arg discard
 expose debugger discard canusetraceobjects
 use arg tracething
 
-if canusetraceobjects, tracething~isA(.Traceobject) then tracestring = tracething~traceline
+if canusetraceobjects, tracething~isA(.Traceobject) then tracestring = tracething~makestring
 else tracestring = tracething
 
 if tracestring~word(1)~translate='ERROR' | tracestring~pos('+++ Interactive trace.  Error') = 1 | \discard then return debugger~lineout(tracestring)
