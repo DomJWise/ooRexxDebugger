@@ -367,11 +367,6 @@ gui~awaitingmaindialogresponse = .False
 expose waiting controls 
 if waiting then do
   instructions = controls[self~EDITCOMMAND]~gettext~strip
-  firstword = instructions~word(1)~translate
-  if "RUN EXIT HELP CAPTURE CAPTUREX DISCARDTRACE"~wordpos(instructions~word(1)~translate) \= 0 then do 
-    self~appendtext('This command cannot be used with Next at this time')
-    return
-  end  
   controls[self~BUTTONRUN]~settext("Break")
   if instructions~word(1)~translate\='NEXT' then instructions = 'NEXT 'instructions
   self~HereIsResponse(instructions)
@@ -424,7 +419,7 @@ end
 ::method OnHelpButton 
 ------------------------------------------------------
 expose debugger
-self~appendtext("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | DISCARDTRACE - use the Exec button to run the command.")
+self~appendtext("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
 self~appendtext("- Buttons with the above labels execute the corresponding command.")
 self~appendtext("- Command history for the session can be accessed with the up/down keys.")
 self~appendtext("- The Vars button opens a realtime variables window.")
@@ -443,6 +438,7 @@ self~appendtext("- So long as SAY is enabled in the target application, other ou
 self~appendtext("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
 self~appendtext("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
 self~appendtext("- DISCARDTRACE attempts to capture trace in order to discard it (apart from program errors).")
+self~appendtext("- NOCAPTURE switches off any capture that was previously active.")
 self~appendtext("- The source window and watch windows go grey while the program is running and after it has finished.")
 self~appendtext("Happy debugging!")
 

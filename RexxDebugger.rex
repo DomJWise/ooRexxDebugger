@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.5"
+::CONSTANT VERSION "1.25.6"
 
 --====================================================
 ::class RexxDebugger public
@@ -259,6 +259,15 @@ end
 return .True
 
 ------------------------------------------------------
+::method StopCaptureConsoleOutput 
+------------------------------------------------------
+expose traceoutputhandler outputhandler errorhandler uiloaded
+
+if traceoutputhandler \= .nil then traceoutputhandler~SetCapture(.False)
+if errorhandler \= .nil then errorhandler~SetCapture(.False)
+if outputhandler \= .nil then outputhandler~SetCapture(.False)
+
+------------------------------------------------------
 ::method LINEIN 
 ------------------------------------------------------
 return self~ReplyWithTraceCommand
@@ -288,7 +297,8 @@ if translate(response) = 'NEXT' | response = '' then do
   return ''
 end  
 if translate(response)~word(1) = 'NEXT' & response~words > 1 then do
-  .debug.channel~status="getprogramstatus "||response~DELWORD(1,1)
+   if "RUN EXIT HELP CAPTURE CAPTUREX NOCAPTURE"~wordpos(response~word(2)~translate) \= 0 then .debug.channel~status="getprogramstatus "||response~DELWORD(1,2)
+   else .debug.channel~status="getprogramstatus "||response~DELWORD(1,1)
   return ''
 end  
 if translate(response) = 'UPDATEVARS' then do
@@ -305,6 +315,10 @@ if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do
     return retstr
   end  
 end
+if translate(response) = 'NOCAPTURE' then do
+  self~StopCaptureConsoleOutput
+  return 'call SAY "If active, console redirection has been switched off."||.endofline||"Use CAPTURE/CAPTUREX to switch it back on."'
+end  
   
 if shutdown & reponse \= '' then response = response||'; trace off; exit'
 
