@@ -415,32 +415,13 @@ if waiting then do
 end
 
 
-------------------------------------------------------
+-----------------------------------------------------
 ::method OnHelpButton 
 ------------------------------------------------------
-expose debugger
-self~appendtext("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
-self~appendtext("- Buttons with the above labels execute the corresponding command.")
-self~appendtext("- Command history for the session can be accessed with the up/down keys.")
-self~appendtext("- The Vars button opens a realtime variables window.")
-self~appendtext("- Double clicking many collection object types in a variables window will expand them in a new window.")
-self~appendtext("- Clicking a stack row takes you to the specified source location and file.")
-self~appendtext("- Double clicking a source row toggles a breakpoint, but this does not guarantee that the line will be hit.")
-self~appendtext("  Some simple hit checks are carried out but there is no detailed code analysis.")
-self~appendtext("  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
-self~appendtext("  DO statements should be hit unless they mark the start of a loop that has looped once already.")
-self~appendtext("  CALL statements (and what they call) may be hit, depending on what they are calling.")
-self~appendtext("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
-self~appendtext("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
-self~appendtext("- /"||"**"||"/ at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
-self~appendtext("- The instruction CALL SAY ... will always send output here.")
-self~appendtext("- So long as SAY is enabled in the target application, other output should appear there.")
-self~appendtext("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
-self~appendtext("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
-self~appendtext("- DISCARDTRACE attempts to capture trace in order to discard it (apart from program errors).")
-self~appendtext("- NOCAPTURE switches off any capture that was previously active.")
-self~appendtext("- The source window and watch windows go grey while the program is running and after it has finished.")
-self~appendtext("Happy debugging!")
+expose waiting 
+if waiting then do
+  self~HereIsResponse('HELP')
+end
 
 ------------------------------------------------------
 ::method OnExecButton unguarded

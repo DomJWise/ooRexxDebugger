@@ -52,10 +52,12 @@ rexxdebugger [/showtrace | /nocapture] CALL myroutine.rex [{arg1}] ... [{argn}]
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 
 For both of the above the default is to capture all program output in the debugger console with trace output discarded to improve performance and reduce "noise". 
-If /showtrace is specified the trace output is also captured in the debugger console
-If /nocapture option is specified nothing will be captured
 
-The ability to control what is captured to the console is available in any debug session using the CAPTURE/CAPTUREX commands. Note that some embedded environments will not allow redirection of output in which case these commands will have no effect.
+If /showtrace is specified the trace output is also captured in the debugger console.
+
+If /nocapture option is specified nothing will be captured.
+
+The ability to control what is captured to the console is available in any debug session using the CAPTURE/CAPTUREX/NOCAPTURE commands. Note that some embedded environments will not allow redirection of output in which case these commands will have no effect.
 
 NB: On Mac OS it may be that the rexxdebugger script cannot be used and so to run either of the above you will need to use the Rexx+Java launcher script and the full name of the debugger rexx file
 
@@ -63,7 +65,7 @@ e.g. rexxjh.sh RexxDebugger.rex [/showtrace | /nocpature] myprogram.rex [{argstr
 
 If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
 
-If not using RexxDebugger i.e. if running a program directly or if it is embedded in another application some modifications to the code will be required and some example usage scenarios are as follows:
+If not using RexxDebugger to launch a program i.e. if running it directly or if it is embedded in another application some modifications to the code will be required and some example usage scenarios are as follows:
 
 (1) There are global TRACE options but debugger window placement and start point of debugging don't matter
 
@@ -98,4 +100,4 @@ With this option the debugger will trace from the start of the code  but wont br
 
 THe Help button will send more information about the various options to the debugger console window and is worth checking out at least once, even though it's not very structured or pretty.
 
-For an interactive walkthrough of many of the features run tutorial.rex, ideally from a command prompt, and follow the instructions.
+For an interactive walkthrough of many of the features run tutorial.rex, ideally from a command prompt / terminal, and follow the instructions.

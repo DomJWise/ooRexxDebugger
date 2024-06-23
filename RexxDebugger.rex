@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.6"
+::CONSTANT VERSION "1.25.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -319,6 +319,10 @@ if translate(response) = 'NOCAPTURE' then do
   self~StopCaptureConsoleOutput
   return 'call SAY "If active, console redirection has been switched off."||.endofline||"Use CAPTURE/CAPTUREX to switch it back on."'
 end  
+if translate(response) = 'HELP' then do
+  self~ShowHelpText
+  return 'NOP'
+end  
   
 if shutdown & reponse \= '' then response = response||'; trace off; exit'
 
@@ -404,6 +408,33 @@ use arg manualbreak
 expose manualbreak
 
 return manualbreak
+
+-----------------------------------------------------
+::method ShowHelptext 
+------------------------------------------------------
+self~SendDebugMessage("")
+self~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | HELP | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
+self~SendDebugMessage("- Buttons with the above labels execute the corresponding command.")
+self~SendDebugMessage("- Command history for the session can be accessed with the up/down keys.")
+self~SendDebugMessage("- The Vars button opens a realtime variables window.")
+self~SendDebugMessage("- Double clicking many collection object types in a variables window will expand them in a new window.")
+self~SendDebugMessage("- Clicking a stack row takes you to the specified source location and file.")
+self~SendDebugMessage("- Double clicking a source row toggles a breakpoint, but this does not guarantee that the line will be hit.")
+self~SendDebugMessage("  Some simple hit checks are carried out but there is no detailed code analysis.")
+self~SendDebugMessage("  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
+self~SendDebugMessage("  DO statements should be hit unless they mark the start of a loop that has looped once already.")
+self~SendDebugMessage("  CALL statements (and what they call) may be hit, depending on what they are calling.")
+self~SendDebugMessage("  A * means the self thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
+self~SendDebugMessage("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
+self~SendDebugMessage("- /**/ at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
+self~SendDebugMessage("- The instruction CALL SAY ... will always send output here.")
+self~SendDebugMessage("- So long as SAY is enabled in the target application, other output should appear there.")
+self~SendDebugMessage("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
+self~SendDebugMessage("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
+self~SendDebugMessage("- NOCAPTURE switches off any capture that was previously active.")
+self~SendDebugMessage("- The source window and watch windows go grey while the program is running and after it has finished.")
+self~SendDebugMessage("Happy debugging!")
+
 
 --====================================================
 ::class DebugOutputHandler

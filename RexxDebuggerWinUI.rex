@@ -271,31 +271,14 @@ expose waiting watchdialog debugger varsroot
 if waiting then do
   self~AddWatchWindow(self)
 end
-  ---------------------------------------------------
+
+-----------------------------------------------------
 ::method OnHelpButton 
 ------------------------------------------------------
-expose debugger
-debugger~SendDebugMessage("- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
-debugger~SendDebugMessage("- Buttons with the above labels execute the corresponding command.")
-debugger~SendDebugMessage("- Command history for the session can be accessed with the up/down keys.")
-debugger~SendDebugMessage("- The Vars button opens a realtime variables window.")
-debugger~SendDebugMessage("- Double clicking many collection object types in a variables window will expand them in a new window.")
-debugger~SendDebugMessage("- Clicking a stack row takes you to the specified source location and file.")
-debugger~SendDebugMessage("- Double clicking a source row toggles a breakpoint, but this does not guarantee that the line will be hit.")
-debugger~SendDebugMessage("  Some simple hit checks are carried out but there is no detailed code analysis.")
-debugger~SendDebugMessage("  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
-debugger~SendDebugMessage("  DO statements should be hit unless they mark the start of a loop that has looped once already.")
-debugger~SendDebugMessage("  CALL statements (and what they call) may be hit, depending on what they are calling.")
-debugger~SendDebugMessage("  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
-debugger~SendDebugMessage("  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
-debugger~SendDebugMessage("- /**/ at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
-debugger~SendDebugMessage("- The instruction CALL SAY ... will always send output here.")
-debugger~SendDebugMessage("- So long as SAY is enabled in the target application, other output should appear there.")
-debugger~SendDebugMessage("- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
-debugger~SendDebugMessage("  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
-debugger~SendDebugMessage("- NOCAPTURE switches off any capture that was previously active.")
-debugger~SendDebugMessage("- The source window and watch windows go grey while the program is running and after it has finished.")
-debugger~SendDebugMessage("Happy debugging!")
+expose waiting 
+if waiting then do
+  self~HereIsResponse('HELP')
+end
 
 ------------------------------------------------------
 ::method OnExecButton unguarded
