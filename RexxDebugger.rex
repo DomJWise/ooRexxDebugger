@@ -37,8 +37,8 @@ if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rex
 if .local~rexxdebugger.startuphelptext = .nil then do 
   .local~rexxdebugger.startuphelptext = .list~of( -
   "Command line usage:", - 
-  "Rexxdebugger [/showtrace] <program> <argstring>", - 
-  "Rexxdebugger [/showtrace] CALL <program> [<arg1>] [..<argn>]", - 
+  "Rexxdebugger [/nocapture | /showtrace] <program> <argstring>", - 
+  "Rexxdebugger [/nocapture | /showtrace] CALL <program> [<arg1>] [..<argn>]", - 
   "", - 
   "To launch from Rexx source include the following line:", - 
   "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
@@ -56,9 +56,11 @@ end
 -- Launch debugger
 .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
 
--- Run debuggee (if specified) with or without trace
+-- Run debuggee (if specified) with or without capture/trace
 if .local~rexxdebugger.runroutine \= .nil then do
-  if .local~rexxdebugger.discardtrace = .True then .local~rexxdebugger.debugger~CaptureAndDiscardTrace
+  if .local~rexxdebugger.captureoption = '/SHOWTRACE'  then .local~rexxdebugger.debugger~CaptureConsoleOutput(.False)
+  else if .local~rexxdebugger.captureoption \= '/NOCAPTURE' then .local~rexxdebugger.debugger~CaptureConsoleOutput(.True)
+  
   .local~rexxdebugger.runroutine~callwith(.local~rexxdebugger.runargs)
   call say 'Debuggee has finished running.'
 end
@@ -67,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.4"
+::CONSTANT VERSION "1.25.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -118,8 +120,10 @@ debuggerui = .nil
 
 uiloaded = self~findandloadui()
 
-if uiloaded then ignore = .debuginput~destination(self)
-
+if uiloaded then do 
+  ignore = .debuginput~destination(self)
+  outputhandler = .DebugOutputHandler~new(self, .output)
+end
 
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
@@ -227,55 +231,32 @@ use  arg text, newline = .true
 if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 
 ------------------------------------------------------
-::method InstallOutputCaptureObjects
+::method InstallTraceOutputAndErrorHandlers
 ------------------------------------------------------
-expose traceoutputhandler outputhandler errorhandler 
-
+expose traceoutputhandler errorhandler
 if traceoutputhandler = .nil then do
-  traceoutputhandler = .DebugTraceOutputHandler~new(self)
-  outputhandler = .DebugOutputHandler~new(self, .output)
+  traceoutputhandler = .DebugTraceOutputHandler~new(self)  
   errorhandler = .DebugOutputHandler~new(self, .error)
-end
 
-------------------------------------------------------
-::method CaptureAndDiscardTrace 
-------------------------------------------------------
-expose traceoutputhandler outputhandler errorhandler uiloaded
-
-IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-  if uiloaded then do
-    self~InstallOutputCaptureObjects
-    traceoutputhandler~SetDiscard(.True)
-    traceoutputhandler~SetCapture(.True)
-    outputhandler~SetCapture(.True)
-    errorhandler~SetCapture(.True)
-  end  
-  return .True
-END
-else do
-  self~SendDebugMessage("DISCARDTRACE cannot be used while tracing for the debugger is active")
-  return .False
 end
 
 ------------------------------------------------------
 ::method CaptureConsoleOutput 
 ------------------------------------------------------
 expose traceoutputhandler outputhandler errorhandler uiloaded
-use arg discardtrace
-IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-  if uiloaded then do 
-    self~InstallOutputCaptureObjects
+use arg discardtrace = .False
+if uiloaded then do 
+  outputhandler~SetCapture(.True)
+  if TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
+    self~InstallTraceOutputAndErrorHandlers
     traceoutputhandler~SetDiscard(discardtrace)
-    traceoutputhandler~SetCapture(.true)
-    outputhandler~SetCapture(.True)
+    traceoutputhandler~SetCapture(.True)
     errorhandler~SetCapture(.True)
-  end  
-  return .True
-END
-else do
-  self~SendDebugMessage("CAPTURE[X] cannot be used while tracing for the debugger is active")
-  return .False
+
+  end
+  else self~SendDebugMessage("Note: Trace and error output cannot be captured because tracing for the debugger is active")
 end
+return .True
 
 ------------------------------------------------------
 ::method LINEIN 
@@ -317,14 +298,13 @@ end
 if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do 
   if translate(response) = 'CAPTURE' then discardtrace = .False
   else  discardtrace = .True
-  if self~captureconsoleoutput(discardtrace) then do
+  if self~CaptureConsoleOutput(discardtrace) then do
     retstr = 'call SAY "Output redirected to the debugger if the program permits this."'
     if discardtrace = .False then retstr = retstr||'.endofline||"CAPTUREX does the same but discards trace text."'
     else retstr = retstr||'.endofline||"All trace apart from runtime error messages will be discarded."'
     return retstr
   end  
 end
-if translate(response) = 'DISCARDTRACE', self~captureanddiscardtrace() then return 'call SAY "Trace (apart from error messages) will be discarded if the program permits console capture."'
   
 if shutdown & reponse \= '' then response = response||'; trace off; exit'
 
@@ -540,8 +520,11 @@ use arg debuggerargstring
 retval = .False
 entrypackage = .context~stackframes[.context~stackframes~items]~executable~package
 if entrypackage \= .nil, entrypackage~name = .context~package~name then do
-  if debuggerargstring~translate~word(1) = "/SHOWTRACE" then parse value debuggerargstring with . debuggerargstring
-  else .local~rexxdebugger.discardtrace = .true
+  if "/SHOWTRACE /NOCAPTURE"~wordpos(debuggerargstring~translate~word(1)) \= 0 then do
+    .local~rexxdebugger.captureoption = debuggerargstring~translate~word(1)~translate
+    parse value debuggerargstring with . debuggerargstring
+  end
+  else .local~rexxdebugger.captureoption = ''
   if debuggerargstring~translate~word(1) = "CALL" then do 
     say debuggerargstring 
     parse value debuggerargstring with . debuggerargstring

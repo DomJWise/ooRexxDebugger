@@ -39,31 +39,35 @@ along with one of the user interface modules below:
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
 
-Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via  command line options  available to RexxDebugger.rex
+Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via command line options available to RexxDebugger.rex
 
 For a standalone program  where a single argument string is passed unaltered to the program you would use:
 
-rexxdebugger [/showtrace] myprogram.rex [{argstring}]
+rexxdebugger [/showtrace | /nocapture] myprogram.rex [{argstring}]
 
 For a 'routine' program that expects multiple ARG(n) arguments you would use:
 
-rexxdebugger [/showtrace] CALL myroutine.rex [{arg1}] ... [{argn}]
+rexxdebugger [/showtrace | /nocapture] CALL myroutine.rex [{arg1}] ... [{argn}]
 
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 
-For both of the above, all trace output is configured to be captured to the debugger then discarded to improve performance and reduce "noise" unless the /showtrace option is specifed, in which case it will be left to run to the console. The ability to discard trace output while leaving standard output with the target application is also available in other debug session types by running the DISCARDTRACE command. Note that as with CAPTURE[X] some embedded environments will not allow redirection of trace output in which case ths option will have no effect.
+For both of the above the default is to capture all program output in the debugger console with trace output discarded to improve performance and reduce "noise". 
+If /showtrace is specified the trace output is also captured in the debugger console
+If /nocapture option is specified nothing will be captured
+
+The ability to control what is captured to the console is available in any debug session using the CAPTURE/CAPTUREX commands. Note that some embedded environments will not allow redirection of output in which case these commands will have no effect.
 
 NB: On Mac OS it may be that the rexxdebugger script cannot be used and so to run either of the above you will need to use the Rexx+Java launcher script and the full name of the debugger rexx file
 
-e.g. rexxjh.sh RexxDebugger.rex [/showtrace] myprogram.rex [{argstring}]
+e.g. rexxjh.sh RexxDebugger.rex [/showtrace | /nocpature] myprogram.rex [{argstring}]
 
 If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
 
-Example usage scenarios are as follows:
+If not using RexxDebugger i.e. if running a program directly or if it is embedded in another application some modifications to the code will be required and some example usage scenarios are as follows:
 
 (1) There are global TRACE options but debugger window placement and start point of debugging don't matter
 
-At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended)  add:
+At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended) add:
 
   ::REQUIRES RexxDebugger.rex
 
