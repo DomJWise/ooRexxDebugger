@@ -67,7 +67,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.2502"
+::CONSTANT VERSION "1.25.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -223,6 +223,7 @@ return listBreakpoints
 ------------------------------------------------------
 expose debuggerui 
 use  arg text, newline = .true
+
 if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 
 ------------------------------------------------------
@@ -455,14 +456,14 @@ use arg discard
 expose debugger discard canusetraceobjects capture originaltraceoutput
 use arg tracething
 
-if \capture then forward to (originaltraceoutput)
+if \capture | debugger~isshutdown then forward to (originaltraceoutput)
 
 if canusetraceobjects, tracething~isA(.Traceobject) then tracestring = tracething~makestring
 else tracestring = tracething
 
-if tracestring~word(1)~translate='ERROR' | tracestring~pos('+++ Interactive trace.  Error') = 1 | \discard then return debugger~lineout(tracestring)
+if tracestring~word(1)~translate='ERROR' | tracestring~pos('+++ Interactive trace.  Error') = 1 | \discard then debugger~SendDebugMessage(tracestring)
 
-else return 0
+return 0
 
 /*====================================================
 Routines
