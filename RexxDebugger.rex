@@ -67,7 +67,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.2501"
+::CONSTANT VERSION "1.2502"
 
 --====================================================
 ::class RexxDebugger public
@@ -98,7 +98,7 @@ debuggerui~RunUI
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugwindowtracer uiloaded debuggerui
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugtraceoutputhandler uiloaded debuggerui
 
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
@@ -107,7 +107,7 @@ launched = .False
 breakpoints = .Set~new
 tracedprograms = .Set~new
 manualbreak = .false
-debugwindowtracer = .DebugWindowTracer~new(self)
+debugtraceoutputhandler = .DebugTraceOutputHandler~new(self)
 debuggerui = .nil
 
 .local~debug.channel = .Directory~new
@@ -228,12 +228,12 @@ if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 ------------------------------------------------------
 ::method CaptureAndDiscardTrace 
 ------------------------------------------------------
-expose debugwindowtracer uiloaded
+expose debugtraceoutputhandler uiloaded
 
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
   if uiloaded then do
-    ignore = .traceoutput~destination(debugwindowtracer)
-    debugwindowtracer~SetDiscard(.True)
+    debugtraceoutputhandler~SetDiscard(.True)
+    debugtraceoutputhandler~SetCapture(.True)
   end  
   return .True
 END
@@ -245,12 +245,12 @@ end
 ------------------------------------------------------
 ::method CaptureConsoleOutput 
 ------------------------------------------------------
-expose debugwindowtracer uiloaded
+expose debugtraceoutputhandler uiloaded
 use arg discardtrace
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
   if uiloaded then do 
-    ignore = .traceoutput~destination(debugwindowtracer)
-    debugwindowtracer~SetDiscard(discardtrace)
+    debugtraceoutputhandler~SetDiscard(discardtrace)
+    debugtraceoutputhandler~SetCapture(.true)
     ignore = .output~destination(self)
     ignore = .error~destination(self)
   end  
@@ -418,20 +418,30 @@ expose manualbreak
 return manualbreak
 
 --====================================================
-::class DebugWindowTracer
+::class DebugTraceOutputHandler
 --====================================================
 
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger discard canusetraceobjects
+expose debugger discard canusetraceobjects capture originaltraceoutput
 use arg debugger
 discard = .False
+capture = .False
+
+originaltraceoutput = .output~current
+ign = .traceoutput~destination(self)
 
 canusetraceobjects = .False
 if .TraceObject~class~defaultname = .class~defaultname then canusetraceobjects = .True
 
 return 0
+
+------------------------------------------------------
+::method SetCapture
+------------------------------------------------------
+expose  capture
+use arg capture
 
 ------------------------------------------------------
 ::method SetDiscard
@@ -442,8 +452,10 @@ use arg discard
 ------------------------------------------------------
 ::method LINEOUT
 ------------------------------------------------------
-expose debugger discard canusetraceobjects
+expose debugger discard canusetraceobjects capture originaltraceoutput
 use arg tracething
+
+if \capture then forward to (originaltraceoutput)
 
 if canusetraceobjects, tracething~isA(.Traceobject) then tracestring = tracething~makestring
 else tracestring = tracething
