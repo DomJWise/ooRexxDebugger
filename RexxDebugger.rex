@@ -67,7 +67,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.3"
+::CONSTANT VERSION "1.25.4"
 
 --====================================================
 ::class RexxDebugger public
@@ -98,8 +98,7 @@ debuggerui~RunUI
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection debugtraceoutputhandler uiloaded debuggerui
-
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -107,7 +106,9 @@ launched = .False
 breakpoints = .Set~new
 tracedprograms = .Set~new
 manualbreak = .false
-debugtraceoutputhandler = .DebugTraceOutputHandler~new(self)
+traceoutputhandler = .nil
+outputhandler = .nil
+errorhandler = .nil
 debuggerui = .nil
 
 .local~debug.channel = .Directory~new
@@ -223,18 +224,31 @@ return listBreakpoints
 ------------------------------------------------------
 expose debuggerui 
 use  arg text, newline = .true
-
 if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
+
+------------------------------------------------------
+::method InstallOutputCaptureObjects
+------------------------------------------------------
+expose traceoutputhandler outputhandler errorhandler 
+
+if traceoutputhandler = .nil then do
+  traceoutputhandler = .DebugTraceOutputHandler~new(self)
+  outputhandler = .DebugOutputHandler~new(self, .output)
+  errorhandler = .DebugOutputHandler~new(self, .error)
+end
 
 ------------------------------------------------------
 ::method CaptureAndDiscardTrace 
 ------------------------------------------------------
-expose debugtraceoutputhandler uiloaded
+expose traceoutputhandler outputhandler errorhandler uiloaded
 
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
   if uiloaded then do
-    debugtraceoutputhandler~SetDiscard(.True)
-    debugtraceoutputhandler~SetCapture(.True)
+    self~InstallOutputCaptureObjects
+    traceoutputhandler~SetDiscard(.True)
+    traceoutputhandler~SetCapture(.True)
+    outputhandler~SetCapture(.True)
+    errorhandler~SetCapture(.True)
   end  
   return .True
 END
@@ -246,14 +260,15 @@ end
 ------------------------------------------------------
 ::method CaptureConsoleOutput 
 ------------------------------------------------------
-expose debugtraceoutputhandler uiloaded
+expose traceoutputhandler outputhandler errorhandler uiloaded
 use arg discardtrace
 IF TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
   if uiloaded then do 
-    debugtraceoutputhandler~SetDiscard(discardtrace)
-    debugtraceoutputhandler~SetCapture(.true)
-    ignore = .output~destination(self)
-    ignore = .error~destination(self)
+    self~InstallOutputCaptureObjects
+    traceoutputhandler~SetDiscard(discardtrace)
+    traceoutputhandler~SetCapture(.true)
+    outputhandler~SetCapture(.True)
+    errorhandler~SetCapture(.True)
   end  
   return .True
 END
@@ -263,31 +278,9 @@ else do
 end
 
 ------------------------------------------------------
-::method LINEOUT 
-------------------------------------------------------
-use arg text
-self~SendDebugMessage(text)
-return 0
-
-------------------------------------------------------
-::method CHAROUT 
-------------------------------------------------------
-use arg text
-self~SendDebugMessage(text, .false)
-return 0
-
-------------------------------------------------------
-::method SAY 
-------------------------------------------------------
-use arg text
-self~SendDebugMessage(text)
-
-------------------------------------------------------
 ::method LINEIN 
 ------------------------------------------------------
 return self~ReplyWithTraceCommand
-
-
 
 ------------------------------------------------------
 ::method ReplyWithTraceCommand 
@@ -419,6 +412,63 @@ expose manualbreak
 return manualbreak
 
 --====================================================
+::class DebugOutputHandler
+--====================================================
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose debugger capture originaloutput
+use arg debugger, outputmonitor
+
+capture = .False
+
+originaloutput = outputmonitor~current
+ign = outputmonitor~destination(self)
+
+return 0
+
+------------------------------------------------------
+::method SetCapture
+------------------------------------------------------
+expose  capture
+use arg capture
+
+------------------------------------------------------
+::method LINEOUT 
+------------------------------------------------------
+expose debugger capture originaloutput
+use arg text
+
+if \capture | debugger~isshutdown then forward to (originaloutput)
+
+debugger~SendDebugMessage(text)
+return 0
+
+------------------------------------------------------
+::method CHAROUT 
+------------------------------------------------------
+expose debugger capture originaloutput
+use arg text
+
+if \capture | debugger~isshutdown then forward to (originaloutput)
+
+debugger~SendDebugMessage(text, .false)
+return 0
+
+------------------------------------------------------
+::method SAY 
+------------------------------------------------------
+expose debugger capture originaloutput
+use arg text
+
+if \capture | debugger~isshutdown then forward to (originaloutput)
+
+debugger~SendDebugMessage(text)
+
+
+
+--====================================================
 ::class DebugTraceOutputHandler
 --====================================================
 
@@ -430,7 +480,7 @@ use arg debugger
 discard = .False
 capture = .False
 
-originaltraceoutput = .output~current
+originaltraceoutput = .traceoutput~current
 ign = .traceoutput~destination(self)
 
 canusetraceobjects = .False
