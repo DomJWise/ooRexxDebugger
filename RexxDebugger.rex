@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.7"
+::CONSTANT VERSION "1.25.8"
 
 --====================================================
 ::class RexxDebugger public
@@ -602,6 +602,7 @@ if entrypackage \= .nil, entrypackage~name = .context~package~name then do
       arrsource = strm~arrayin
       strm~close
       signal on ANY name HandleSyntaxError
+      if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
       runroutine = .routine~new(rexxfile, arrSource~~append('')~~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R'))
       .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
       .local~rexxdebugger.runroutine = runroutine
