@@ -836,7 +836,7 @@ controls[self~LISTSTACK]~setSelectedIndex(activateindex - 1)
 if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~executable~source~items \= 0 then do 
   thissourcename = arrstack[activateindex]~executable~package~name
   if thissourcename \= activesourcename then do
-    if activesourcename \= .nil then debugger~SendDebugMessage('Switching source to 'thissourcename)
+    if activesourcename \= .nil then self~appendtext('Switching source to 'thissourcename)
     activesourcename = thissourcename
     self~SetListSource(thissourcename)
   end  

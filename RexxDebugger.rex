@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.8"
+::CONSTANT VERSION "1.25.9"
 
 --====================================================
 ::class RexxDebugger public
