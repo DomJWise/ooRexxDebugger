@@ -180,7 +180,7 @@ if cond \= .nil then do
   success = .False
   say 'Error in UI thread call at line 'cond~POSITION' of '.context~package~name 
   say 'Error 'cond~RC' : 'cond~ERRORTEXT
-  if SysVersion()~translate~pos("WINDOWS") = 1 then message = cond~MESSAGE~changestr(d2c(10), .endofline)
+  if IsWindows() then message = cond~MESSAGE~changestr(d2c(10), .endofline)
   else message = cond~MESSAGE  
   say 'Error 'cond~CODE': 'message
   say 'UI Stack:'
@@ -511,7 +511,9 @@ watchwindows~removeitem(watchwindow)
 expose controls debugtext buttonpushed debugger hfnt startuphelptext gui
 
 -- Create the frame
-self~init:super('javax.swing.JFrame',.array~of("Rexx Debugger Version "||.local~rexxdebugger.version))
+title = debugger~GetCaption
+if IsWindows() then title = title || " (Java UI)"
+self~init:super('javax.swing.JFrame',.array~of(title))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
 self~setSize(440, 510)
 self~setMinimumSize(gui~clsDimension~new(440,510))
@@ -1142,9 +1144,13 @@ if enablelist & varsvalid then controls[self~LISTVARS]~setEnabled(.true)
 else  controls[self~LISTVARS]~setEnabled(.false)
 
 
+------------------------------------------------------
+::ROUTINE IsWindows
+------------------------------------------------------
+return SysVersion()~translate~pos("WINDOWS") = 1
 
 ::ROUTINE GetWindowsThreadID
-if SysVersion()~translate~pos("WINDOWS") = 1 then return SysQueryProcess(TID) 
+if IsWindows() then return SysQueryProcess(TID) 
 else return '?'
 
 ::REQUIRES BSF.CLS      -- get the Java support

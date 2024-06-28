@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.25.9"
+::CONSTANT VERSION "1.25.10"
 
 --====================================================
 ::class RexxDebugger public
@@ -134,11 +134,18 @@ end
 ::method findandloadui 
 ------------------------------------------------------
 uiloaded = .false
+
 if .context~package~FindClass('DebuggerUI') \= .nil then do
-  uiloaded = .true
-end  
-else if SysVersion()~translate~pos("WINDOWS") = 1 then do
-  if SysSearchPath('PATH','RexxDebuggerWinUI.rex') \= '' then do 
+  uiloaded = .True
+end
+if \uiloaded & SysVersion()~translate~pos("WINDOWS") = 1 then do
+  do i over .context~stackframes~lastitem~executable~package~importedpackages while uiloaded = .False
+    if i~findclass("DebuggerUI") \= .nil then do
+      .context~package~addpackage(i)
+      uiloaded = .true
+    end
+  end
+  if uiloaded = .False then do
     call RexxDebuggerWinUI.rex
     uiloaded = .true
   end  
@@ -435,6 +442,10 @@ self~SendDebugMessage("- NOCAPTURE switches off any capture that was previously 
 self~SendDebugMessage("- The source window and watch windows go grey while the program is running and after it has finished.")
 self~SendDebugMessage("Happy debugging!")
 
+------------------------------------------------------
+::method GetCaption unguarded
+------------------------------------------------------
+return "ooRexx Debugger Version "||GetPackageConstant("Version")
 
 --====================================================
 ::class DebugOutputHandler
@@ -604,6 +615,11 @@ if entrypackage \= .nil, entrypackage~name = .context~package~name then do
       signal on ANY name HandleSyntaxError
       if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
       runroutine = .routine~new(rexxfile, arrSource~~append('')~~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R'))
+      signal off ANY
+      routinepackage = runroutine~package
+      do i over routinepackage~importedpackages
+        if i~findclass("DebuggerUI") \= .nil  then .context~package~addpackage(i)
+      end  
       .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
       .local~rexxdebugger.runroutine = runroutine
       .local~rexxdebugger.runargs = runargs

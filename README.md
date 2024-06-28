@@ -29,12 +29,13 @@ sections so you dont have to add TRACE statements to them manually. TRACE ?R is 
 keeping the trace output low and minimizing the overhead of processing the trace text, though in many cases the 
 CAPTUREX debugger command can be used to discard all TRACE output and speed things up considerably.
 
-To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory,
-along with one of the user interface modules below:
+To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory, along with one of the user interface modules below:
 
    - RexxDebuggerWinUI.rex is required for the Windows ooDialog version
 
    - RexxDebuggerBSFUI.rex in required for the Swing/AWT version
+
+On Windows when both modules are available the native ooDialog module will be preferred but this can be overridden by including ::REQUIRES RexxDebuggerBSFUI.rex in your source. If the source also includes ::REQUIRES RexxDebugger.rex the latter must appear later on in the source for this override to work.
 
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
