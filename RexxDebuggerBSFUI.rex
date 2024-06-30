@@ -52,7 +52,7 @@ SOFTWARE.
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger 
+expose debugger debugdialog
 use arg debugger
 
 self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")
@@ -82,8 +82,10 @@ do i = 1 to arr~items
     leave
   end
 end 
+debugdialog = .nil
 
-success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "InitSafe")~~result~errorCondition, .context)
+if .AWTGuiThread~isGuiThread then self~InitSafe
+else success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "InitSafe")~~result~errorCondition, .context)
 
 ------------------------------------------------------
 ::method InitSafe unguarded
@@ -99,13 +101,16 @@ debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
 ------------------------------------------------------
 expose debugdialog debugger
 
-success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "ShowMainDialogSafe")~~result~errorCondition, .context)
+if debugdialog \= .nil then do 
+  if .AWTGuiThread~isGuiThread then self~ShowMainDialogSafe
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "ShowMainDialogSafe")~~result~errorCondition, .context)
 
-debugger~FlagUIStartupComplete
+  debugger~FlagUIStartupComplete
 
-self~WaitForExit 
+  self~WaitForExit 
 
-success = self~DidUICallSucceed(.AwtGuiThread~runLaterLatest(self, "NoOp")~~result~errorCondition, .context)
+  if \.AWTGuiThread~isGuiThread then success = self~DidUICallSucceed(.AwtGuiThread~runLaterLatest(self, "NoOp")~~result~errorCondition, .context)
+end
 
 ------------------------------------------------------
 ::method ShowMainDialogSafe unguarded
@@ -121,10 +126,12 @@ debugdialog~repaint
 ------------------------------------------------------
 ::method AppendUIConsoleText unguarded
 ------------------------------------------------------
-expose debugdialog
-
+expose debugdialog debugger
 use  arg text, newline = .true
-if debugdialog \= .nil then success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)~~result~errorCondition, .context)
+if debugdialog \= .nil & \debugger~isshutdown then do 
+  if .AWTGuiThread~isGuiThread then debugdialog~appendtext(text, newline)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)~~result~errorCondition, .context)
+end  
 
 
 ------------------------------------------------------
@@ -134,30 +141,35 @@ expose debugdialog  debugdialogresponse awaitingmaindialogresponse
 
 awaitingmaindialogresponse = .True
 debugdialogresponse = ''
+if debugdialog \= .nil & \.AWTGuiThread~isGuiThread then do
+  debugdialog~SetWaiting(.true)
+  success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
 
-debugdialog~SetWaiting(.true)
-success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
-
-guard off when awaitingmaindialogresponse = .False
-
+  guard off when awaitingmaindialogresponse = .False
+end  
 return debugdialogresponse
 
 ------------------------------------------------------
 ::method UpdateUICodeView unguarded
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 use arg arrStack, activateindex
 
-if debugdialog \= .nil then  success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateCodeView", "I", arrStack, activateindex)~~result~errorCondition, .context)
+if debugdialog \= .nil & \debugger~isshutdown then do
+  if .AWTGuiThread~isGuiThread then debugdialog~UpdateCodeView(arrStack, activateindex)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateCodeView", "I", arrStack, activateindex)~~result~errorCondition, .context)
+end
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows unguarded
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 use arg varsroot
 
-if debugdialog \= .nil then success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows", "I", varsroot)~~result~errorCondition, .context)
-
+if debugdialog \= .nil  & \debugger~isshutdown then do
+  if .AWTGuiThread~isGuiThread then debugdialog~UpdateWatchWindows(varsroot)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows", "I", varsroot)~~result~errorCondition, .context)
+end
 -------------------------------------------------------
 ::method SetExit unguarded
 -------------------------------------------------------
@@ -170,7 +182,6 @@ expose doexit
 
 doexit = .False
 guard on when doexit = .True
-
 -------------------------------------------------------
 ::method DidUICallSucceed
 -------------------------------------------------------
@@ -294,12 +305,12 @@ if waiting = .True then do
 end  
 if close then do
 
+  debugger~informshutdown
   watchlist = watchwindows~allitems~section(1)
   do watchwindow over watchlist~allitems
      watchwindow~cancel
   end   
-  
-  debugger~informshutdown
+
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
   self~dispose
   gui~SetExit
@@ -343,7 +354,7 @@ commandnum = 0
 self~InitDialog
 
 -------------------------------------------------------
-::method SetWaiting
+::method SetWaiting unguarded
 -------------------------------------------------------
 expose waiting
 use arg waiting

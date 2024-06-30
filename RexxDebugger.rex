@@ -51,6 +51,15 @@ if .local~rexxdebugger.startuphelptext = .nil then do
   "Note: Window positioning is for Windows/ooDialog only.")
 end
 
+--Rebuild methods in redirected 'console' output code paths to remove any global trace flags that could lead to recursive failures
+.RexxDebugger~define("IsShutdown",           .Method~new("", .RexxDebugger~method("IsShutdown")~source)~~setUnguarded)
+.RexxDebugger~define("SendDebugMessage",     .Method~new("", .RexxDebugger~method("SendDebugMessage")~source)~~setUnguarded)
+.RexxDebugger~define("CaptureConsoleOutput", .Method~new("", .RexxDebugger~method("CaptureConsoleOutput")~source)~~setUnguarded)
+.DebugOutputHandler~define("LINEOUT", .Method~new("", .DebugOutputHandler~method("LINEOUT")~source)~~setUnguarded)
+.DebugOutputHandler~define("CHAROUT", .Method~new("", .DebugOutputHandler~method("CHAROUT")~source)~~setUnguarded)
+.DebugOutputHandler~define("SAY",     .Method~new("", .DebugOutputHandler~method("SAY")~source)~~setUnguarded)
+.DebugTraceOutputHandler~define("LINEOUT", .Method~new("", .DebugTraceOutputHandler~method("LINEOUT")~source)~~setUnguarded)
+
 -- Set version
 .local~rexxdebugger.version = GetPackageConstant("Version")
 -- Launch debugger
@@ -69,7 +78,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.26"
+::CONSTANT VERSION "1.26.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -254,14 +263,10 @@ expose traceoutputhandler outputhandler errorhandler uiloaded
 use arg discardtrace = .False
 if uiloaded then do 
   outputhandler~SetCapture(.True)
-  if TRACE() = 'N' THEN do /* If debugger is not tracing itself! */
-    self~InstallTraceOutputAndErrorHandlers
-    traceoutputhandler~SetDiscard(discardtrace)
-    traceoutputhandler~SetCapture(.True)
-    errorhandler~SetCapture(.True)
-
-  end
-  else self~SendDebugMessage("Note: Trace and error output cannot be captured because tracing for the debugger is active")
+  self~InstallTraceOutputAndErrorHandlers
+  traceoutputhandler~SetDiscard(discardtrace)
+  traceoutputhandler~SetCapture(.True)
+  errorhandler~SetCapture(.True)
 end
 return .True
 
@@ -280,7 +285,7 @@ if outputhandler \= .nil then outputhandler~SetCapture(.False)
 return self~ReplyWithTraceCommand
 
 ------------------------------------------------------
-::method ReplyWithTraceCommand 
+::method ReplyWithTraceCommand unguarded
 ------------------------------------------------------
 expose debuggerui shutdown launched
 if shutdown then return 'trace off; exit' 
@@ -331,14 +336,14 @@ if translate(response) = 'HELP' then do
   return 'NOP'
 end  
   
-if shutdown & reponse \= '' then response = response||'; trace off; exit'
+if shutdown & response \= '' then response = response||'; trace off; exit'
 
 .debug.channel~status="getprogramstatus"
 
 return response
 
 ------------------------------------------------------
-::method GetAutoResponse 
+::method GetAutoResponse unguarded
 ------------------------------------------------------
 expose debuggerui tracedprograms manualbreak breakpoints
 
@@ -404,13 +409,13 @@ else if status="gotvars" then do
 end
 return ''
 ------------------------------------------------------
-::method SetManualBreak
+::method SetManualBreak unguarded
 ------------------------------------------------------
 expose manualbreak
 use arg manualbreak
 
 ------------------------------------------------------
-::method GetManualBreak
+::method GetManualBreak unguarded
 ------------------------------------------------------
 expose manualbreak
 
@@ -505,7 +510,7 @@ debugger~SendDebugMessage(text)
 
 
 --====================================================
-::class DebugTraceOutputHandler
+::class DebugTraceOutputHandler 
 --====================================================
 
 ------------------------------------------------------
@@ -558,8 +563,10 @@ Routines
 ::ROUTINE SAY public
 ------------------------------------------------------
 use strict arg text
-if .rexxdebugger.debugger~isA(.RexxDebugger) then .rexxdebugger.debugger~SendDebugMessage(text)
-
+if .rexxdebugger.debugger~isA(.RexxDebugger) then do
+  if .rexxdebugger.debugger~isshutdown then return
+  else .rexxdebugger.debugger~SendDebugMessage(text)
+end
 ------------------------------------------------------
 ::ROUTINE GetPackageConstant
 ------------------------------------------------------

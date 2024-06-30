@@ -29,7 +29,7 @@ SOFTWARE.
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 use arg debugger
 
 debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
@@ -44,33 +44,33 @@ debugdialog~popup("SHOWTOP")
 ------------------------------------------------------
 ::method AppendUIConsoleText unguarded
 ------------------------------------------------------
-expose debugdialog
-
+expose debugdialog debugger
 use  arg text, newline = .true
-if debugdialog \= .nil then debugdialog~appendtext(text, newline)
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~appendtext(text, newline)
 
 ------------------------------------------------------
 ::method GetUINextResponse unguarded
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 
-return debugdialog~GetNextResponse
+if debugdialog \= .nil & \debugger~isshutdown then return debugdialog~GetNextResponse
+else return ''
 
 ------------------------------------------------------
 ::method UpdateUICodeView 
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 use arg arrStack, activateindex
 
-debugdialog~UpdateCodeView(arrStack, activateindex)
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateCodeView(arrStack, activateindex)
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows 
 ------------------------------------------------------
-expose debugdialog
+expose debugdialog debugger
 use arg varsroot
 
-debugdialog~UpdateWatchWindows(varsroot)
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindows(varsroot)
 
 --====================================================
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin 
@@ -102,6 +102,7 @@ if waiting = .True then do
    if ret = 7 then close = .False
 end
 if close then do
+  debugger~informshutdown
   controls[self~LISTSOURCE]~deleteall
   controls[self~LISTSTACK]~deleteall
   self~deletefont(hfnt)
@@ -110,7 +111,6 @@ if close then do
      watchwindow~cancel
   end   
   self~CANCEL:super
-  debugger~informshutdown
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
 end
 
