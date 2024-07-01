@@ -78,7 +78,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.26.1"
+::CONSTANT VERSION "1.26.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -155,8 +155,10 @@ if \uiloaded & SysVersion()~translate~pos("WINDOWS") = 1 then do
     end
   end
   if uiloaded = .False then do
-    call RexxDebuggerWinUI.rex
-    uiloaded = .true
+    if (SysSearchPath('PATH','RexxDebuggerWinUI.rex')  \= '' | .File~new('RexxDebuggerWinUI.rex')~canread)  then do 
+      call RexxDebuggerWinUI.rex
+      uiloaded = .true
+    end  
   end  
 end
 if \uiloaded then do
