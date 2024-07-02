@@ -51,15 +51,6 @@ if .local~rexxdebugger.startuphelptext = .nil then do
   "Note: Window positioning is for Windows/ooDialog only.")
 end
 
---Rebuild methods in redirected 'console' output code paths to remove any global trace flags that could lead to recursive failures
-.RexxDebugger~define("IsShutdown",           .Method~new("", .RexxDebugger~method("IsShutdown")~source)~~setUnguarded)
-.RexxDebugger~define("SendDebugMessage",     .Method~new("", .RexxDebugger~method("SendDebugMessage")~source)~~setUnguarded)
-.RexxDebugger~define("CaptureConsoleOutput", .Method~new("", .RexxDebugger~method("CaptureConsoleOutput")~source)~~setUnguarded)
-.DebugOutputHandler~define("LINEOUT", .Method~new("", .DebugOutputHandler~method("LINEOUT")~source)~~setUnguarded)
-.DebugOutputHandler~define("CHAROUT", .Method~new("", .DebugOutputHandler~method("CHAROUT")~source)~~setUnguarded)
-.DebugOutputHandler~define("SAY",     .Method~new("", .DebugOutputHandler~method("SAY")~source)~~setUnguarded)
-.DebugTraceOutputHandler~define("LINEOUT", .Method~new("", .DebugTraceOutputHandler~method("LINEOUT")~source)~~setUnguarded)
-
 -- Set version
 .local~rexxdebugger.version = GetPackageConstant("Version")
 -- Launch debugger
@@ -78,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.26.2"
+::CONSTANT VERSION "1.26.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -86,6 +77,12 @@ The core code of the debugging library follows below
 ::attribute windowname unguarded
 ::attribute offsetdirection unguarded
 
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("IsShutdown",           .Method~new("", self~method("IsShutdown")~source)~~setUnguarded)
+self~define("SendDebugMessage",     .Method~new("", self~method("SendDebugMessage")~source)~~setUnguarded)
+self~define("CaptureConsoleOutput", .Method~new("", self~method("CaptureConsoleOutput")~source)~~setUnguarded)
 
 ------------------------------------------------------
 ::method FlagUIStartupComplete unguarded
@@ -100,6 +97,9 @@ uistartupcomplete = .True
 expose debuggerui
 
 REPLY /* Switch to a new thread */
+
+--Rebuild methods in redirected 'console' output code paths to remove any global trace flags that could lead to recursive failures
+.DebuggerUI~define("AppendUIConsoleText", .Method~new("", .DebuggerUI~method("AppendUIConsoleText")~source)~~setUnguarded)
 
 debuggerui = .DebuggerUI~new(self)
 
@@ -459,6 +459,13 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 --====================================================
 
 ------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("LINEOUT", .Method~new("", self~method("LINEOUT")~source)~~setUnguarded)
+self~define("CHAROUT", .Method~new("", self~method("CHAROUT")~source)~~setUnguarded)
+self~define("SAY",     .Method~new("", self~method("SAY")~source)~~setUnguarded)
+
+------------------------------------------------------
 ::method init
 ------------------------------------------------------
 expose debugger capture originaloutput
@@ -514,6 +521,11 @@ debugger~SendDebugMessage(text)
 --====================================================
 ::class DebugTraceOutputHandler 
 --====================================================
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("LINEOUT", .Method~new("", self~method("LINEOUT")~source)~~setUnguarded)
 
 ------------------------------------------------------
 ::method init
