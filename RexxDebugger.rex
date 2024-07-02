@@ -98,9 +98,6 @@ expose debuggerui
 
 REPLY /* Switch to a new thread */
 
---Rebuild methods in redirected 'console' output code paths to remove any global trace flags that could lead to recursive failures
-.DebuggerUI~define("AppendUIConsoleText", .Method~new("", .DebuggerUI~method("AppendUIConsoleText")~source)~~setUnguarded)
-
 debuggerui = .DebuggerUI~new(self)
 
 debuggerui~RunUI
