@@ -395,7 +395,7 @@ end
 
 
 ------------------------------------------------------
-::method OnRunButton unguarded
+::method OnRunButton
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
@@ -415,7 +415,7 @@ end
 
 
 ------------------------------------------------------
-::method OnExitButton unguarded
+::method OnExitButton
 ------------------------------------------------------
 expose waiting 
 if waiting then do
@@ -428,7 +428,7 @@ end
 
 
 ------------------------------------------------------
-::method OnVarsButton unguarded
+::method OnVarsButton 
 ------------------------------------------------------
 expose waiting watchdialog debugger varsroot
 if waiting then do
@@ -437,7 +437,7 @@ end
 
 
 -----------------------------------------------------
-::method OnHelpButton  unguarded
+::method OnHelpButton  
 ------------------------------------------------------
 expose waiting 
 if waiting then do
@@ -445,7 +445,7 @@ if waiting then do
 end
 
 ------------------------------------------------------
-::method OnExecButton unguarded
+::method OnExecButton 
 ------------------------------------------------------
 expose waiting controls arrCommands commandnum
 
@@ -465,7 +465,7 @@ end
 
 
 ------------------------------------------------------
-::method OnPrevCommand unguarded
+::method OnPrevCommand 
 ------------------------------------------------------
 expose arrCommands commandnum controls
 commandnum = commandnum - 1
@@ -752,7 +752,7 @@ if \debugger~isshutdown then do
 end
 
 ------------------------------------------------------
-::method SetListSource unguarded
+::method SetListSource 
 ------------------------------------------------------
 expose controls hfnt debugger loadedsources checkedsources
 use arg sourcefile 
@@ -786,7 +786,7 @@ end
 
 
 ------------------------------------------------------
-::method SetSourceListSelectedRow unguarded
+::method SetSourceListSelectedRow 
 ------------------------------------------------------
 expose visiblelistrows controls arrStack
 
@@ -878,14 +878,14 @@ do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
 ------------------------------------------------------
-::method StackFrameChanged unguarded
+::method StackFrameChanged 
 ------------------------------------------------------
 expose controls arrstack
 self~UpdateCodeView(arrstack, controls[self~LISTSTACK]~getSelectedIndex + 1)
 return 0
 
 ------------------------------------------------------
-::method SourceLineDoubleClicked unguarded
+::method SourceLineDoubleClicked 
 ------------------------------------------------------
 expose controls debugger activesourcename 
 
@@ -905,7 +905,7 @@ end
 controls[self~LISTSOURCE]~getmodel~set(itemindex - 1, listtext)
 
 -------------------------------------------------------
-::method IsBreakpointLikelyToBeHit unguarded
+::method IsBreakpointLikelyToBeHit 
 -------------------------------------------------------
 parse arg sourceline
 sourceline  = sourceline~strip

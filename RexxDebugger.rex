@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.26.5"
+::CONSTANT VERSION "1.26.6"
 
 --====================================================
 ::class RexxDebugger public
@@ -126,10 +126,7 @@ debuggerui = .nil
 
 uiloaded = self~findandloadui()
 
-if uiloaded then do 
-  ignore = .debuginput~destination(self)
-  outputhandler = .DebugOutputHandler~new(self, .output)
-end
+if uiloaded then ignore = .debuginput~destination(self)
 
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
@@ -246,13 +243,13 @@ use  arg text, newline = .true
 if debuggerui \= .nil then debuggerui~AppendUIConsoleText(text, newline)
 
 ------------------------------------------------------
-::method InstallTraceOutputAndErrorHandlers
+::method InstallOutputHandlers
 ------------------------------------------------------
-expose traceoutputhandler errorhandler
-if traceoutputhandler = .nil then do
+expose traceoutputhandler errorhandler outputhandler
+if outputhandler = .nil then do
+  outputhandler = .DebugOutputHandler~new(self, .output)
   traceoutputhandler = .DebugTraceOutputHandler~new(self)  
   errorhandler = .DebugOutputHandler~new(self, .error)
-
 end
 
 ------------------------------------------------------
@@ -261,11 +258,11 @@ end
 expose traceoutputhandler outputhandler errorhandler uiloaded
 use arg discardtrace = .False
 if uiloaded then do 
+  self~InstallOutputHandlers
   outputhandler~SetCapture(.True)
-  self~InstallTraceOutputAndErrorHandlers
-  traceoutputhandler~SetDiscard(discardtrace)
-  traceoutputhandler~SetCapture(.True)
   errorhandler~SetCapture(.True)
+  traceoutputhandler~SetCapture(.True)
+  traceoutputhandler~SetDiscard(discardtrace)
 end
 return .True
 
