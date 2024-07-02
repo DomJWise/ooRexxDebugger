@@ -48,6 +48,11 @@ SOFTWARE.
 ::attribute clsListSelectionModel  public unguarded
 ::attribute clsWindowConstants     public unguarded
 
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("AppendUIConsoleText", .Method~new("", self~method("AppendUIConsoleText")~source)~~setUnguarded)
+self~define("DidUICallSucceed", .Method~new("", self~method("DidUICallSucceed")~source)~~setUnguarded)
 
 ------------------------------------------------------
 ::method init
@@ -295,6 +300,11 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::constant PANESOURCE   110
 
 ------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("appendtext", .Method~new("", self~method("appendtext")~source)~~setUnguarded)
+
+------------------------------------------------------
 ::method Cancel unguarded
 ------------------------------------------------------
 expose waiting debugger hfnt watchwindows controls gui
@@ -373,7 +383,7 @@ gui~awaitingmaindialogresponse = .False
 
 
 ------------------------------------------------------
-::method OnNextButton 
+::method OnNextButton unguarded
 ------------------------------------------------------
 expose waiting controls 
 if waiting then do
@@ -385,7 +395,7 @@ end
 
 
 ------------------------------------------------------
-::method OnRunButton 
+::method OnRunButton unguarded
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
@@ -405,7 +415,7 @@ end
 
 
 ------------------------------------------------------
-::method OnExitButton 
+::method OnExitButton unguarded
 ------------------------------------------------------
 expose waiting 
 if waiting then do
@@ -418,7 +428,7 @@ end
 
 
 ------------------------------------------------------
-::method OnVarsButton 
+::method OnVarsButton unguarded
 ------------------------------------------------------
 expose waiting watchdialog debugger varsroot
 if waiting then do
@@ -427,7 +437,7 @@ end
 
 
 -----------------------------------------------------
-::method OnHelpButton 
+::method OnHelpButton  unguarded
 ------------------------------------------------------
 expose waiting 
 if waiting then do
@@ -455,7 +465,7 @@ end
 
 
 ------------------------------------------------------
-::method OnPrevCommand 
+::method OnPrevCommand unguarded
 ------------------------------------------------------
 expose arrCommands commandnum controls
 commandnum = commandnum - 1
@@ -730,7 +740,7 @@ if id = self~BUTTONEXEC then self~OnExecButton
 if id = self~BUTTONVARS then self~OnVarsButton
 
 ------------------------------------------------------
-::Method AppendText 
+::Method AppendText unguarded
 ------------------------------------------------------
 expose controls debugtext debugger
 use arg newtext, newline = .true
@@ -742,7 +752,7 @@ if \debugger~isshutdown then do
 end
 
 ------------------------------------------------------
-::method SetListSource
+::method SetListSource unguarded
 ------------------------------------------------------
 expose controls hfnt debugger loadedsources checkedsources
 use arg sourcefile 
@@ -776,7 +786,7 @@ end
 
 
 ------------------------------------------------------
-::method SetSourceListSelectedRow 
+::method SetSourceListSelectedRow unguarded
 ------------------------------------------------------
 expose visiblelistrows controls arrStack
 
@@ -868,14 +878,14 @@ do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
 ------------------------------------------------------
-::method StackFrameChanged 
+::method StackFrameChanged unguarded
 ------------------------------------------------------
 expose controls arrstack
 self~UpdateCodeView(arrstack, controls[self~LISTSTACK]~getSelectedIndex + 1)
 return 0
 
 ------------------------------------------------------
-::method SourceLineDoubleClicked
+::method SourceLineDoubleClicked unguarded
 ------------------------------------------------------
 expose controls debugger activesourcename 
 
@@ -895,7 +905,7 @@ end
 controls[self~LISTSOURCE]~getmodel~set(itemindex - 1, listtext)
 
 -------------------------------------------------------
-::method IsBreakpointLikelyToBeHit
+::method IsBreakpointLikelyToBeHit unguarded
 -------------------------------------------------------
 parse arg sourceline
 sourceline  = sourceline~strip
@@ -1165,3 +1175,4 @@ if IsWindows() then return SysQueryProcess(TID)
 else return '?'
 
 ::REQUIRES BSF.CLS      -- get the Java support
+--::options TRACE R

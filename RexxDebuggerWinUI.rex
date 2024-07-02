@@ -27,6 +27,11 @@ SOFTWARE.
 --====================================================
 
 ------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("AppendUIConsoleText", .Method~new("", self~method("AppendUIConsoleText")~source)~~setUnguarded)
+
+------------------------------------------------------
 ::method init
 ------------------------------------------------------
 expose debugdialog debugger
@@ -86,6 +91,11 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindow
 ::constant BUTTONHELP   107
 ::constant EDITCOMMAND  108
 ::constant BUTTONEXEC   109
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+self~define("AppendText", .Method~new("", self~method("AppendText")~source)~~setUnguarded)
 
 ------------------------------------------------------
 ::method ok  
@@ -452,7 +462,7 @@ self~newPushButton(self~BUTTONEXEC)~click
 return 0
 
 ------------------------------------------------------
-::Method AppendText 
+::Method AppendText unguarded
 ------------------------------------------------------
 expose controls debugtext debugger
 use arg newtext, newline = .true
@@ -845,3 +855,4 @@ else  self~DisableControl(self~LISTVARS)
 
 
 ::requires oodialog.cls
+--::options trace R
