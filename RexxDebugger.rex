@@ -37,8 +37,8 @@ if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rex
 if .local~rexxdebugger.startuphelptext = .nil then do 
   .local~rexxdebugger.startuphelptext = .list~of( -
   "Command line usage:", - 
-  "Rexxdebugger [/nocapture | /showtrace] <program> <argstring>", - 
-  "Rexxdebugger [/nocapture | /showtrace] CALL <program> [<arg1>] [..<argn>]", - 
+  "Rexxdebugger [/nocapture | /showtrace] [/javaui] <program> <argstring>", - 
+  "Rexxdebugger [/nocapture | /showtrace] [/javaui] CALL <program> [<arg1>] [..<argn>]", - 
   "", - 
   "To launch from Rexx source include the following line:", - 
   "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.26.6"
+::CONSTANT VERSION "1.26.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -596,8 +596,13 @@ if entrypackage \= .nil, entrypackage~name = .context~package~name then do
     parse value debuggerargstring with . debuggerargstring
   end
   else .local~rexxdebugger.captureoption = ''
+  if debuggerargstring~translate~word(1) = "/JAVAUI" then do 
+    parse value debuggerargstring with . debuggerargstring
+    forcejava = .True
+  end
+  else forcejava = .false
+  
   if debuggerargstring~translate~word(1) = "CALL" then do 
-    say debuggerargstring 
     parse value debuggerargstring with . debuggerargstring
     multipleargs = .True
   end
@@ -627,9 +632,11 @@ if entrypackage \= .nil, entrypackage~name = .context~package~name then do
     else do  
       arrsource = strm~arrayin
       strm~close
-      signal on ANY name HandleSyntaxError
       if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
-      runroutine = .routine~new(rexxfile, arrSource~~append('')~~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R'))
+      arrsource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R')
+      if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then arrSource~append('/*REXX.DEBUGGER.INJECT*/ ::REQUIRES RexxDebuggerBSFUI.rex')
+      signal on ANY name HandleSyntaxError
+      runroutine = .routine~new(rexxfile, arrSource)
       signal off ANY
       routinepackage = runroutine~package
       do i over routinepackage~importedpackages
