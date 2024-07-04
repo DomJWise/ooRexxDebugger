@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.26.7"
+::CONSTANT VERSION "1.27"
 
 --====================================================
 ::class RexxDebugger public
@@ -647,6 +647,7 @@ if entrypackage \= .nil, entrypackage~name = .context~package~name then do
       .local~rexxdebugger.runargs = runargs
     end  
   end
+  else if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then call RexxDebuggerBSFUI.rex
 end
 return retval
 

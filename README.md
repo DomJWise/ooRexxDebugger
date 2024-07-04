@@ -35,7 +35,7 @@ To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used)
 
    - RexxDebuggerBSFUI.rex in required for the Swing/AWT version
 
-On Windows when both modules are available the native ooDialog module will be preferred but this can be overridden by including ::REQUIRES RexxDebuggerBSFUI.rex in your source. If the source also includes ::REQUIRES RexxDebugger.rex the latter must appear later on in the source for this override to work.
+On Windows when both modules are available the native ooDialog module will be preferred but this can be overridden by including ::REQUIRES RexxDebuggerBSFUI.rex in your source. If the source also includes ::REQUIRES RexxDebugger.rex the latter must appear later on in the source for this override to work. Alternatively if launching via RexxDebugger you can specify the /javaui command line option (see below)
 
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
@@ -44,11 +44,11 @@ Standalone programs or programs called as a single routine with multiple argumen
 
 For a standalone program  where a single argument string is passed unaltered to the program you would use:
 
-rexxdebugger [/showtrace | /nocapture] myprogram.rex [{argstring}]
+rexxdebugger [/showtrace | /nocapture] [/javaui] myprogram.rex [{argstring}]
 
 For a 'routine' program that expects multiple ARG(n) arguments you would use:
 
-rexxdebugger [/showtrace | /nocapture] CALL myroutine.rex [{arg1}] ... [{argn}]
+rexxdebugger [/showtrace | /nocapture] [/javaui] CALL myroutine.rex [{arg1}] ... [{argn}]
 
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 
@@ -63,6 +63,8 @@ The ability to control what is captured to the console is available in any debug
 NB: On Mac OS it may be that the rexxdebugger script cannot be used and so to run either of the above you will need to use the Rexx+Java launcher script and the full name of the debugger rexx file
 
 e.g. rexxjh.sh RexxDebugger.rex [/showtrace | /nocpature] myprogram.rex [{argstring}]
+
+The /javaui option can be used on Windows with ooRexx 5.0 or later to run the debugger with the Swing/AWT (Java) interface
 
 If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
 
