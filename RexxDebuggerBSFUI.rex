@@ -999,7 +999,7 @@ expose controls debugwindow hfnt  parentwindow dialogtitle gui
 
 self~init:super('javax.swing.JFrame',.array~of(dialogtitle))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(220, 130)
+self~setSize(300, 180)
 self~setMinimumSize(gui~clsDimension~new(220,130))
 self~setLayout(gui~clsBorderLayout~new(5,5))
 self~setLocationRelativeTo(.nil)
@@ -1021,7 +1021,7 @@ if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~
 listvars~setFixedCellHeight(14)
 
 listvarspane = gui~clsJScrollPane~new
-listvarspane~setPreferredSize(gui~clsDimension~new(440,50))
+listvarspane~setPreferredSize(gui~clsDimension~new(300,180))
 listvarspane~setViewportView(listvars)
 
 panelmain~add(listvarspane, gui~clsBorderLayout~CENTER)
@@ -1069,11 +1069,14 @@ end
 expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
 use arg root
 variablescollection = root
+if parentlist~items \= 0 then do
+  variablescollection~put(.environment, ".ENVIRONMENT")
+  variablescollection~put(.local, ".LOCAL")
+end
 do nextchild over parentlist
   variablescollection = variablescollection[nextchild]
   if variablescollection = .nil then leave
 end
-
 if variablescollection = .nil then do
  varsvalid = .False
 end
@@ -1089,7 +1092,12 @@ else do
   if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
   if dosort then itemidentifiers = variablescollection~allindexes~sort
   else  itemidentifiers = variablescollection~allindexes
-
+  if parentlist~items = 0 then do
+    variablescollection~put(.environment, ".ENVIRONMENT")
+    itemidentifiers~append(".ENVIRONMENT")
+    variablescollection~put(.local, ".LOCAL")
+    itemidentifiers~append(".LOCAL")
+  end
   itemclasses = .Array~new
   do varname over itemidentifiers
     if varname~isA(.Array) then vardisplayname = varname~makestring(,",")

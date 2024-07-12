@@ -670,14 +670,14 @@ do elementname over parentlist
   else dialogtitle = dialogtitle || elementname
 end
 
-self~create(0, 0, 104, 56, dialogtitle, "THICKFRAME")
+self~create(0, 0, 180, 73, dialogtitle, "THICKFRAME")
 
 ------------------------------------------------------
 ::method defineDialog 
 ------------------------------------------------------
 expose variablescollection
 style = "HSCROLL VSCROLL NOTIFY"
-self~createListBox(self~LISTVARS, 2, 2, 100, 52, style)
+self~createListBox(self~LISTVARS, 2, 2, 176, 72, style)
 
 ------------------------------------------------------
 ::method defineSizing 
@@ -697,7 +697,7 @@ expose controls debugwindow hfnt  parentwindow
 
 controls[self~LISTVARS] = self~newListBox(self~LISTVARS)
 
-minsize = .Size~new(self~pixelCX, self~pixelCY)
+minsize = .Size~new(trunc(self~pixelCX / 1.75), trunc(self~pixelCY /1.3))
 self~minSize = minsize
 
 hfnt = self~createFontEx("Courier New", 8)
@@ -748,11 +748,14 @@ expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninf
 use arg root
 
 variablescollection = root
+if parentlist~items \= 0 then do
+  variablescollection~put(.environment, ".ENVIRONMENT")
+  variablescollection~put(.local, ".LOCAL")
+end
 do nextchild over parentlist
   variablescollection = variablescollection[nextchild]
   if variablescollection = .nil then leave
 end
-
 if variablescollection = .nil then do
  self~setcurrentListIndex(self~LISTVARS, 0)
  varsvalid = .False
@@ -773,6 +776,12 @@ else do
   if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
   if dosort then itemidentifiers = variablescollection~allindexes~sort
   else  itemidentifiers = variablescollection~allindexes
+  if parentlist~items = 0 then do
+    variablescollection~put(.environment, ".ENVIRONMENT")
+    itemidentifiers~append(".ENVIRONMENT")
+    variablescollection~put(.local, ".LOCAL")
+    itemidentifiers~append(".LOCAL")
+  end
 
   itemclasses = .Array~new
   do varname over itemidentifiers
