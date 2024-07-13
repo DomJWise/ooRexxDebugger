@@ -28,8 +28,8 @@ SOFTWARE.
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
-.context~package~local[debugautonext]              = .true
-.context~package~local[debugdisableawtthreadtrace] = .true
+.context~package~local[debugautonext]              = .false
+.context~package~local[debugdisableawtthreadtrace] = .false
 
 --====================================================
 ::class DebuggerUI public
@@ -1243,4 +1243,4 @@ do with index methodname item method over classobj~methods
 end  
 
 ::REQUIRES BSF.CLS      -- get the Java support
-::options TRACE R
+--::options TRACE R
