@@ -1,5 +1,3 @@
-
-
 /*
 MIT License
 
@@ -23,6 +21,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
+--====================================================
+::class BSFPackageDevTestingGlobals
+--====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+.context~package~local[debugautonext]              = .true
+.context~package~local[debugdisableawtthreadtrace] = .true
 
 --====================================================
 ::class DebuggerUI public
@@ -96,7 +103,7 @@ else success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "InitSafe")~~r
 ::method InitSafe unguarded
 ------------------------------------------------------
 expose  debugdialog debugger
- 
+
 /* Create and build the "main" window" */
 debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
 
@@ -220,6 +227,12 @@ return success
 ::method windowclosed
 
 ------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+
+------------------------------------------------------
 ::method windowclosing 
 ------------------------------------------------------
 use arg eventobj, slotdir
@@ -229,6 +242,11 @@ dialog~Cancel
 --====================================================
 ::class DebugDialogListStackMouseListener public
 --====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
 ::method mousepressed
 ::method mousereleased
 ::method mouseexited
@@ -245,6 +263,11 @@ dialog~StackFrameChanged
 --====================================================
 ::class DebugDialogListSourceMouseListener public
 --====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
 ::method mousepressed
 ::method mousereleased
 ::method mouseexited
@@ -264,6 +287,12 @@ end
 --====================================================
 ::method keyTyped
 ::method keyReleased
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
 
 ------------------------------------------------------
 ::method init
@@ -302,7 +331,7 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
-self~define("appendtext", .Method~new("", self~method("appendtext")~source)~~setUnguarded)
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
 ------------------------------------------------------
 ::method Cancel unguarded
@@ -342,6 +371,7 @@ if waiting then controls[self~EDITCOMMAND]~requestFocus
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
 end
+if .BSFPackageDevTestingGlobals~package~local~debugautonext = .true then .AwtGuiThread~runLater(self, "OnNextButton")
 
 
 ------------------------------------------------------
@@ -918,6 +948,11 @@ else return .True
 --====================================================
 ::class WatchDialogWindowListener public
 --====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
 ::method windowopened
 ::method windowactivated
 ::method windowdeactivated
@@ -935,6 +970,11 @@ dialog~Cancel
 --====================================================
 ::class WatchDialogListVarsMouseListener public
 --====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
 ::method mousepressed
 ::method mousereleased
 ::method mouseexited
@@ -966,7 +1006,10 @@ end
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 
-
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
  ------------------------------------------------------
 ::method init 
@@ -1182,5 +1225,22 @@ return SysVersion()~translate~pos("WINDOWS") = 1
 if IsWindows() then return SysQueryProcess(TID) 
 else return '?'
 
+------------------------------------------------------
+::routine detracemethods
+------------------------------------------------------
+use arg classobj
+if .context~package~trace \= 'N' then 
+do with index methodname item method over classobj~methods
+  if method~package~name = .context~package~name then do
+    if \method~isconstant & \method~isattribute then do
+      guarded = method~isguarded
+      newmethod = .Method~new("", method~source)
+      if guarded then newmethod~setguarded
+      else newmethod~setunguarded
+      classobj~define(methodname, newmethod)
+    end    
+  end  
+end  
+
 ::REQUIRES BSF.CLS      -- get the Java support
---::options TRACE R
+::options TRACE R
