@@ -796,7 +796,9 @@ else do
       if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
       varvalue = varvalue||')'
     end  
-    text= vardisplayname' = 'varvalue
+    if self~IsExpandable(variablescollection[varname]~class) then text = '+'
+    else text = ' '
+    text= text||vardisplayname' = 'varvalue
     width = self~getTextExtent(dc, text)~width
     if width > maxwidth then maxwidth = width
     controls[self~LISTVARS]~add(text)
@@ -830,6 +832,20 @@ else do
 end
 
 ------------------------------------------------------
+::method IsExpandable
+------------------------------------------------------
+use arg itemclass
+if itemclass =.Directory | -
+  itemclass =.StringTable | -
+  itemclass =.Properties | -
+  itemclass =.Stem | -
+  itemclass =.List | -
+  itemclass =.Queue | -
+  itemclass =.CircularQueue | -
+  itemclass =.Array then return .True
+else return .False
+
+------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
 expose controls debugwindow itemidentifiers itemclasses parentlist
@@ -837,16 +853,7 @@ expose controls debugwindow itemidentifiers itemclasses parentlist
 itemindex = controls[self~LISTVARS]~selectedindex
 if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
-  itemclass = itemclasses[itemindex]
-  if itemclass =.Directory | -
-     itemclass =.StringTable | -
-     itemclass =.Properties | -
-     itemclass =.Stem | -
-     itemclass =.List | -
-     itemclass =.Queue | -
-     itemclass =.CircularQueue | -
-     itemclass =.Array then do
-
+  if self~IsExpandable(itemclasses[itemindex]) then do
     if parentlist~items \= 0 then newlist =parentlist~section(0)
     else newlist = .List~new
     newlist~append(itemidentifier)
