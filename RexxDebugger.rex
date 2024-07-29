@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.27.4"
+::CONSTANT VERSION "1.27.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -591,17 +591,18 @@ use arg debuggerargstring
 retval = .False
 entrypackage = .context~stackframes[.context~stackframes~items]~executable~package
 if entrypackage \= .nil, entrypackage~name = .context~package~name then do
-  if "/SHOWTRACE /NOCAPTURE"~wordpos(debuggerargstring~translate~word(1)) \= 0 then do
-    .local~rexxdebugger.captureoption = debuggerargstring~translate~word(1)~translate
+  .local~rexxdebugger.captureoption = ''
+  forcejava = .false
+  do while  "/SHOWTRACE /NOCAPTURE /JAVAUI"~wordpos(debuggerargstring~translate~word(1)) \= 0
+    nextflag = debuggerargstring~translate~word(1)
     parse value debuggerargstring with . debuggerargstring
+    if "/SHOWTRACE /NOCAPTURE"~wordpos(nextflag) \= 0 then do
+      .local~rexxdebugger.captureoption = nextflag
+    end
+    else if nextflag = "/JAVAUI" then do 
+      forcejava = .True
+    end
   end
-  else .local~rexxdebugger.captureoption = ''
-  if debuggerargstring~translate~word(1) = "/JAVAUI" then do 
-    parse value debuggerargstring with . debuggerargstring
-    forcejava = .True
-  end
-  else forcejava = .false
-  
   if debuggerargstring~translate~word(1) = "CALL" then do 
     parse value debuggerargstring with . debuggerargstring
     multipleargs = .True
