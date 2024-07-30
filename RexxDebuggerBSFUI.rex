@@ -1022,12 +1022,13 @@ controls = .Directory~new
 currentselectioninfo = ""
 varsvalid = .False
 
-dialogtitle = "Watch"
+dialogtitle = ''
 do elementname over parentlist
-  dialogtitle = dialogtitle||' '
-  if elementname~isA(.Array) then dialogtitle = dialogtitle || elementname~makestring(,",")
-  else dialogtitle = dialogtitle || elementname
+  if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
+  if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
+  else dialogtitle = elementname||dialogtitle 
 end
+dialogtitle = "Watch "||dialogtitle
 
 self~Initdialog
 

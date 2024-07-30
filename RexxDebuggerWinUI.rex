@@ -663,12 +663,13 @@ currentselectioninfo = ""
 varsvalid = .False
 forward class (super) continue array(.nil)
 
-dialogtitle = "Watch"
+dialogtitle = ''
 do elementname over parentlist
-  dialogtitle = dialogtitle||' '
-  if elementname~isA(.Array) then dialogtitle = dialogtitle || elementname~makestring(,",")
-  else dialogtitle = dialogtitle || elementname
+  if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
+  if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
+  else dialogtitle = elementname||dialogtitle 
 end
+dialogtitle = "Watch "||dialogtitle
 
 self~create(0, 0, 180, 73, dialogtitle, "THICKFRAME")
 
