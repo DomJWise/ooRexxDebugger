@@ -35,7 +35,10 @@ self~define("AppendUIConsoleText", .Method~new("", self~method("AppendUIConsoleT
 ::method init
 ------------------------------------------------------
 expose debugdialog debugger
-use arg debugger
+use arg debugger,watchhelperclass
+
+.context~package~addclass("WatchHelper", watchhelperclass)
+.WatchDialog~inherit(.WatchHelper)
 
 debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
 
@@ -831,20 +834,6 @@ else do
   controls[self~LISTVARS]~redraw
  
 end
-
-------------------------------------------------------
-::method IsExpandable
-------------------------------------------------------
-use arg itemclass
-if itemclass =.Directory | -
-  itemclass =.StringTable | -
-  itemclass =.Properties | -
-  itemclass =.Stem | -
-  itemclass =.List | -
-  itemclass =.Queue | -
-  itemclass =.CircularQueue | -
-  itemclass =.Array then return .True
-else return .False
 
 ------------------------------------------------------
 ::method VariableDoubleClicked

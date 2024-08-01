@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.27.6"
+::CONSTANT VERSION "1.27.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -98,7 +98,7 @@ expose debuggerui
 
 REPLY /* Switch to a new thread */
 
-debuggerui = .DebuggerUI~new(self)
+debuggerui = .DebuggerUI~new(self, .WatchHelper)
 
 debuggerui~RunUI
 
@@ -661,5 +661,22 @@ say 'Error 'cond~CODE': 'cond~MESSAGE
 .local~rexxdebugger.deferlaunch = .true
 return  .True
 
+--====================================================
+::class WatchHelper mixinclass object public
+--====================================================
+
+------------------------------------------------------
+::method IsExpandable
+------------------------------------------------------
+use arg itemclass
+if itemclass =.Directory | -
+  itemclass =.StringTable | -
+  itemclass =.Properties | -
+  itemclass =.Stem | -
+  itemclass =.List | -
+  itemclass =.Queue | -
+  itemclass =.CircularQueue | -
+  itemclass =.Array then return .True
+else return .False
 
 --::options trace R

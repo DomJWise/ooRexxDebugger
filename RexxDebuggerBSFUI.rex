@@ -64,8 +64,11 @@ self~define("DidUICallSucceed", .Method~new("", self~method("DidUICallSucceed")~
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger debugdialog
-use arg debugger
+expose debugdialog debugger
+use arg debugger,watchhelperclass
+
+.context~package~addclass("WatchHelper", watchhelperclass)
+.WatchDialog~inherit(.WatchHelper)
 
 self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")
 self~clsDefaultListModel   = bsf.importclass("javax.swing.DefaultListModel")
@@ -1184,20 +1187,6 @@ else do
   end  
 
 end  
-
-------------------------------------------------------
-::method IsExpandable
-------------------------------------------------------
-use arg itemclass
-if itemclass =.Directory | -
-  itemclass =.StringTable | -
-  itemclass =.Properties | -
-  itemclass =.Stem | -
-  itemclass =.List | -
-  itemclass =.Queue | -
-  itemclass =.CircularQueue | -
-  itemclass =.Array then return .True
-else return .False
 
 ------------------------------------------------------
 ::method VariableDoubleClicked
