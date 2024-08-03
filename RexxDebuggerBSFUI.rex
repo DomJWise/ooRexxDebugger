@@ -364,8 +364,7 @@ end
 ------------------------------------------------------
 expose waiting controls watchwindows
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  if waiting then controls[control]~setEnabled(.true)
-  else  controls[control]~setEnabled(.false)
+  self~ControlEnable(controls, control, waiting)
 end    
 
 if waiting & \controls[self~BUTTONRUN]~gettext()~equals("Run") then controls[self~BUTTONRUN]~settext("Run")
@@ -1208,9 +1207,7 @@ end
 ------------------------------------------------------
 expose controls varsvalid
 use arg enablelist
-if enablelist & varsvalid then controls[self~LISTVARS]~setEnabled(.true)
-else  controls[self~LISTVARS]~setEnabled(.false)
-
+self~ControlEnable(controls, self~LISTVARS, enablelist & varsvalid)
 
 ------------------------------------------------------
 ::ROUTINE IsWindows
@@ -1254,6 +1251,13 @@ controls[listid]~setSelectedIndex(newindex - 1)
 ------------------------------------------------------
 use arg controls,listid
 return controls[listId]~getselectedindex + 1
+
+------------------------------------------------------
+::method ControlEnable
+------------------------------------------------------
+use arg controls, controlid, enable
+
+controls[controlid]~setEnabled(enable)
 
 ::REQUIRES BSF.CLS      -- get the Java support
 --::options TRACE R

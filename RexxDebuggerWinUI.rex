@@ -132,8 +132,7 @@ end
 ------------------------------------------------------
 expose waiting controls watchwindows
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  if waiting then self~EnableControl(control)
-  else self~DisableControl(control)  
+  self~ControlEnable(controls, control, waiting)
 end    
 if waiting & controls[self~BUTTONRUN]~gettext \= "&Run" then controls[self~BUTTONRUN]~settext("&Run")
 do watchwindow over watchwindows~allitems
@@ -856,8 +855,7 @@ end
 expose controls varsvalid
 use arg enablelist
 
-if enablelist & varsvalid then self~EnableControl(self~LISTVARS)
-else  self~DisableControl(self~LISTVARS)
+self~ControlEnable(controls, self~LISTVARS, enablelist & varsvalid)
 
 
 ::requires oodialog.cls
@@ -880,5 +878,12 @@ use arg controls, listid
 
 return controls[listId]~selectedindex
 
+------------------------------------------------------
+::method ControlEnable
+------------------------------------------------------
+use arg controls, controlid, enable
+
+if enable then self~EnableControl(controlid)
+else self~DisableControl(controlid)
 
 --::options trace R
