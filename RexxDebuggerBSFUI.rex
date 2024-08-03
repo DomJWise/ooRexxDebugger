@@ -316,7 +316,7 @@ if event~getKeycode = vkup then dialog~OnPrevCommand
 if event~getKeycode = vkdown then dialog~OnNextCommand
 
 --====================================================
-::class DebugDialog subclass bsf
+::class DebugDialog subclass bsf inherit DialogControlHelper
 --====================================================
 
 ::constant LISTSOURCE   100
@@ -826,15 +826,15 @@ expose visiblelistrows controls arrStack
 
 -- Assumes the correct source is already loaded
 -- This is just to set the position in the source listbox
-newrow = arrStack[controls[self~LISTSTACK]~getSelectedIndex + 1]~line
+newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
 
 if newrow <  0 | newrow >=  controls[self~LISTSOURCE]~getmodel~getsize then return
-currentrow = controls[self~LISTSOURCE]~getSelectedIndex + 1
+currentrow = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 visiblelistrows = controls[self~LISTSOURCE]~getlastVisibleIndex - controls[self~LISTSOURCE]~getfirstVisibleIndex
 
 firstrow = 1
 firstvisible =  controls[self~LISTSOURCE]~getfirstVisibleIndex + 1
-controls[self~LISTSOURCE]~setSelectedIndex(newrow - 1)
+self~ListSetSelectedIndex(controls, self~LISTSOURCE, newrow)
 topbottomrows = min((visiblelistrows / 10)~ceiling, 4)
 newfirstvisible = -1
 if newrow < firstvisible | newrow > visiblelistrows + firstvisible then do 
@@ -885,7 +885,7 @@ do frame over arrStack~allitems
   indent = indent - 1
 end  
 
-controls[self~LISTSTACK]~setSelectedIndex(activateindex - 1)
+self~ListSetSelectedIndex(controls, self~LISTSTACK, activateindex)
 
 
 --Ensure the correct source (if any) is loaded
@@ -914,7 +914,7 @@ end
 ::method StackFrameChanged 
 ------------------------------------------------------
 expose controls arrstack
-self~UpdateCodeView(arrstack, controls[self~LISTSTACK]~getSelectedIndex + 1)
+self~UpdateCodeView(arrstack, self~ListGetSelectedIndex(controls, self~LISTSTACK))
 return 0
 
 ------------------------------------------------------
@@ -922,7 +922,7 @@ return 0
 ------------------------------------------------------
 expose controls debugger activesourcename 
 
-itemindex = controls[self~LISTSOURCE]~getSelectedIndex + 1
+itemindex = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 listtext = controls[self~LISTSOURCE]~getSelectedValue
 if listtext~left(1) = ' ' then do
   checktext = listtext~delword(1,1)~translate~strip
@@ -1000,7 +1000,7 @@ end
 
 
  --====================================================
-::class WatchDialog subclass bsf
+::class WatchDialog subclass bsf inherit DialogControlHelper
 --====================================================
  
 ::CONSTANT LISTVARS 101
@@ -1102,7 +1102,7 @@ self~dispose
 ::METHOD VariableSelected
 ------------------------------------------------------
 expose controls itemidentifiers currentselectioninfo
-itemindex = controls[self~LISTVARS]~getselectedindex + 1
+itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
 if itemindex \= 0 then do
   selectedidentifierstring = itemidentifiers[itemindex]~makestring
   rowsbefore = itemindex - (controls[self~LISTVARS]~getfirstVisibleIndex + 1)
@@ -1176,7 +1176,7 @@ else do
       end
     end    
     if indextoselect \= 0 then do
-      controls[self~LISTVARS]~setSelectedIndex(indextoselect - 1)
+      self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
     end  
     else if controls[self~LISTVARS]~getFirstVisibleIndex \= -1  then newfirsvisible = 1
@@ -1193,10 +1193,9 @@ end
 ------------------------------------------------------
 expose controls debugwindow itemidentifiers itemclasses parentlist
 
-itemindex = controls[self~LISTVARS]~getselectedindex + 1
+itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
 if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
-  itemclass = itemclasses[itemindex]
   if self~IsExpandable(itemclasses[itemindex]) then do
     if parentlist~items \= 0 then newlist =parentlist~section(0)
     else newlist = .List~new
@@ -1238,6 +1237,23 @@ do with index methodname item method over classobj~methods
     end    
   end  
 end  
+
+--====================================================
+::class DialogControlHelper mixinclass object 
+--====================================================
+
+------------------------------------------------------
+::method ListSetSelectedIndex
+------------------------------------------------------
+use arg controls, listid, newindex
+
+controls[listid]~setSelectedIndex(newindex - 1)
+
+------------------------------------------------------
+::method ListGetSelectedIndex
+------------------------------------------------------
+use arg controls,listid
+return controls[listId]~getselectedindex + 1
 
 ::REQUIRES BSF.CLS      -- get the Java support
 --::options TRACE R

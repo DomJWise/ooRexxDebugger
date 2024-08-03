@@ -81,7 +81,7 @@ use arg varsroot
 if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindows(varsroot)
 
 --====================================================
-::class DebugDialog subclass UserDialog inherit ResizingAdmin 
+::class DebugDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
 
 ::constant LISTSOURCE   100
@@ -527,13 +527,13 @@ expose visiblelistrows controls arrStack
 -- Assumes the correct source is already loaded
 -- This is just to set the position in the source listbox
 
-newrow = arrStack[controls[self~LISTSTACK]~selectedindex]~line
+newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
 if newrow <  1 | newrow >  self~getListItems(self~LISTSOURCE) then return
 
 currentrow = self~GetcurrentListIndex(self~LISTSOURCE)
 firstvisible =  controls[self~LISTSOURCE]~getfirstvisible
 topbottomrows = min((visiblelistrows / 10)~ceiling, 4)
-self~setcurrentListIndex(self~LISTSOURCE, newrow)
+self~ListSetSelectedIndex(controls, self~LISTSOURCE, newrow)
 if newrow < firstvisible | newrow > visiblelistrows + firstvisible then do 
   firstrow = newrow - (visiblelistrows / 2)~floor
   if firstrow < 1 then firstrow = 1
@@ -575,7 +575,7 @@ do frame over arrStack
   controls[self~LISTSTACK]~add(finaltext)
   indent = indent - 1
 end  
-self~setcurrentListIndex(self~LISTSTACK, activateindex)
+self~ListSetSelectedIndex(controls, self~LISTSTACK, activateIndex)
 
 -- Set to not redraw. Switched back on when selecting
 controls[self~LISTSOURCE]~hidefast
@@ -612,7 +612,7 @@ end
 ::method StackFrameChanged 
 ------------------------------------------------------
 expose controls arrstack
-self~UpdateCodeView(arrstack, controls[self~LISTSTACK]~selectedindex)
+self~UpdateCodeView(arrstack, self~ListGetSelectedIndex(controls, self~LISTSTACK))
 return 0
 
 ------------------------------------------------------
@@ -620,7 +620,7 @@ return 0
 ------------------------------------------------------
 expose controls debugger activesourcename 
 
-itemindex = controls[self~LISTSOURCE]~selectedindex
+itemindex = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 listtext = controls[self~LISTSOURCE]~selected
 if listtext~left(1) = ' ' then do
   checktext = listtext~delword(1,1)~translate~strip
@@ -646,7 +646,7 @@ if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(source
 else return .True
 
  --====================================================
-::class WatchDialog subclass UserDialog inherit ResizingAdmin
+::class WatchDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
  
 ::CONSTANT LISTVARS 101
@@ -737,7 +737,7 @@ self~CANCEL:super
 ------------------------------------------------------
 expose controls itemidentifiers currentselectioninfo
 
-itemindex = controls[self~LISTVARS]~selectedindex
+itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
 if itemindex \= 0 then do
   selectedidentifierstring = itemidentifiers[itemindex]~makestring
   rowsbefore = itemindex - controls[self~LISTVARS]~getfirstvisible
@@ -761,8 +761,8 @@ do nextchild over parentlist
   if variablescollection = .nil then leave
 end
 if variablescollection = .nil then do
- self~setcurrentListIndex(self~LISTVARS, 0)
- varsvalid = .False
+  self~ListSetSelectedIndex(controls, self~LISTVARS, 0)
+  varsvalid = .False
 end
 else do
   varsvalid = .True
@@ -823,7 +823,7 @@ else do
       end
     end    
     if indextoselect \= 0 then do
-      self~setcurrentListIndex(self~LISTVARS, indextoselect)
+      self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
       controls[self~LISTVARS]~makefirstvisible(newfirstvisible)
     end  
@@ -840,7 +840,7 @@ end
 ------------------------------------------------------
 expose controls debugwindow itemidentifiers itemclasses parentlist
 
-itemindex = controls[self~LISTVARS]~selectedindex
+itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
 if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
   if self~IsExpandable(itemclasses[itemindex]) then do
@@ -861,4 +861,24 @@ else  self~DisableControl(self~LISTVARS)
 
 
 ::requires oodialog.cls
+
+--====================================================
+::class DialogControlHelper mixinclass object 
+--====================================================
+
+------------------------------------------------------
+::method ListSetSelectedIndex
+------------------------------------------------------
+use arg controls, listid, newindex
+
+self~setcurrentListIndex(listid, newindex)
+
+------------------------------------------------------
+::method ListGetSelectedIndex
+------------------------------------------------------
+use arg controls, listid
+
+return controls[listId]~selectedindex
+
+
 --::options trace R
