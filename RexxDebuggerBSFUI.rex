@@ -827,7 +827,7 @@ expose visiblelistrows controls arrStack
 -- This is just to set the position in the source listbox
 newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
 
-if newrow <  0 | newrow >=  controls[self~LISTSOURCE]~getmodel~getsize then return
+if newrow <  1 | newrow > self~ListGetRowCount(controls, self~LISTSOURCE) then return
 currentrow = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 visiblelistrows = controls[self~LISTSOURCE]~getlastVisibleIndex - controls[self~LISTSOURCE]~getfirstVisibleIndex
 
@@ -1251,6 +1251,13 @@ controls[listid]~setSelectedIndex(newindex - 1)
 ------------------------------------------------------
 use arg controls,listid
 return controls[listId]~getselectedindex + 1
+
+------------------------------------------------------
+::method ListGetRowCount
+------------------------------------------------------
+use arg controls, listid
+return controls[listId]~getmodel~getsize
+
 
 ------------------------------------------------------
 ::method ControlEnable
