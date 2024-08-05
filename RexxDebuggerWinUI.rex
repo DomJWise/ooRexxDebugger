@@ -134,7 +134,7 @@ expose waiting controls watchwindows
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
   self~ControlEnable(controls, control, waiting)
 end    
-if waiting & controls[self~BUTTONRUN]~gettext \= "&Run" then controls[self~BUTTONRUN]~settext("&Run")
+if waiting & self~ButtonGetText(controls, self~BUTTONRUN) \= "Run" then self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
 end
@@ -243,8 +243,7 @@ return 0
 expose waiting controls
 if waiting then do
   instructions = controls[self~EDITCOMMAND]~gettext~strip
-  controls[self~BUTTONRUN]~settext("B&reak")
-  controls[self~BUTTONRUN]~redraw
+  self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
   if instructions~word(1)~translate\='NEXT' then instructions = 'NEXT 'instructions
   self~HereIsResponse(instructions)
 end
@@ -253,19 +252,18 @@ end
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
-  controls[self~BUTTONRUN]~settext("B&reak")
-  controls[self~BUTTONRUN]~redraw
+  self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
-  controls[self~BUTTONRUN]~settext("&Run")
-   self~appendtext('Automatic breakpoint set for the next line of traceable code.')
+  self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
+  self~appendtext('Automatic breakpoint set for the next line of traceable code.')
 end
 else do
   debugger~SetManualBreak(.False)
   self~appendtext('Automatic breakpoint removed. Program will run normally.')
-  controls[self~BUTTONRUN]~settext("B&reak")
+  self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
 end   
 ------------------------------------------------------
 ::method OnExitButton 
@@ -893,5 +891,22 @@ use arg controls, controlid, enable
 
 if enable then self~EnableControl(controlid)
 else self~DisableControl(controlid)
+
+------------------------------------------------------
+::method ButtonSetText
+------------------------------------------------------
+use arg controls, buttonid, text
+
+controls[buttonid]~setText(text)
+controls[buttonid]~redraw
+  
+------------------------------------------------------
+::method ButtonGetText
+------------------------------------------------------
+use arg controls, buttonid
+
+return controls[buttonid]~getText~changeStr("&", "")
+
+
 
 --::options trace R

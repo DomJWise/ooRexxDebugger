@@ -367,7 +367,7 @@ do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self
   self~ControlEnable(controls, control, waiting)
 end    
 
-if waiting & \controls[self~BUTTONRUN]~gettext()~equals("Run") then controls[self~BUTTONRUN]~settext("Run")
+if waiting & self~ButtonGetText(controls, self~BUTTONRUN) \= "Run" then self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
 if waiting then controls[self~EDITCOMMAND]~requestFocus
 
 do watchwindow over watchwindows~allitems
@@ -420,7 +420,8 @@ gui~awaitingmaindialogresponse = .False
 expose waiting controls 
 if waiting then do
   instructions = controls[self~EDITCOMMAND]~gettext~strip
-  controls[self~BUTTONRUN]~settext("Break")
+  self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
+  
   if instructions~word(1)~translate\='NEXT' then instructions = 'NEXT 'instructions
   self~HereIsResponse(instructions)
 end
@@ -431,18 +432,19 @@ end
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
-  controls[self~BUTTONRUN]~settext("Break")
+  self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
+
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
-  controls[self~BUTTONRUN]~settext("Run")
+  self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
   self~appendtext('Automatic breakpoint set for the next line of traceable code.')
 end
 else do
   debugger~SetManualBreak(.False)
   self~appendtext('Automatic breakpoint removed. Program will run normally.')
-  controls[self~BUTTONRUN]~settext("Break")
+  self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
 end   
 
 
@@ -1266,5 +1268,22 @@ use arg controls, controlid, enable
 
 controls[controlid]~setEnabled(enable)
 
+------------------------------------------------------
+::method ButtonSetText
+------------------------------------------------------
+use arg controls, buttonid, text
+
+text=text~changeStr("&", "")
+controls[buttonid]~setText(text)
+
+------------------------------------------------------
+::method ButtonGetText
+------------------------------------------------------
+use arg controls, buttonid
+
+return controls[buttonid]~getText
+
+
 ::REQUIRES BSF.CLS      -- get the Java support
+
 --::options TRACE R
