@@ -822,35 +822,29 @@ end
 ------------------------------------------------------
 ::method SetSourceListSelectedRow 
 ------------------------------------------------------
-expose visiblelistrows controls arrStack
-
+expose controls arrStack
 
 -- Assumes the correct source is already loaded
 -- This is just to set the position in the source listbox
 newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
-
 if newrow <  1 | newrow > self~ListGetRowCount(controls, self~LISTSOURCE) then return
 currentrow = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
-visiblelistrows = controls[self~LISTSOURCE]~getlastVisibleIndex - controls[self~LISTSOURCE]~getfirstVisibleIndex
+visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
 
-firstrow = 1
-firstvisible =  controls[self~LISTSOURCE]~getfirstVisibleIndex + 1
+firstvisible =  self~ListGetFirstVisible(controls, self~LISTSOURCE)
 self~ListSetSelectedIndex(controls, self~LISTSOURCE, newrow)
 topbottomrows = min((visiblelistrows / 10)~ceiling, 4)
 newfirstvisible = -1
 if newrow < firstvisible | newrow > visiblelistrows + firstvisible then do 
-  firstrow = newrow - (visiblelistrows / 2)~floor
- if firstrow < 1 then firstrow = 1
-   newfirstvisible  = firstrow
+  newfirstvisible  = newrow - (visiblelistrows / 2)~floor
+ if newfirstvisible < 1 then newfirstvisible = 1
 end
 else if newrow - firstvisible < topbottomrows then do 
-  firstrow = newrow - topbottomrows
-  if firstrow < 1 then firstrow = 1
-   newfirstvisible  = firstrow
+  newfirstvisible = newrow - topbottomrows
+  if newfirstvisible < 1 then newfirstvisible = 1
 end
 else if newrow - firstvisible >= visiblelistrows - topbottomrows then do 
-  firstrow = newrow - (visiblelistrows - topbottomrows)
-   newfirstvisible  = firstrow
+  newfirstvisible = newrow - (visiblelistrows - topbottomrows)
 end
 if newfirstvisible \= -1 then do
   originpoint = controls[self~LISTSOURCE]~indexToLocation(newfirstvisible - 1)
@@ -1106,7 +1100,7 @@ expose controls itemidentifiers currentselectioninfo
 itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
 if itemindex \= 0 then do
   selectedidentifierstring = itemidentifiers[itemindex]~makestring
-  rowsbefore = itemindex - (controls[self~LISTVARS]~getfirstVisibleIndex + 1)
+  rowsbefore = itemindex - self~ListGetFirstVisible(controls, self~LISTVARS)
   currentselectioninfo = rowsbefore':'selectedidentifierstring
 end  
 
@@ -1180,7 +1174,7 @@ else do
       self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
     end  
-    else if controls[self~LISTVARS]~getFirstVisibleIndex \= -1  then newfirsvisible = 1
+    else if self~ListGetFirstVisible(controls, self~LISTVARS) \= 0  then newfirsvisible = 1
     if newfirstvisible \= -1 then do
       originpoint = controls[self~LISTVARS]~indexToLocation(newfirstvisible - 1)
       controls[self~PANEVARS]~getViewPort~setViewPosition(originpoint)
@@ -1260,6 +1254,19 @@ return controls[listId]~getselectedindex + 1
 use arg controls, listid
 return controls[listId]~getmodel~getsize
 
+------------------------------------------------------
+::method ListGetFirstVisible
+------------------------------------------------------
+use arg controls, listid
+
+return controls[listId]~getFirstVisibleIndex + 1
+
+------------------------------------------------------
+::method ListGetVisibleRowCount
+------------------------------------------------------
+use arg controls, listid
+
+return controls[listId]~getLastVisibleIndex - controls[listId]~getFirstVisibleIndex
 
 ------------------------------------------------------
 ::method ControlEnable

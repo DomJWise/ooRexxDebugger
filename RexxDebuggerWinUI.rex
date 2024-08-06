@@ -437,15 +437,6 @@ end
 
 debugger~FlagUIStartupComplete
 
-------------------------------------------------------
-::method CalculateVisibleListRows 
-------------------------------------------------------
-expose visiblelistrows controls
-rowheight =  controls[self~LISTSOURCE]~itemHeightPX
-listrect = self~getcontrolRect(self~LISTSOURCE)
-listheight = listrect~bottom - listrect~top
-visiblelistrows = (listheight / rowheight)~floor - 2
-
 
 ------------------------------------------------------
 ::method EditCommandChar 
@@ -519,7 +510,7 @@ self~setListWidthpx(self~LISTSOURCE, maxwidth)
 ------------------------------------------------------
 ::method SetSourceListSelectedRow 
 ------------------------------------------------------
-expose visiblelistrows controls arrStack
+expose controls arrStack
 
 -- Assumes the correct source is already loaded
 -- This is just to set the position in the source listbox
@@ -527,23 +518,27 @@ expose visiblelistrows controls arrStack
 newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
 if newrow <  1 | newrow >  self~ListGetRowCount(controls, self~LISTSOURCE) then return
 
-currentrow = self~GetcurrentListIndex(self~LISTSOURCE)
-firstvisible =  controls[self~LISTSOURCE]~getfirstvisible
-topbottomrows = min((visiblelistrows / 10)~ceiling, 4)
+currentrow = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
+
+firstvisible =  self~ListGetFirstVisible(controls, self~LISTSOURCE)
 self~ListSetSelectedIndex(controls, self~LISTSOURCE, newrow)
+topbottomrows = min((visiblelistrows / 10)~ceiling, 4)
+newfirstvisible = -1
 if newrow < firstvisible | newrow > visiblelistrows + firstvisible then do 
-  firstrow = newrow - (visiblelistrows / 2)~floor
-  if firstrow < 1 then firstrow = 1
-  controls[self~LISTSOURCE]~makefirstvisible(firstrow)
+  newfirstvisible = newrow - (visiblelistrows / 2)~floor
+  if newfirstvisible < 1 then newfirstvisible = 1
 end
 else if newrow - firstvisible < topbottomrows then do 
-  firstrow = newrow - topbottomrows
-  if firstrow < 1 then firstrow = 1
-  controls[self~LISTSOURCE]~makefirstvisible(firstrow)
+  newfirstvisible = newrow - topbottomrows
+  if newfirstvisible < 1 then newfirstvisible = 1
 end
 else if newrow - firstvisible >= visiblelistrows - topbottomrows then do 
-  firstrow = newrow - (visiblelistrows - topbottomrows)
-  controls[self~LISTSOURCE]~makefirstvisible(firstrow)
+  newfirstvisible = newrow - (visiblelistrows - topbottomrows)
+end
+
+if newfirstvisible \= -1 then do
+  controls[self~LISTSOURCE]~makefirstvisible(newfirstvisible)
 end
 
 ------------------------------------------------------
@@ -586,7 +581,6 @@ if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~ex
     self~SetListSource(thissourcename)
   end  
 
-  self~CalculateVisibleListRows
   self~SetSourceListSelectedRow
  
 end
@@ -737,7 +731,7 @@ expose controls itemidentifiers currentselectioninfo
 itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
 if itemindex \= 0 then do
   selectedidentifierstring = itemidentifiers[itemindex]~makestring
-  rowsbefore = itemindex - controls[self~LISTVARS]~getfirstvisible
+  rowsbefore = itemindex - self~ListGetFirstVisible(controls, self~LISTVARS)
   currentselectioninfo = rowsbefore':'selectedidentifierstring
 end  
  
@@ -883,6 +877,25 @@ use arg controls, listid
 
 return self~getListItems(listid)
 
+------------------------------------------------------
+::method ListGetFirstVisible
+------------------------------------------------------
+use arg controls, listid
+
+return controls[listId]~getFirstVisible
+
+------------------------------------------------------
+::method ListGetVisibleRowcount
+------------------------------------------------------
+use arg controls, listid
+
+rowheight =  controls[listid]~itemHeightPX
+listrect = self~getcontrolRect(listid)
+listheight = listrect~bottom - listrect~top
+visiblelistrows = (listheight / rowheight)~floor - 2
+listitems = self~getListItems(listid) - 1
+if listitems >=0 & listitems < visiblelistrows then visiblelistrows = listitems
+return visiblelistrows
 
 ------------------------------------------------------
 ::method ControlEnable
