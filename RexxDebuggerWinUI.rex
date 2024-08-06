@@ -538,7 +538,7 @@ else if newrow - firstvisible >= visiblelistrows - topbottomrows then do
 end
 
 if newfirstvisible \= -1 then do
-  controls[self~LISTSOURCE]~makefirstvisible(newfirstvisible)
+  self~ListSetFirstVisible(controls, self~LISTSOURCE, newfirstvisible)
 end
 
 ------------------------------------------------------
@@ -816,9 +816,10 @@ else do
     if indextoselect \= 0 then do
       self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
-      controls[self~LISTVARS]~makefirstvisible(newfirstvisible)
+      self~ListSetFirstVisible(controls, self~LISTVARS, newfirstvisible)
+
     end  
-    else if controls[self~LISTVARS]~items \= 0 then controls[self~LISTVARS]~makefirstvisible(1)
+    else if controls[self~LISTVARS]~items \= 0 then self~ListSetFirstVisible(controls, self~LISTVARS, 1)
 
   end  
   controls[self~LISTVARS]~showfast
@@ -884,6 +885,7 @@ use arg controls, listid
 
 return controls[listId]~getFirstVisible
 
+
 ------------------------------------------------------
 ::method ListGetVisibleRowcount
 ------------------------------------------------------
@@ -896,6 +898,14 @@ visiblelistrows = (listheight / rowheight)~floor - 2
 listitems = self~getListItems(listid) - 1
 if listitems >=0 & listitems < visiblelistrows then visiblelistrows = listitems
 return visiblelistrows
+
+------------------------------------------------------
+::method ListSetFirstVisible
+------------------------------------------------------
+use arg controls, listid, newfirstvisible
+
+controls[listid]~makefirstvisible(newfirstvisible)
+
 
 ------------------------------------------------------
 ::method ControlEnable

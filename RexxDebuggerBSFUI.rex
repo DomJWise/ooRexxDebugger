@@ -575,6 +575,8 @@ self~setMinimumSize(gui~clsDimension~new(440,510))
 self~setLayout(gui~clsBorderLayout~new(5,5))
 self~setLocationRelativeTo(.nil)
 
+self~ControlsInitPaneMap
+
 panelmain = gui~clsJPanel~new
 panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5))
 panelmain~setLayout(gui~clsBorderLayout~new(5,5))
@@ -686,6 +688,8 @@ controls[self~BUTTONVARS] = buttonvars
 controls[self~BUTTONHELP] = buttonhelp
 controls[self~BUTTONEXEC] = buttonexec
 controls[self~PANESOURCE] = listsourcepane
+
+self~ControlsSetPaneLink(self~LISTSOURCE, self~PANESOURCE)
 
 windowlistener = .DebugDialogWindowListener~new
 windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
@@ -847,8 +851,7 @@ else if newrow - firstvisible >= visiblelistrows - topbottomrows then do
   newfirstvisible = newrow - (visiblelistrows - topbottomrows)
 end
 if newfirstvisible \= -1 then do
-  originpoint = controls[self~LISTSOURCE]~indexToLocation(newfirstvisible - 1)
-  controls[self~PANESOURCE]~getViewPort~setViewPosition(originpoint)
+  self~ListSetFirstVisible(controls, self~LISTSOURCE, newfirstvisible)
 end  
 
 ------------------------------------------------------
@@ -1046,6 +1049,8 @@ self~setMinimumSize(gui~clsDimension~new(220,130))
 self~setLayout(gui~clsBorderLayout~new(5,5))
 self~setLocationRelativeTo(.nil)
 
+self~ControlsInitPaneMap
+
 windowlistener = .WatchDialogWindowListener~new
 windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
 self~addWindowListener(windowlistenerEH)
@@ -1071,6 +1076,8 @@ self~add(panelmain)
 
 controls[self~LISTVARS] = listvars
 controls[self~PANEVARS] = listvarspane
+
+self~ControlsSetPaneLink(self~LISTVARS, self~PANEVARS)
 
 varsmouselistener = .WatchDialogListVarsMouseListener~new
 varsmouselistenerEH = BsfCreateRexxProxy(varsmouselistener, self, "java.awt.event.MouseListener")
@@ -1176,8 +1183,7 @@ else do
     end  
     else if self~ListGetFirstVisible(controls, self~LISTVARS) \= 0  then newfirsvisible = 1
     if newfirstvisible \= -1 then do
-      originpoint = controls[self~LISTVARS]~indexToLocation(newfirstvisible - 1)
-      controls[self~PANEVARS]~getViewPort~setViewPosition(originpoint)
+      self~ListSetFirstVisible(controls, self~LISTVARS, newfirstvisible)
     end
   end  
 
@@ -1269,11 +1275,43 @@ use arg controls, listid
 return controls[listId]~getLastVisibleIndex - controls[listId]~getFirstVisibleIndex
 
 ------------------------------------------------------
+::method ListSetFirstVisible
+------------------------------------------------------
+use arg controls, listid, newfirstvisible
+
+originpoint = controls[listid]~indexToLocation(newfirstvisible - 1)
+controls[self~ControlsGetPaneLink(listid)]~getViewPort~setViewPosition(originpoint)
+
+
+------------------------------------------------------
 ::method ControlEnable
 ------------------------------------------------------
 use arg controls, controlid, enable
 
 controls[controlid]~setEnabled(enable)
+
+------------------------------------------------------
+::method ControlsInitPaneMap
+------------------------------------------------------
+expose panelinks
+panelinks = .StringTable~new
+
+------------------------------------------------------
+::method ControlsSetPaneLink
+------------------------------------------------------
+expose panelinks
+use arg controlid, paneid
+
+panelinks[controlid] = paneid
+
+------------------------------------------------------
+::method ControlsGetPaneLink
+------------------------------------------------------
+expose panelinks
+use arg controlid
+
+return panelinks[controlid]
+
 
 ------------------------------------------------------
 ::method ButtonSetText
