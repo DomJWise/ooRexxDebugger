@@ -35,7 +35,7 @@ To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used)
 
    - RexxDebuggerBSFUI.rex in required for the Swing/AWT version
 
-On Windows when both modules are available the native ooDialog module will be preferred but this can be overridden by including ::REQUIRES RexxDebuggerBSFUI.rex in your source. If the source also includes ::REQUIRES RexxDebugger.rex the latter must appear later on in the source for this override to work. Alternatively if launching via RexxDebugger you can specify the /javaui command line option (see below)
+On Windows when both modules are available the native ooDialog module will be preferred but this can be overridden by including ::REQUIRES "RexxDebuggerBSFUI.rex" in your source. If the source also includes ::REQUIRES "RexxDebugger.rex" the latter must appear later on in the source for this override to work. Alternatively if launching via RexxDebugger you can specify the /javaui command line option (see below)
 
 On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
 invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
@@ -74,7 +74,10 @@ If not using RexxDebugger to launch a program i.e. if running it directly or if 
 
 At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended) add:
 
-  ::REQUIRES RexxDebugger.rex
+  ::REQUIRES "RexxDebugger.rex"
+
+Note that double quotes will not generally be required on Windows but may be needed on operating systems that use
+a case-sensitive filesystem
 
 With this option the debugger will break at the start of the code
 
@@ -95,7 +98,7 @@ Before the first line to debug add:
 
 At the end of the code along with the TRACE option add:
 
-  ::REQUIRES DeferRexxDebuggerLaunch.rex
+  ::REQUIRES "DeferRexxDebuggerLaunch.rex"
 
 With this option the debugger will trace from the start of the code  but wont break until the LaunchDebugger call
 

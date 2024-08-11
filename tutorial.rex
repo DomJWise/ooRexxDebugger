@@ -31,6 +31,7 @@ SAY 'Play around with the up/down arrow keys to see previous commands'
 NOP
 x = 12
 SAY 'Click the Vars button then hit Next'
+SAY 'Note that .Environment and .Local are collections available to all Rexx programs'
 Y = 13
 SAY 'Enter "y=y+1" in the debugger prompt and hit Next a couple of times, with an eye on the Watch window'
 SAY y
@@ -39,8 +40,9 @@ SAY 'Note that with Next your Rexx is executed AFTER the next statement has run'
 SAY ''
 stemvar.1 = "Hello"
 stemvar.2 = "World"
-SAY ' In the Watch window, double click on "STEMVAR"'
-
+SAY 'In the Watch window, double click on "STEMVAR"'
+SAY 'A + sign at the start of a watch variable means it can be expanded.'
+SAY 'Try this with either .Local or .Environment'
 SAY 'Click Run if you want here to skip array set up'
 multidimarray = .Array~new(2,2)
 do i = 1 to 2
@@ -99,6 +101,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-::requires RexxDebugger.rex
+::requires "RexxDebugger.rex"
 ::options TRACE ?A
 

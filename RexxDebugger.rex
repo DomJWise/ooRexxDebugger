@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.27.17"
+::CONSTANT VERSION "1.27.18"
 
 --====================================================
 ::class RexxDebugger public
@@ -156,7 +156,7 @@ if \uiloaded & SysVersion()~translate~pos("WINDOWS") = 1 then do
   end  
 end
 if \uiloaded then do
-    if (SysSearchPath('PATH','RexxDebuggerBSFUI.rex')  \= '' | .File~new('RexxDebuggerBSFUI.rex')~canread) & SysSearchPath('PATH','BSF.cls') \= .Nil then do 
+    if (SysSearchPath('PATH','RexxDebuggerBSFUI.rex')  \= '' | .File~new('RexxDebuggerBSFUI.rex')~canread) & SysSearchPath('PATH','BSF.CLS') \= .Nil then do 
     call 'RexxDebuggerBSFUI.rex'
     uiloaded = .true
   end  
