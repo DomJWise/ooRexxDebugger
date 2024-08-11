@@ -1117,6 +1117,7 @@ end
 ------------------------------------------------------
 expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
 use arg root
+
 variablescollection = root
 if parentlist~items \= 0 then do
   variablescollection~put(.environment, ".ENVIRONMENT")
@@ -1127,7 +1128,8 @@ do nextchild over parentlist
   if variablescollection = .nil then leave
 end
 if variablescollection = .nil then do
- varsvalid = .False
+  self~ListClearSelection(controls, self~LISTVARS)
+  varsvalid = .False
 end
 else do
   varsvalid = .True
@@ -1170,7 +1172,6 @@ else do
   parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
   if currentselectioninfo \= "" then do 
     indextoselect = 0
-    newfirstvisible = -1
     if prevselectedidentifierstring \= "" then do i = 1 to itemidentifiers~items
       if itemidentifiers[i]~makestring = prevselectedidentifierstring then do
         indextoselect = i
@@ -1180,11 +1181,9 @@ else do
     if indextoselect \= 0 then do
       self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
-    end  
-    else if self~ListGetFirstVisible(controls, self~LISTVARS) \= 0  then newfirsvisible = 1
-    if newfirstvisible \= -1 then do
       self~ListSetFirstVisible(controls, self~LISTVARS, newfirstvisible)
     end
+    else if self~ListGetRowCount(controls, self~LISTVARS) \= 0  then self~ListSetFirstVisible(controls, self~LISTVARS, 1)
   end  
 
 end  
@@ -1281,6 +1280,13 @@ use arg controls, listid, newfirstvisible
 
 originpoint = controls[listid]~indexToLocation(newfirstvisible - 1)
 controls[self~ControlsGetPaneLink(listid)]~getViewPort~setViewPosition(originpoint)
+
+------------------------------------------------------
+::method ListClearSelection
+------------------------------------------------------
+use arg controls, listid
+
+controls[listId]~clearselection
 
 
 ------------------------------------------------------

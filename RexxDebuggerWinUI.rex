@@ -752,7 +752,7 @@ do nextchild over parentlist
   if variablescollection = .nil then leave
 end
 if variablescollection = .nil then do
-  self~ListSetSelectedIndex(controls, self~LISTVARS, 0)
+  self~ListClearSelection(controls, self~LISTVARS)
   varsvalid = .False
 end
 else do
@@ -817,10 +817,8 @@ else do
       self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
       self~ListSetFirstVisible(controls, self~LISTVARS, newfirstvisible)
-
     end  
-    else if controls[self~LISTVARS]~items \= 0 then self~ListSetFirstVisible(controls, self~LISTVARS, 1)
-
+    else if self~ListGetRowCount(controls, self~LISTVARS) \= 0 then self~ListSetFirstVisible(controls, self~LISTVARS, 1)
   end  
   controls[self~LISTVARS]~showfast
   controls[self~LISTVARS]~redraw
@@ -906,6 +904,12 @@ use arg controls, listid, newfirstvisible
 
 controls[listid]~makefirstvisible(newfirstvisible)
 
+------------------------------------------------------
+::method ListClearSelection
+------------------------------------------------------
+use arg controls, listid
+
+self~setcurrentListIndex(listid)
 
 ------------------------------------------------------
 ::method ControlEnable
