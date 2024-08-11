@@ -116,8 +116,8 @@ if waiting = .True then do
 end
 if close then do
   debugger~informshutdown
-  controls[self~LISTSOURCE]~deleteall
-  controls[self~LISTSTACK]~deleteall
+  self~ListDeleteAllItems(controls, self~LISTSOURCE)
+  self~ListDeleteAllItems(controls, self~LISTSTACK)
   self~deletefont(hfnt)
   watchlist = watchwindows~allitems~section(1)
   do watchwindow over watchlist~allitems
@@ -396,9 +396,9 @@ hfnt = self~createFontEx("Courier New", 8)
 controls[self~LISTSOURCE]~setFont(hfnt, .true)
 controls[self~LISTSTACK]~setFont(hfnt, .true)
 if startuphelptext~isA(.list) then do listrow over startuphelptext
-  controls[self~LISTSOURCE]~add(listrow)
+  self~ListAddItem(controls, self~LISTSOURCE, listrow)
 end
-else controls[self~LISTSOURCE]~add("No startup help text is available")
+else self~ListAddItem(controls, self~LISTSOURCE, "No startup help text is available")
 self~connectListBoxEvent(self~LISTSTACK, SELCHANGE, "StackFrameChanged")
 self~connectListBoxEvent(self~LISTSOURCE, DBLCLK, "SourceLineDoubleClicked")
 
@@ -485,7 +485,7 @@ if \checkedsources~hasitem(sourcefile) then do
   end
 listbreakpoints = debugger~GetBreakpoints(sourcefile)
 
-controls[self~LISTSOURCE]~deleteall
+self~ListDeleteAllItems(controls, self~LISTSOURCE)
 dc = self~getControlDC(self~LISTSOURCE)
 oldfont = self~fonttodc(dc, hfnt)
 maxwidth = 0
@@ -499,7 +499,7 @@ do line over arrSource~allIndexes
   text = text||line~right(linecount~length)' 'arrSource[line]
   width = self~getTextExtent(dc, text)~width
   if width > maxwidth then maxwidth = width
-  controls[self~LISTSOURCE]~add(text)
+  self~ListAddItem(controls, self~LISTSOURCE, text)
 end
 
 self~fonttodc(dc, oldfont)
@@ -558,13 +558,13 @@ do stackindex = 1 to arrstack~items
 end    
 
 -- Populate the stack
-controls[self~LISTSTACK]~deleteall
+self~ListDeleteAllItems(controls, self~LISTSTACK)
 indent = arrStack~items
 do frame over arrStack
   frametext = frame~makestring
   parse value frametext with pre '*-*' post
   finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
-  controls[self~LISTSTACK]~add(finaltext)
+  self~ListAddItem(controls, self~LISTSTACK, finaltext)
   indent = indent - 1
 end  
 self~ListSetSelectedIndex(controls, self~LISTSTACK, activateIndex)
@@ -758,7 +758,7 @@ end
 else do
   varsvalid = .True
   controls[self~LISTVARS]~hidefast
-  controls[self~LISTVARS]~deleteall
+  self~ListDeleteAllItems(controls, self~LISTVARS)
   dc = self~getControlDC(self~LISTVARS)
   oldfont = self~fonttodc(dc, hfnt)
 
@@ -796,7 +796,7 @@ else do
     text= text||vardisplayname' = 'varvalue
     width = self~getTextExtent(dc, text)~width
     if width > maxwidth then maxwidth = width
-    controls[self~LISTVARS]~add(text)
+      self~ListAddItem(controls, self~LISTVARS, text)
     itemclasses~append(variablescollection[varname]~class)
   end
 
@@ -910,6 +910,21 @@ controls[listid]~makefirstvisible(newfirstvisible)
 use arg controls, listid
 
 self~setcurrentListIndex(listid)
+
+------------------------------------------------------
+::method ListDeleteAllItems
+------------------------------------------------------
+use arg controls, listid
+
+controls[listid]~deleteall
+
+------------------------------------------------------
+::method ListAddItem
+------------------------------------------------------
+use arg controls, listid, text
+
+controls[listid]~add(text)
+
 
 ------------------------------------------------------
 ::method ControlEnable

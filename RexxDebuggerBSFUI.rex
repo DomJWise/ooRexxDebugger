@@ -723,9 +723,9 @@ buttonpushed = .False
 
 self~UpdateControlStates
 if startuphelptext~isA(.list) then do listrow over startuphelptext
-  controls[self~LISTSOURCE]~getModel~addElement(listrow)
+  self~ListAddItem(controls,self~LISTSOURCE, listrow)
 end
-else controls[self~LISTSOURCE]~getModel~addElement("No startup help text is available")
+else self~ListAddItem(controls,self~LISTSOURCE, "No startup help text is available")
 /*
 
 offsetDirection = debugger~offsetdirection 
@@ -807,8 +807,7 @@ if \checkedsources~hasitem(sourcefile) then do
 listbreakpoints = debugger~GetBreakpoints(sourcefile)
 
 
-listdata = controls[self~LISTSOURCE]~getModel
-listdata~clear
+self~ListDeleteAllItems(controls,self~LISTSOURCE)
 
 linecount = arrSource~items
 do line over arrSource~allIndexes
@@ -818,7 +817,7 @@ do line over arrSource~allIndexes
     end
   else text=' '
   text = text||line~right(linecount~length)' 'arrSource[line]
-  listdata~addelement(text)
+  self~ListAddItem(controls,self~LISTSOURCE, text)
 
 end
 
@@ -871,15 +870,14 @@ do stackindex = 1 to arrstack~items
 end    
 
 -- Populate the stack
-listdata = controls[self~LISTSTACK]~getModel
-listdata~clear
+self~ListDeleteAllItems(controls,self~LISTSTACK)
 
 indent = arrStack~items
 do frame over arrStack~allitems
   frametext = frame~makestring
   parse value frametext with pre '*-*' post
   finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
-  listdata~addelement(finaltext)
+  self~ListAddItem(controls,self~LISTSTACK, finaltext)
   indent = indent - 1
 end  
 
@@ -1133,8 +1131,7 @@ if variablescollection = .nil then do
 end
 else do
   varsvalid = .True
-  listdata = controls[self~LISTVARS]~getModel
-  listdata~clear
+  self~ListDeleteAllItems(controls,self~LISTVARS)
   dosort = .False
   if variablescollection~isA(.Directory) | -
        variablescollection~isA(.Properties) | -
@@ -1165,7 +1162,7 @@ else do
     if self~IsExpandable(variablescollection[varname]~class) then text = '+'
     else text = ' '
     text = text||vardisplayname' = 'varvalue
-    listdata~addelement(text)
+    self~ListAddItem(controls,self~LISTVARS, text)
     itemclasses~append(variablescollection[varname]~class)
   end
   
@@ -1288,6 +1285,21 @@ use arg controls, listid
 
 controls[listId]~clearselection
 
+------------------------------------------------------
+::method ListDeleteAllItems
+------------------------------------------------------
+use arg controls, listid
+
+listdata = controls[listid]~getModel
+listdata~clear
+
+------------------------------------------------------
+::method ListAddItem
+------------------------------------------------------
+use arg controls, listid, text
+
+listdata = controls[listid]~getModel
+listdata~addelement(text)
 
 ------------------------------------------------------
 ::method ControlEnable
