@@ -612,7 +612,7 @@ return 0
 expose controls debugger activesourcename 
 
 itemindex = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
-listtext = controls[self~LISTSOURCE]~selected
+listtext = self~ListGetItem(controls, self~LISTSOURCE, itemindex)
 if listtext~left(1) = ' ' then do
   checktext = listtext~delword(1,1)~translate~strip
   debugchar = '*'
@@ -624,8 +624,8 @@ else do
   listtext = ' '||listtext~substr(2)
   debugger~ClearBreakpoint(activesourcename, itemindex)
 end
-controls[self~LISTSOURCE]~modify(itemindex, listtext)
-controls[self~LISTSOURCE]~selectindex(itemindex)
+self~ListModifyItem(controls, self~LISTSOURCE, itemindex, listtext)
+self~ListSetSelectedIndex(controls, self~LISTSOURCE, itemindex)
 
 -------------------------------------------------------
 ::method IsBreakpointLikelyToBeHit
@@ -925,6 +925,19 @@ use arg controls, listid, text
 
 controls[listid]~add(text)
 
+------------------------------------------------------
+::method ListGetItem
+------------------------------------------------------
+use arg controls, listid, itemindex
+
+return controls[listid]~getText(itemindex)
+
+------------------------------------------------------
+::method ListModifyItem
+------------------------------------------------------
+use arg controls, listid, itemindex, text
+
+controls[listid]~modify(itemindex, text)
 
 ------------------------------------------------------
 ::method ControlEnable
