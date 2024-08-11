@@ -141,7 +141,7 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
+expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength
 use strict arg debugger, startuphelptext
 
 arrstack = .nil
@@ -159,6 +159,7 @@ self~connectResize("onResize")
 
 arrcommands = .Array~new
 commandnum = 0
+debugconsoletextlength = 0
 
 ------------------------------------------------------
 ::method GetNextResponse 
@@ -370,10 +371,12 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose u controls debugtext buttonpushed debugger hfnt startuphelptext
+expose u controls buttonpushed debugger hfnt startuphelptext
 
 controls[self~EDITDEBUGLOG] = self~newEdit(.DebugDialog~EDITDEBUGLOG)
 controls[self~EDITDEBUGLOG]~setreadonly
+controls[self~EDITDEBUGLOG]~setlimit(0)
+
 controls[self~EDITCOMMAND] = self~newEdit(.DebugDialog~EDITCOMMAND)
 controls[self~BUTTONEXEC] = self~newPushButton(self~BUTTONEXEC)
 controls[self~LISTSOURCE] = self~newListBox(self~LISTSOURCE)
@@ -385,7 +388,6 @@ controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
 controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
 
-debugtext = ''
 buttonpushed = .False
 self~UpdateControlStates
 
@@ -455,16 +457,18 @@ return 0
 ------------------------------------------------------
 ::Method AppendText unguarded
 ------------------------------------------------------
-expose controls debugtext debugger
+expose controls debugconsoletextlength debugger
 use arg newtext, newline = .true
+numeric digits 15
 
-debugtext = debugtext||newtext
-if newline  then debugtext = debugtext||.endofline
+if newline then newtext = newtext||.endofline
 if \debugger~isshutdown then do
   controls[self~EDITDEBUGLOG]~hidefast
-  controls[self~EDITDEBUGLOG]~settext(debugtext)
-  scrollcharpos = debugtext~lastpos(.endofline) + .endofline~length
+  controls[self~EDITDEBUGLOG]~select(debugconsoletextlength + 1, debugconsoletextlength + 1)
+  controls[self~EDITDEBUGLOG]~replaceseltext(newtext, .False)
+  scrollcharpos = newtext~left(newtext~length - .endofline~length)~lastpos(.endofline) + debugconsoletextlength +.endofline~length
   controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
+  debugconsoletextlength = debugconsoletextlength + newtext~length
   controls[self~EDITDEBUGLOG]~showfast
   controls[self~EDITDEBUGLOG]~ensureCaretVisibility
   controls[self~EDITDEBUGLOG]~draw

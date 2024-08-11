@@ -563,7 +563,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose controls debugtext buttonpushed debugger hfnt startuphelptext gui
+expose controls buttonpushed debugger hfnt startuphelptext gui
 
 -- Create the frame
 title = debugger~GetCaption
@@ -717,8 +717,6 @@ controls[self~EDITCOMMAND]~addKeyListener(commandkeylistenerEH)
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
-
-debugtext = ''
 buttonpushed = .False
 
 self~UpdateControlStates
@@ -780,11 +778,10 @@ if id = self~BUTTONVARS then self~OnVarsButton
 ------------------------------------------------------
 ::Method AppendText unguarded
 ------------------------------------------------------
-expose controls debugtext debugger
+expose controls debugger
 use arg newtext, newline = .true
 
 if newline  then newtext = newtext||.endofline
-debugtext = debugtext||newtext
 if \debugger~isshutdown then do
   controls[self~EDITDEBUGLOG]~append(newtext)
 end
