@@ -70,7 +70,7 @@ self~define("DidUICallSucceed", .Method~new("", self~method("DidUICallSucceed")~
 expose debugdialog debugger
 use arg debugger,watchhelperclass
 
-.context~package~addclass("WatchHelper", watchhelperclass)
+if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
 
 self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")

@@ -37,7 +37,7 @@ self~define("AppendUIConsoleText", .Method~new("", self~method("AppendUIConsoleT
 expose debugdialog debugger
 use arg debugger,watchhelperclass
 
-.context~package~addclass("WatchHelper", watchhelperclass)
+if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
 
 debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
