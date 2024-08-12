@@ -54,6 +54,9 @@ SOFTWARE.
 ::attribute clsKeyEvent            public unguarded
 ::attribute clsListSelectionModel  public unguarded
 ::attribute clsWindowConstants     public unguarded
+::attribute clsKeyStroke           public unguarded
+::attribute clsInputEvent          public unguarded
+::attribute clsJComponent          public unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -83,8 +86,11 @@ self~clsJScrollPane        = bsf.importclass("javax.swing.JScrollPane")
 self~clsJTextArea          = bsf.importclass("javax.swing.JTextArea")
 self~clsJTextField         = bsf.importclass("javax.swing.JTextField")
 self~clsKeyEvent           = bsf.importclass("java.awt.event.KeyEvent")
+self~clsKeyStroke          = bsf.importclass("javax.swing.KeyStroke")
 self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
 self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
+self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
+self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -218,6 +224,15 @@ if cond \= .nil then do
 end  
 return success
 
+--====================================================
+::class DebugDialogCopyTextListener public
+--====================================================
+
+------------------------------------------------------
+::method actionPerformed
+------------------------------------------------------
+-- Will only be activated for items that dont already intercept the keys e.g. buttons
+NOP
 
 --====================================================
 ::class DebugDialogWindowListener public
@@ -714,6 +729,15 @@ controls[self~LISTSOURCE]~addMouseListener(sourcemouselistenerEH)
 commandkeylistener = .DebugDialogCommandKeyListener~new
 commandkeylistenerEH = BsfCreateRexxProxy(commandkeylistener, self, "java.awt.event.KeyListener")
 controls[self~EDITCOMMAND]~addKeyListener(commandkeylistenerEH)
+
+
+-- This can't be used for custom copy for the lists because they already intercept these keys for the same tasks but it is a good template
+-- Custom copy with just the source (no line numbers etc) would be nice but is very much a TODO
+controls[self~LISTSOURCE]~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "copytext")
+controls[self~LISTSOURCE]~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_INSERT, gui~clsInputEvent~CTRL_MASK), "copytext")
+findkeylistener = .DebugDialogCopyTextListener~new
+findkeylistenerEH = BsfCreateRexxProxy(findkeylistener, self, "javax.swing.AbstractAction")
+controls[self~LISTSOURCE]~getActionMap~put("copytext", findkeylistenerEH)
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 

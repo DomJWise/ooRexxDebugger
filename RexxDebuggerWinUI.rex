@@ -388,6 +388,9 @@ controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
 controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
 
+self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
+self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
+
 buttonpushed = .False
 self~UpdateControlStates
 
@@ -439,6 +442,33 @@ end
 
 debugger~FlagUIStartupComplete
 
+------------------------------------------------------
+::method OnCopyCommand unguarded
+------------------------------------------------------
+expose controls
+if self~getFocus = self~getControlHandle(self~LISTSOURCE) then do
+  index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+  if index > 0  then do
+    text = self~ListGetItem(controls, self~LISTSOURCE, index)
+    parse value text with lineno text
+    clipboard = .WindowsClipboard~new
+    clipboard~copy(text)
+  end
+end
+else if self~getFocus = self~getControlHandle(self~LISTSTACK) then do
+  index = self~ListGetSelectedIndex(controls, self~LISTSTACK)
+  if index > 0  then do
+    text = self~ListGetItem(controls, self~LISTSTACK, index)
+    parse value text with lineno stuff text
+    clipboard = .WindowsClipboard~new
+    clipboard~copy(text)
+  end
+end
+
+------------------------------------------------------
+::method OnCopyCommand2 unguarded
+------------------------------------------------------
+self~OnCopyCommand
 
 ------------------------------------------------------
 ::method EditCommandChar 
@@ -967,5 +997,6 @@ use arg controls, buttonid
 return controls[buttonid]~getText~changeStr("&", "")
 
 
+::requires winsystm.cls
 
 --::options trace R
