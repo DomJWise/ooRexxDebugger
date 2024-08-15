@@ -84,16 +84,17 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindow
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
 
-::constant LISTSOURCE   100
-::constant LISTSTACK    101
-::constant EDITDEBUGLOG 102
-::constant BUTTONNEXT   103
-::constant BUTTONRUN    104
-::constant BUTTONEXIT   105
-::constant BUTTONVARS   106
-::constant BUTTONHELP   107
-::constant EDITCOMMAND  108
-::constant BUTTONEXEC   109
+::constant EDITSOURCENAME 100
+::constant LISTSOURCE     101
+::constant LISTSTACK      102
+::constant EDITDEBUGLOG   103
+::constant BUTTONNEXT     104
+::constant BUTTONRUN      105
+::constant BUTTONEXIT     106
+::constant BUTTONVARS     107
+::constant BUTTONHELP     108
+::constant EDITCOMMAND    109
+::constant BUTTONEXEC     110
 
 ------------------------------------------------------
 ::method activate class
@@ -188,14 +189,15 @@ waiting = .False
 ------------------------------------------------------
 expose u 
 
-self~createListBox(self~LISTSOURCE, 3, 2, 273, 135, "HSCROLL VSCROLL NOTIFY")
-self~createListBox(self~LISTSTACK, 3, 136, 273, 43, "VSCROLL AUTOVSCROLL NOTIFY")
-self~createEdit(self~EDITDEBUGLOG, 3, 167, 240, 102, "HSCROLL VSCROLL MULTILINE")
-self~createPushButton(self~BUTTONNEXT, 246, 167, 30, 15,  ,"&Next", OnNextButton) 
-self~createPushButton(self~BUTTONRUN, 246, 184, 30, 15,  ,"&Run", OnRunButton) 
-self~createPushButton(self~BUTTONEXIT, 246, 201, 30, 15,  ,"E&xit", OnExitButton) 
-self~createPushButton(self~BUTTONVARS, 246, 218, 30, 15,  ,"&Vars", OnVarsButton) 
-self~createPushButton(self~BUTTONHELP, 246, 235, 30, 15,  ,"&Help", OnHelpButton) 
+self~createEdit(self~EDITSOURCENAME, 3, 2, 273, 12, "READONLY")
+self~createListBox(self~LISTSOURCE, 3, 16, 273, 135, "HSCROLL VSCROLL NOTIFY")
+self~createListBox(self~LISTSTACK, 3, 150, 273, 43, "VSCROLL AUTOVSCROLL NOTIFY")
+self~createEdit(self~EDITDEBUGLOG, 3, 181, 240, 88, "HSCROLL VSCROLL MULTILINE")
+self~createPushButton(self~BUTTONNEXT, 246, 181, 30, 15,  ,"&Next", OnNextButton) 
+self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", OnRunButton) 
+self~createPushButton(self~BUTTONEXIT, 246, 215, 30, 15,  ,"E&xit", OnExitButton) 
+self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Vars", OnVarsButton) 
+self~createPushButton(self~BUTTONHELP, 246, 249, 30, 15,  ,"&Help", OnHelpButton) 
 self~createEdit(self~EDITCOMMAND, 3, 271, 240, 15, "WANTRETURN")
 self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
 
@@ -203,6 +205,11 @@ self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Ex
 ------------------------------------------------------
 ::method defineSizing 
 ------------------------------------------------------
+
+self~controlLeft(self~EDITSOURCENAME, 'STATIONARY', 'LEFT') 
+self~controlRight(self~EDITSOURCENAME, 'STATIONARY', 'RIGHT') 
+self~controlTop(self~EDITSOURCENAME, 'STATIONARY', 'TOP') 
+self~controlBottom(self~EDITSOURCENAME, 'STATIONARY', 'TOP') 
 
 self~controlLeft(self~LISTSOURCE, 'STATIONARY', 'LEFT') 
 self~controlRight(self~LISTSOURCE, 'STATIONARY', 'RIGHT') 
@@ -373,6 +380,8 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 expose u controls buttonpushed debugger hfnt startuphelptext
 
+controls[self~EDITSOURCENAME] = self~newEdit(.DebugDialog~EDITSOURCENAME)
+self~setTabStop(self~EDITSOURCENAME, .False)
 controls[self~EDITDEBUGLOG] = self~newEdit(.DebugDialog~EDITDEBUGLOG)
 controls[self~EDITDEBUGLOG]~setreadonly
 controls[self~EDITDEBUGLOG]~setlimit(0)
@@ -510,6 +519,7 @@ end
 expose controls hfnt debugger loadedsources checkedsources
 use arg sourcefile 
 
+controls[self~EDITSOURCENAME]~settext(sourcefile)
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
   do line over arrSource~allIndexes
@@ -585,7 +595,7 @@ use arg arrStack, activateindex
 do stackindex = 1 to arrstack~items
    if arrstack[stackindex]~executable~package \= .nil then do
      sourcename= arrstack[stackindex]~executable~package~name
-    if \loadedsources~hasindex(sourcename) then do
+     if \loadedsources~hasindex(sourcename) then do
       loadedsources[sourcename] = arrstack[stackindex]~executable~package~source
     end
   end  

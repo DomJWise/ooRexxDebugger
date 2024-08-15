@@ -334,17 +334,18 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::class DebugDialog subclass bsf inherit DialogControlHelper
 --====================================================
 
-::constant LISTSOURCE   100
-::constant LISTSTACK    101
-::constant EDITDEBUGLOG 102
-::constant BUTTONNEXT   103
-::constant BUTTONRUN    104
-::constant BUTTONEXIT   105
-::constant BUTTONVARS   106
-::constant BUTTONHELP   107
-::constant EDITCOMMAND  108
-::constant BUTTONEXEC   109
-::constant PANESOURCE   110
+::constant EDITSOURCENAME 100
+::constant LISTSOURCE     101
+::constant LISTSTACK      102
+::constant EDITDEBUGLOG   103
+::constant BUTTONNEXT     104
+::constant BUTTONRUN      105
+::constant BUTTONEXIT     106
+::constant BUTTONVARS     107
+::constant BUTTONHELP     108
+::constant EDITCOMMAND    109
+::constant BUTTONEXEC     110
+::constant PANESOURCE     111
 
 ------------------------------------------------------
 ::method activate class
@@ -598,8 +599,12 @@ panelmain~setLayout(gui~clsBorderLayout~new(5,5))
 
 panellevel1lowercontrols = gui~clsJPanel~new
 panellevel1lowercontrols~setLayout(gui~clsBorderLayout~new(3,3))
-panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,250))
+panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,225))
 panelmain~add(panellevel1lowercontrols,gui~clsBorderLayout~SOUTH)
+
+textfieldsourcename = gui~clsJTextField~new
+textfieldsourcename~setPreferredSize(gui~clsDimension~new(0,25))
+panelmain~add(textfieldsourcename, gui~clsBorderLayout~NORTH)
 
 listsourcemodel = gui~clsDefaultListModel~new
 listsource = gui~clsJList~new(listsourcemodel)
@@ -667,7 +672,7 @@ panelllevel2forbuttons~add(buttonhelp)
 buttonexec = gui~clsJButton~new("Exec")
 buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
 buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonexec~setBounds(0,173, 50,22)
+buttonexec~setBounds(0,148, 50,22)
 panelllevel2forbuttons~add(buttonexec)
 
 panellevel1lowercontrols~add(panelllevel2forbuttons,gui~clsBorderLayout~EAST)
@@ -690,7 +695,8 @@ panellevel1lowercontrols~add(panellevel2entryfields)
 
 self~add(panelmain)
 
-
+controls[self~EDITSOURCENAME] = textfieldsourcename
+controls[self~EDITSOURCENAME]~seteditable(.False)
 controls[self~EDITDEBUGLOG] = textareaconsoleoutput
 controls[self~EDITDEBUGLOG]~seteditable(.False)
 controls[self~EDITCOMMAND] = textfieldcommand
@@ -703,7 +709,6 @@ controls[self~BUTTONVARS] = buttonvars
 controls[self~BUTTONHELP] = buttonhelp
 controls[self~BUTTONEXEC] = buttonexec
 controls[self~PANESOURCE] = listsourcepane
-
 self~ControlsSetPaneLink(self~LISTSOURCE, self~PANESOURCE)
 
 windowlistener = .DebugDialogWindowListener~new
@@ -816,6 +821,7 @@ end
 expose controls hfnt debugger loadedsources checkedsources
 use arg sourcefile 
 
+controls[self~EDITSOURCENAME]~settext(sourcefile)
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
   do line over arrSource~allIndexes
