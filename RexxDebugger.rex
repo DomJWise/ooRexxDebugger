@@ -69,7 +69,7 @@ end
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.3"
+::CONSTANT VERSION "1.28.4"
 
 --====================================================
 ::class RexxDebugger public
@@ -621,45 +621,78 @@ if entrypackage \= .nil, entrypackage~name = .context~package~name then do
       debuggerargstring = debuggerargstring~strip
     end  
   end  
-    
+  if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then call RexxDebuggerBSFUI.rex
   if rexxfile \= '' then do
     retval = .True
-    strm = .stream~new(rexxfile)
-    if strm~query('EXISTS') = '' then do 
-      say 'Error: rexx file 'rexxfile ' not found.'
-      .local~rexxdebugger.deferlaunch = .true
-      return .True
-    end  
-    else do  
-      arrsource = strm~arrayin
-      strm~close
-      if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
-      arrsource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R')
-      if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then arrSource~append('/*REXX.DEBUGGER.INJECT*/ ::REQUIRES RexxDebuggerBSFUI.rex')
-      signal on ANY name HandleSyntaxError
-      runroutine = .routine~new(rexxfile, arrSource)
-      signal off ANY
-      routinepackage = runroutine~package
-      do i over routinepackage~importedpackages
-        if i~findclass("DebuggerUI") \= .nil  then .context~package~addpackage(i)
-      end  
-      .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
-      .local~rexxdebugger.runroutine = runroutine
-      .local~rexxdebugger.runargs = runargs
-    end  
+    signal on ANY name HandleError
+    runroutine = LoadRoutineFromSource(rexxfile, forcejava)
+    signal off ANY
+    .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
+    .local~rexxdebugger.runroutine = runroutine
+    .local~rexxdebugger.runargs = runargs
   end
-  else if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then call RexxDebuggerBSFUI.rex
 end
 return retval
 
-HandleSyntaxError: 
+------------
+HandleError: 
+------------
 cond = .context~condition
-say .endofline||'Error: Syntax error parsing 'rexxfile' at line 'cond~POSITION||.endofline 
-say cond~POSITION~right(5)' *-* 'arrSource[cond~POSITION]||.endofline
-say 'Error 'cond~RC' : 'cond~ERRORTEXT
-say 'Error 'cond~CODE': 'cond~MESSAGE
-.local~rexxdebugger.deferlaunch = .true
+.local~rexxdebugger.startuphelptext
+errorlist = .list~new
+if cond~CODE = 3.1 then do 
+  filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
+  errorlist~append('Error: rexx file 'filename' not found')
+end
+else do  
+  strm = .stream~new(rexxfile)
+  arrsource = strm~arrayin
+  strm~close
+  errorlist~append('Error: Syntax error parsing 'rexxfile' at line '.local~rexxdebugger.sourceerrorline)
+  errorlist~append('')
+  errorlist~append(.local~rexxdebugger.sourceerrorline~right(5)' *-* 'arrSource[.local~rexxdebugger.sourceerrorline])
+  errorlist~append('')
+  errorlist~append('Error 'cond~RC' : 'cond~ERRORTEXT)
+  errorlist~append('Error 'cond~CODE': 'cond~MESSAGE)
+end  
+.local~rexxdebugger.startuphelptext = errorlist
+say
+do item over errorlist
+  say item
+end  
+say
 return  .True
+
+------------------------------------------------------
+::ROUTINE LoadRoutineFromSource
+------------------------------------------------------
+use arg rexxfile, forcejava
+
+runroutine = .nil
+strm = .stream~new(rexxfile)
+signal on ANY name PropagateSourceError
+if strm~query('EXISTS') = '' then  raise syntax 3.1 ADDITIONAL (Rexxfile)
+else do  
+  signal off ANY 
+  arrsource = strm~arrayin
+  strm~close
+  if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
+  arrsource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R')
+  signal on ANY name PropagateSourceError
+  runroutine = .routine~new(rexxfile, arrSource)
+  signal off ANY
+  routinepackage = runroutine~package
+  do i over routinepackage~importedpackages
+    if i~findclass("DebuggerUI") \= .nil  then .context~package~addpackage(i)
+  end  
+end  
+return runroutine
+
+---------------
+PropagateSourceError:
+---------------
+.local~rexxdebugger.sourceerrorline = .context~condition~POSITION
+RAISE PROPAGATE
 
 --====================================================
 ::class WatchHelper mixinclass object public
