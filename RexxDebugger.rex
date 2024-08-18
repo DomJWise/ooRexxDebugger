@@ -25,15 +25,18 @@ SOFTWARE.
 if .local~rexxdebugger.debuggerinit \= .nil then  return
 .local~rexxdebugger.debuggerinit = .Object~new
 
-if \ConfigureCommandLineDebuggee(ARG(1)~strip) then do 
-  parentwindowname = arg(1)
-  offsetdirection = arg(2)
-end
+if SetCommandLineIsRexxDebugger() then do
+
+  if \ConfigureCommandLineDebuggee(ARG(1)~strip) then do 
+    parentwindowname = arg(1)
+    offsetdirection = arg(2)
+  end
+end  
 
 if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
 if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
 
--- Below is the help text List that will initially be added to the source list unless already set by the caller
+-- Below is the help text List that will initially be added to the source list unless already set by the caller (or a source load error)
 if .local~rexxdebugger.startuphelptext = .nil then do 
   .local~rexxdebugger.startuphelptext = .list~of( -
   "Command line usage:", - 
@@ -55,27 +58,35 @@ end
 .local~rexxdebugger.version = GetPackageConstant("Version")
 -- Launch debugger
 .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
+  
+if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~canopensource = .True
 
 -- Run debuggee (if specified) with or without capture/trace
 if .local~rexxdebugger.runroutine \= .nil then do
+  .local~rexxdebugger.debugger~canopensource = .False
   if .local~rexxdebugger.captureoption = '/SHOWTRACE'  then .local~rexxdebugger.debugger~CaptureConsoleOutput(.False)
   else if .local~rexxdebugger.captureoption \= '/NOCAPTURE' then .local~rexxdebugger.debugger~CaptureConsoleOutput(.True)
   
   .local~rexxdebugger.runroutine~callwith(.local~rexxdebugger.runargs)
+  .local~rexxdebugger.debugger~canopensource = .True
+  .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
   call say 'Debuggee has finished running.'
 end
+else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.4"
+::CONSTANT VERSION "1.28.5"
 
 --====================================================
 ::class RexxDebugger public
 --====================================================
 ::attribute windowname unguarded
 ::attribute offsetdirection unguarded
+::attribute canopensource unguarded
+::attribute debuggerui unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -106,7 +117,7 @@ debuggerui~RunUI
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -118,6 +129,7 @@ traceoutputhandler = .nil
 outputhandler = .nil
 errorhandler = .nil
 debuggerui = .nil
+canopensource = .False
 
 .local~debug.channel = .Directory~new
 .debug.channel~status="getprogramstatus"
@@ -585,12 +597,21 @@ if  .METHODS[constname] \= .Nil then interpret 'val=.directory~new~~Setmethod("'
 return val
 
 ------------------------------------------------------
+::ROUTINE SetCommandLineIsRexxDebugger
+------------------------------------------------------
+retval = .False
+entrypackage = .context~stackframes[.context~stackframes~items]~executable~package
+if entrypackage \= .nil, entrypackage~name = .context~package~name then retval = .True
+.local~rexxdebugger.commandlineisrexxdebugger = retval
+  
+return retval
+
+------------------------------------------------------
 ::ROUTINE ConfigureCommandLineDebuggee
 ------------------------------------------------------
 use arg debuggerargstring
 retval = .False
-entrypackage = .context~stackframes[.context~stackframes~items]~executable~package
-if entrypackage \= .nil, entrypackage~name = .context~package~name then do
+if .local~rexxdebugger.commandlineisrexxdebugger then do 
   .local~rexxdebugger.captureoption = ''
   forcejava = .false
   do while  "/SHOWTRACE /NOCAPTURE /JAVAUI"~wordpos(debuggerargstring~translate~word(1)) \= 0

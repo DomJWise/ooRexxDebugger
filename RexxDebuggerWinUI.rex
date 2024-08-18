@@ -73,6 +73,15 @@ use arg arrStack, activateindex
 if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateCodeView(arrStack, activateindex)
 
 ------------------------------------------------------
+::method UpdateUIControlStates
+------------------------------------------------------
+expose debugdialog debugger
+use arg arrStack, activateindex
+
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateControlStates
+
+
+------------------------------------------------------
 ::method UpdateUIWatchWindows 
 ------------------------------------------------------
 expose debugdialog debugger
@@ -93,8 +102,9 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindow
 ::constant BUTTONEXIT     106
 ::constant BUTTONVARS     107
 ::constant BUTTONHELP     108
-::constant EDITCOMMAND    109
-::constant BUTTONEXEC     110
+::constant BUTTONOPEN     109
+::constant EDITCOMMAND    110
+::constant BUTTONEXEC     111
 
 ------------------------------------------------------
 ::method activate class
@@ -131,10 +141,15 @@ end
 ------------------------------------------------------
 ::method UpdateControlStates 
 ------------------------------------------------------
-expose waiting controls watchwindows
+expose waiting controls watchwindows debugger
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  self~ControlEnable(controls, control, waiting)
+  if control = self~BUTTONOPEN then self~ControlEnable(controls, control, waiting & debugger~canopensource)
+  else self~ControlEnable(controls, control, waiting)
 end    
+self~ControlEnable(controls, self~BUTTONRUN,   \debugger~canopensource)
+self~ControlEnable(controls, self~EDITCOMMAND, \debugger~canopensource)
+self~ControlEnable(controls, self~BUTTONOPEN,  debugger~canopensource)
+
 if waiting & self~ButtonGetText(controls, self~BUTTONRUN) \= "Run" then self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
@@ -155,7 +170,7 @@ waiting = .false
 controls = .Directory~new
 
 forward class (super) continue array(.nil)
-self~create(6, 15, 280, 290, debugger~GetCaption ||" (Native UI)", "THICKFRAME, CENTER, MAXIMIZEBOX,MINIMIZEBOX")
+self~create(6, 15, 280, 302, debugger~GetCaption ||" (Native UI)", "THICKFRAME, CENTER, MAXIMIZEBOX,MINIMIZEBOX")
 self~connectResize("onResize")
 
 arrcommands = .Array~new
@@ -192,14 +207,15 @@ expose u
 self~createEdit(self~EDITSOURCENAME, 3, 2, 273, 12, "READONLY")
 self~createListBox(self~LISTSOURCE, 3, 16, 273, 135, "HSCROLL VSCROLL NOTIFY")
 self~createListBox(self~LISTSTACK, 3, 150, 273, 43, "VSCROLL AUTOVSCROLL NOTIFY")
-self~createEdit(self~EDITDEBUGLOG, 3, 181, 240, 88, "HSCROLL VSCROLL MULTILINE")
+self~createEdit(self~EDITDEBUGLOG, 3, 181, 240, 100, "HSCROLL VSCROLL MULTILINE")
 self~createPushButton(self~BUTTONNEXT, 246, 181, 30, 15,  ,"&Next", OnNextButton) 
 self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", OnRunButton) 
 self~createPushButton(self~BUTTONEXIT, 246, 215, 30, 15,  ,"E&xit", OnExitButton) 
 self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Vars", OnVarsButton) 
 self~createPushButton(self~BUTTONHELP, 246, 249, 30, 15,  ,"&Help", OnHelpButton) 
-self~createEdit(self~EDITCOMMAND, 3, 271, 240, 15, "WANTRETURN")
-self~createPushButton(self~BUTTONEXEC, 246, 271,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
+self~createPushButton(self~BUTTONOPEN, 246, 266, 30, 15,  ,"&Open") 
+self~createEdit(self~EDITCOMMAND, 3, 283, 240, 15, "WANTRETURN")
+self~createPushButton(self~BUTTONEXEC, 246, 283,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
 
 
 ------------------------------------------------------
@@ -228,7 +244,7 @@ self~controlTop(self~EDITDEBUGLOG, 'STATIONARY', 'BOTTOM', self~LISTSTACK)
 self~controlBottom(self~EDITDEBUGLOG, 'STATIONARY', 'BOTTOM') 
 
 
-do id over .List~of(self~BUTTONRUN, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONEXEC, self~BUTTONVARS, self~EDITCOMMAND, self~BUTTONHELP)
+do id over .List~of(self~BUTTONRUN, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONEXEC, self~BUTTONVARS, self~EDITCOMMAND, self~BUTTONHELP, self~BUTTONOPEN)
   self~controlLeft(id, 'STATIONARY', 'RIGHT') 
   self~controlRight(id, 'MYLEFT', 'LEFT') 
   self~controlTop(id, 'STATIONARY', 'BOTTOM', self~LISTSTACK) 
@@ -399,7 +415,9 @@ controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
 
 self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
 self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
-
+if \.local~rexxdebugger.commandlineisrexxdebugger = .True then do
+  self~hidecontrol(self~BUTTONOPEN)
+end
 buttonpushed = .False
 self~UpdateControlStates
 

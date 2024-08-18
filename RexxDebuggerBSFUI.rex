@@ -182,6 +182,17 @@ if debugdialog \= .nil & \debugger~isshutdown then do
 end
 
 ------------------------------------------------------
+::method UpdateUIControlStates unguarded
+------------------------------------------------------
+expose debugdialog debugger
+use arg arrStack, activateindex
+
+if debugdialog \= .nil & \debugger~isshutdown then do
+  if .AWTGuiThread~isGuiThread then debugdialog~UpdateControlStates
+  success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
+end
+
+------------------------------------------------------
 ::method UpdateUIWatchWindows unguarded
 ------------------------------------------------------
 expose debugdialog debugger
@@ -343,9 +354,10 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::constant BUTTONEXIT     106
 ::constant BUTTONVARS     107
 ::constant BUTTONHELP     108
-::constant EDITCOMMAND    109
-::constant BUTTONEXEC     110
-::constant PANESOURCE     111
+::constant BUTTONOPEN     109
+::constant EDITCOMMAND    110
+::constant BUTTONEXEC     111
+::constant PANESOURCE     112
 
 ------------------------------------------------------
 ::method activate class
@@ -378,10 +390,13 @@ end
 ------------------------------------------------------
 ::method UpdateControlStates unguarded
 ------------------------------------------------------
-expose waiting controls watchwindows
+expose waiting controls watchwindows debugger
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  self~ControlEnable(controls, control, waiting)
+self~ControlEnable(controls, control, waiting)
 end    
+self~ControlEnable(controls, self~BUTTONRUN, \debugger~canopensource)
+self~ControlEnable(controls, self~EDITCOMMAND, \debugger~canopensource)
+self~ControlEnable(controls, self~BUTTONOPEN,  debugger~canopensource)
 
 if waiting & self~ButtonGetText(controls, self~BUTTONRUN) \= "Run" then self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
 if waiting then controls[self~EDITCOMMAND]~requestFocus
@@ -586,8 +601,8 @@ title = debugger~GetCaption
 if IsWindows() then title = title || " (Java UI)"
 self~init:super('javax.swing.JFrame',.array~of(title))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(440, 510)
-self~setMinimumSize(gui~clsDimension~new(440,510))
+self~setSize(440, 525)
+self~setMinimumSize(gui~clsDimension~new(440,525))
 self~setLayout(gui~clsBorderLayout~new(5,5))
 self~setLocationRelativeTo(.nil)
 
@@ -599,7 +614,7 @@ panelmain~setLayout(gui~clsBorderLayout~new(5,5))
 
 panellevel1lowercontrols = gui~clsJPanel~new
 panellevel1lowercontrols~setLayout(gui~clsBorderLayout~new(3,3))
-panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,225))
+panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,240))
 panelmain~add(panellevel1lowercontrols,gui~clsBorderLayout~SOUTH)
 
 textfieldsourcename = gui~clsJTextField~new
@@ -669,10 +684,18 @@ buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0))
 buttonhelp~setBounds(0,108, 50,22)
 panelllevel2forbuttons~add(buttonhelp)
 
+buttonopen = gui~clsJButton~new("Open")
+buttonopen~setMnemonic(gui~clsKeyEvent~VK_O)
+buttonopen~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonopen~setBounds(0,135, 50,22)
+panelllevel2forbuttons~add(buttonopen)
+if .local~rexxdebugger.commandlineisrexxdebugger \= .True then do
+  buttonopen~setVisible(.False)
+end  
 buttonexec = gui~clsJButton~new("Exec")
 buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
 buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonexec~setBounds(0,148, 50,22)
+buttonexec~setBounds(0,162, 50,22)
 panelllevel2forbuttons~add(buttonexec)
 
 panellevel1lowercontrols~add(panelllevel2forbuttons,gui~clsBorderLayout~EAST)
@@ -707,6 +730,7 @@ controls[self~BUTTONRUN] = buttonrun
 controls[self~BUTTONEXIT] = buttonexit
 controls[self~BUTTONVARS] = buttonvars
 controls[self~BUTTONHELP] = buttonhelp
+controls[self~BUTTONOPEN] = buttonopen
 controls[self~BUTTONEXEC] = buttonexec
 controls[self~PANESOURCE] = listsourcepane
 self~ControlsSetPaneLink(self~LISTSOURCE, self~PANESOURCE)
@@ -721,6 +745,7 @@ controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXIT, "java.awt.event.ActionListener"))
 controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXEC, "java.awt.event.ActionListener"))
 controls[self~BUTTONVARS]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONVARS, "java.awt.event.ActionListener"))
+controls[self~BUTTONOPEN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOPEN, "java.awt.event.ActionListener"))
 
 
 stackmouselistener = .DebugDialogListStackMouseListener~new
