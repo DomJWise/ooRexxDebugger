@@ -89,6 +89,14 @@ use arg varsroot
 
 if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindows(varsroot)
 
+------------------------------------------------------
+::method SetUISourceList 
+------------------------------------------------------
+expose debugdialog debugger
+use arg sourcelist
+
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~SetSourceList(sourcelist)
+
 --====================================================
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
@@ -213,7 +221,7 @@ self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", OnRunButton)
 self~createPushButton(self~BUTTONEXIT, 246, 215, 30, 15,  ,"E&xit", OnExitButton) 
 self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Vars", OnVarsButton) 
 self~createPushButton(self~BUTTONHELP, 246, 249, 30, 15,  ,"&Help", OnHelpButton) 
-self~createPushButton(self~BUTTONOPEN, 246, 266, 30, 15,  ,"&Open") 
+self~createPushButton(self~BUTTONOPEN, 246, 266, 30, 15,  ,"&Open", OnOpenButton) 
 self~createEdit(self~EDITCOMMAND, 3, 283, 240, 15, "WANTRETURN")
 self~createPushButton(self~BUTTONEXEC, 246, 283,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
 
@@ -313,6 +321,13 @@ expose waiting
 if waiting then do
   self~HereIsResponse('HELP')
 end
+
+-----------------------------------------------------
+::method OnOpenButton 
+------------------------------------------------------
+expose debugger
+debugger~OpenNewProgram("tutorial.rex", "")
+
 
 ------------------------------------------------------
 ::method OnExecButton unguarded
@@ -697,6 +712,18 @@ sourceline  = sourceline~strip
 if sourceline~left(4) = '/**/' then sourceline = sourceline~substr(5)
 if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- /*"~wordpos(sourceline~left(2)) \= 0 then return .False
 else return .True
+
+-------------------------------------------------------
+::method SetSourceList
+-------------------------------------------------------
+expose controls
+use arg sourcelist
+
+self~ListDeleteAllItems(controls, self~LISTSOURCE)
+do listrow over sourcelist
+  self~ListAddItem(controls, self~LISTSOURCE, listrow)
+end
+
 
  --====================================================
 ::class WatchDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper

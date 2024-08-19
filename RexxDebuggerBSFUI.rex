@@ -189,8 +189,9 @@ use arg arrStack, activateindex
 
 if debugdialog \= .nil & \debugger~isshutdown then do
   if .AWTGuiThread~isGuiThread then debugdialog~UpdateControlStates
-  success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
 end
+
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows unguarded
@@ -202,6 +203,19 @@ if debugdialog \= .nil  & \debugger~isshutdown then do
   if .AWTGuiThread~isGuiThread then debugdialog~UpdateWatchWindows(varsroot)
   else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows", "I", varsroot)~~result~errorCondition, .context)
 end
+
+
+------------------------------------------------------
+::method SetUISourceList unguarded
+------------------------------------------------------
+expose debugdialog debugger
+use arg sourcelist
+
+if debugdialog \= .nil & \debugger~isshutdown then do
+  if .AWTGuiThread~isGuiThread then debugdialog~SetSourceList(sourcelist)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "SetSourceList", "I", sourcelist)~~result~errorCondition, .context)
+end
+
 -------------------------------------------------------
 ::method SetExit unguarded
 -------------------------------------------------------
@@ -508,6 +522,13 @@ expose waiting
 if waiting then do
   self~HereIsResponse('HELP')
 end
+
+-----------------------------------------------------
+::method OnOpenButton 
+------------------------------------------------------
+expose debugger
+debugger~OpenNewProgram("tutorial.rex", "")
+
 
 ------------------------------------------------------
 ::method OnExecButton 
@@ -828,6 +849,7 @@ if id = self~BUTTONHELP then self~OnHelpButton
 if id = self~BUTTONEXIT then self~OnExitButton
 if id = self~BUTTONEXEC then self~OnExecButton
 if id = self~BUTTONVARS then self~OnVarsButton
+if id = self~BUTTONOPEN then self~OnOpenButton
 
 ------------------------------------------------------
 ::Method AppendText unguarded
@@ -995,6 +1017,17 @@ commentmarker='/'||'**'||'/'
 if sourceline~left(4) = '/'||'**'||'/' then sourceline = sourceline~substr(5)
 if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | (":: -- /"||"*")~wordpos(sourceline~left(2)) \= 0 then return .False
 else return .True
+
+-------------------------------------------------------
+::method SetSourceList
+-------------------------------------------------------
+expose controls
+use arg sourcelist
+
+self~ListDeleteAllItems(controls, self~LISTSOURCE)
+do listrow over sourcelist
+  self~ListAddItem(controls, self~LISTSOURCE, listrow)
+end
 
 
 --====================================================

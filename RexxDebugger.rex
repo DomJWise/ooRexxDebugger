@@ -78,7 +78,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.5"
+::CONSTANT VERSION "1.28.6"
 
 --====================================================
 ::class RexxDebugger public
@@ -295,7 +295,7 @@ return self~ReplyWithTraceCommand
 ------------------------------------------------------
 ::method ReplyWithTraceCommand unguarded
 ------------------------------------------------------
-expose debuggerui shutdown launched
+expose debuggerui shutdown launched canopensource
 if shutdown then return 'trace off; exit' 
 if launched = .false then return ''
 else response =self~GetAutoResponse
@@ -304,8 +304,11 @@ if response \= "" | .debug.channel~status = "breakpointcheckgetlocation" then re
 response =  debuggerui~GetUINextResponse
 
 if translate(response) = 'EXIT' then do
+   canopensource = .True
+   debuggerui~UpdateUIControlStates
    self~informshutdown
    return 'say "Exiting as instructed by the debugger"; trace off; exit'
+   
    end
 if translate(response) = 'RUN' then do
   .debug.channel~status="breakpointcheckgetlocation"
@@ -459,6 +462,67 @@ self~SendDebugMessage("Happy debugging!")
 ::method GetCaption unguarded
 ------------------------------------------------------
 return "ooRexx Debugger Version "||GetPackageConstant("Version")
+
+
+------------------------------------------------------
+::method OpenNewProgram unguarded
+------------------------------------------------------
+expose debuggerui shutdown
+use arg rexxfile,argstring,argtype = ""
+
+shutdown = .False
+signal on ANY name HandleError
+runroutine = LoadRoutineFromSource(rexxfile)
+signal off ANY
+.context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
+self~RunNewProgram(runroutine, argstring)
+return
+
+------------
+HandleError: 
+------------
+cond = .context~condition
+errorlist = .list~new
+if cond~CODE = 3.1 then do 
+  filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
+  errorlist~append('Error: rexx file 'filename' not found')
+end
+else do  
+  strm = .stream~new(rexxfile)
+  arrsource = strm~arrayin
+  strm~close
+  errorlist~append('Error: Syntax error parsing 'rexxfile' at line '.local~rexxdebugger.sourceerrorline)
+  errorlist~append('')
+  errorlist~append(.local~rexxdebugger.sourceerrorline~right(5)' *-* 'arrSource[.local~rexxdebugger.sourceerrorline])
+  errorlist~append('')
+  errorlist~append('Error 'cond~RC' : 'cond~ERRORTEXT)
+  errorlist~append('Error 'cond~CODE': 'cond~MESSAGE)
+end  
+debuggerui~SetUISourceList(errorlist)
+return
+
+------------------------------------------------------
+::method RunNewProgram unguarded
+------------------------------------------------------
+expose canopensource debuggerui breakpoints tracedprograms
+
+use arg runroutine,runargs
+
+reply
+
+breakpoints~empty
+tracedprograms~empty
+.debug.channel~status = "getprogramstatus"
+.local~rexxdebugger.runroutine = runroutine
+
+canopensource = .False
+debuggerui~UpdateUIControlStates
+
+runroutine~callwith(runargs)
+
+canopensource = .True
+debuggerui~UpdateUIControlStates
+
 
 --====================================================
 ::class DebugOutputHandler
@@ -646,7 +710,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   if rexxfile \= '' then do
     retval = .True
     signal on ANY name HandleError
-    runroutine = LoadRoutineFromSource(rexxfile, forcejava)
+    runroutine = LoadRoutineFromSource(rexxfile)
     signal off ANY
     .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
     .local~rexxdebugger.runroutine = runroutine
@@ -659,7 +723,6 @@ return retval
 HandleError: 
 ------------
 cond = .context~condition
-.local~rexxdebugger.startuphelptext
 errorlist = .list~new
 if cond~CODE = 3.1 then do 
   filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
@@ -687,7 +750,7 @@ return  .True
 ------------------------------------------------------
 ::ROUTINE LoadRoutineFromSource
 ------------------------------------------------------
-use arg rexxfile, forcejava
+use arg rexxfile
 
 runroutine = .nil
 strm = .stream~new(rexxfile)
