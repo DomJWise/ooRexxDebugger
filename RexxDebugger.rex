@@ -78,7 +78,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.6"
+::CONSTANT VERSION "1.28.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -468,14 +468,15 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
 expose debuggerui shutdown
-use arg rexxfile,argstring,argtype = ""
+use arg rexxfile,argstring,multipleargs = .False
 
 shutdown = .False
 signal on ANY name HandleError
 runroutine = LoadRoutineFromSource(rexxfile)
 signal off ANY
 .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
-self~RunNewProgram(runroutine, argstring)
+
+self~RunNewProgram(runroutine, argstring, multipleargs)
 return
 
 ------------
@@ -498,7 +499,7 @@ else do
   errorlist~append('Error 'cond~RC' : 'cond~ERRORTEXT)
   errorlist~append('Error 'cond~CODE': 'cond~MESSAGE)
 end  
-debuggerui~SetUISourceList(errorlist)
+debuggerui~SetUISourceListInfoText(errorlist)
 return
 
 ------------------------------------------------------
@@ -506,7 +507,7 @@ return
 ------------------------------------------------------
 expose canopensource debuggerui breakpoints tracedprograms
 
-use arg runroutine,runargs
+use arg runroutine,argstring,multipleargs
 
 reply
 
@@ -515,7 +516,19 @@ tracedprograms~empty
 .debug.channel~status = "getprogramstatus"
 .local~rexxdebugger.runroutine = runroutine
 
+if \multipleargs then runargs = .array~of(argstring)
+else do
+  runargs = .array~new
+  do while argstring \= ''
+    if argstring~left(1) \= '"' then parse value argstring with nextarg argstring 
+    else parse value  argstring with '"' nextarg '"' argstring
+    runargs~append(nextarg~strip)
+    argstring = argstring~strip
+  end  
+end  
+
 canopensource = .False
+debuggerui~ResetUISourceState
 debuggerui~UpdateUIControlStates
 
 runroutine~callwith(runargs)
@@ -690,13 +703,14 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   end
   if debuggerargstring~translate~word(1) = "CALL" then do 
     parse value debuggerargstring with . debuggerargstring
-    multipleargs = .True
+    .local~rexxdebugger.multipleargs = .True
   end
-  else multipleargs = .False
+  else .local~rexxdebugger.multipleargs = .False
   if debuggerargstring~left(1) \= '"' then parse value debuggerargstring with rexxfile debuggerargstring 
   else parse value  debuggerargstring with '"' rexxfile '"' debuggerargstring
   debuggerargstring = debuggerargstring~strip
-  if \multipleargs then runargs = .array~of(debuggerargstring)
+  .local~rexxdebugger.rawargstring = debuggerargstring
+  if \.local~rexxdebugger.multipleargs then runargs = .array~of(debuggerargstring)
   else do
     runargs = .array~new
     do while debuggerargstring \= ''
@@ -707,6 +721,8 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
     end  
   end  
   if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then call RexxDebuggerBSFUI.rex
+  .local~rexxdebugger.rexxfile = rexxfile
+  
   if rexxfile \= '' then do
     retval = .True
     signal on ANY name HandleError

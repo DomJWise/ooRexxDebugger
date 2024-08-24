@@ -206,15 +206,27 @@ end
 
 
 ------------------------------------------------------
-::method SetUISourceList unguarded
+::method SetUISourceListInfoText unguarded
 ------------------------------------------------------
 expose debugdialog debugger
 use arg sourcelist
 
 if debugdialog \= .nil & \debugger~isshutdown then do
-  if .AWTGuiThread~isGuiThread then debugdialog~SetSourceList(sourcelist)
-  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "SetSourceList", "I", sourcelist)~~result~errorCondition, .context)
+  if .AWTGuiThread~isGuiThread then debugdialog~SetSourceListInfoText(sourcelist)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "SetSourceListInfoText", "I", sourcelist)~~result~errorCondition, .context)
 end
+
+------------------------------------------------------
+::method ReSetUISourceState unguarded
+------------------------------------------------------
+expose debugdialog debugger
+use arg sourcelist
+
+if debugdialog \= .nil & \debugger~isshutdown then do
+  if .AWTGuiThread~isGuiThread then debugdialog~ResetSourceState
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "ResetSourceState")~~result~errorCondition, .context)
+end
+
 
 -------------------------------------------------------
 ::method SetExit unguarded
@@ -1019,7 +1031,7 @@ if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(source
 else return .True
 
 -------------------------------------------------------
-::method SetSourceList
+::method SetSourceListInfoText
 -------------------------------------------------------
 expose controls
 use arg sourcelist
@@ -1029,6 +1041,14 @@ do listrow over sourcelist
   self~ListAddItem(controls, self~LISTSOURCE, listrow)
 end
 
+-------------------------------------------------------
+::method ResetSourceState
+-------------------------------------------------------
+expose loadedsources checkedsources activesourcename
+
+loadedsources~empty
+checkedsources~empty
+activesourcename=.nil
 
 --====================================================
 ::class WatchDialogWindowListener public

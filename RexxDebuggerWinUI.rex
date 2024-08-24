@@ -90,12 +90,20 @@ use arg varsroot
 if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindows(varsroot)
 
 ------------------------------------------------------
-::method SetUISourceList 
+::method SetUISourceListInfoText 
 ------------------------------------------------------
 expose debugdialog debugger
 use arg sourcelist
 
-if debugdialog \= .nil & \debugger~isshutdown then debugdialog~SetSourceList(sourcelist)
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~SetSourceListInfoText(sourcelist)
+
+------------------------------------------------------
+::method ResetUISourceState
+------------------------------------------------------
+expose debugdialog debugger
+
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ResetSourceState
+
 
 --====================================================
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
@@ -157,6 +165,7 @@ end
 self~ControlEnable(controls, self~BUTTONRUN,   \debugger~canopensource)
 self~ControlEnable(controls, self~EDITCOMMAND, \debugger~canopensource)
 self~ControlEnable(controls, self~BUTTONOPEN,  debugger~canopensource)
+if debugger~canopensource then self~focusControl(self~BUTTONOPEN)
 
 if waiting & self~ButtonGetText(controls, self~BUTTONRUN) \= "Run" then self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
 do watchwindow over watchwindows~allitems
@@ -326,8 +335,15 @@ end
 ::method OnOpenButton 
 ------------------------------------------------------
 expose debugger
-debugger~OpenNewProgram("tutorial.rex", "")
 
+newsessionDialog = .NewSessionDialog~new
+newsessionDialog~ownerDialog = self
+self~disable
+dlgres = newsessiondialog~Execute
+self~enable
+if dlgres = self~IDOK then do
+  debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs)
+end
 
 ------------------------------------------------------
 ::method OnExecButton unguarded
@@ -714,15 +730,24 @@ if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(source
 else return .True
 
 -------------------------------------------------------
-::method SetSourceList
+::method SetSourceListInfoText
 -------------------------------------------------------
-expose controls
+expose controls 
 use arg sourcelist
 
 self~ListDeleteAllItems(controls, self~LISTSOURCE)
 do listrow over sourcelist
   self~ListAddItem(controls, self~LISTSOURCE, listrow)
 end
+
+-------------------------------------------------------
+::method ResetSourceState
+-------------------------------------------------------
+expose loadedsources checkedsources activesourcename
+
+loadedsources~empty
+checkedsources~empty
+activesourcename=.nil
 
 
  --====================================================
@@ -1051,6 +1076,112 @@ use arg controls, buttonid
 
 return controls[buttonid]~getText~changeStr("&", "")
 
+--====================================================
+::class NewSessionDialog subclass userdialog inherit ResizingAdmin
+--====================================================
+::constant EDITREXXFILE         101
+::constant RADIOARGTYPESINGLE   102
+::constant RADIOARGTYPEMULTIPLE 103
+::constant EDITARGS             104
+
+::constant STATICREXXFILETEXT   201
+::constant STATICARGSGROUP      202
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose controls
+controls = .Directory~new
+forward class (super) continue 
+self~create(1,1, 260, 100, "New Debug Session", "THICKFRAME, CENTER")
+
+
+------------------------------------------------------
+::method defineDialog
+------------------------------------------------------
+expose controls
+/*
+self~createStaticText(-1, 4, 9, 50, 13, , "Rexx program:")
+self~createEdit(self~EDITREXXFILE, 54, 7, 200, 15)
+self~createStaticText(-1, 4, 26, 50, 13, , "Arguments:")
+self~createEdit(self~EDITARGS, 54, 24, 200, 15)
+*/
+self~createStaticText(self~STATICREXXFILETEXT, 4, 9, 50, 13, , "Rexx program:")
+self~createEdit(self~EDITREXXFILE, 54, 7, 201, 15)
+self~createGroupBox(self~STATICARGSGROUP, 4, 23, 251, 55, ,"Arguments" )
+self~createRadioButtonGroup(self~RADIOARGTYPESINGLE , 6, 33, ,"Single Multiple", "NOBORDER")
+self~createEdit(self~EDITARGS, 7, 57, 243, 15)
+self~createPushButton(IDOK, 4, 80, 35, 15, "DEFPUSHBUTTON"  ,"Ok")
+self~createPushButton(IDCANCEL, 42, 80, 35, 15, , "Cancel")
+
+------------------------------------------------------
+::method defineSizing
+------------------------------------------------------
+do expandrightcontrol over .Array~of(self~EDITREXXFILE, self~STATICARGSGROUP, self~EDITARGS)
+  self~controlLeft(expandrightcontrol, 'STATIONARY', 'LEFT') 
+  self~controlRight(expandrightcontrol, 'STATIONARY', 'RIGHT') 
+  self~controlTop(expandrightcontrol, 'STATIONARY', 'TOP') 
+  self~controlBottom(expandrightcontrol, 'STATIONARY', 'TOP') 
+end
+do fixedcontrol over .Array~of(self~STATICREXXFILETEXT, self~RADIOARGTYPESINGLE, self~RADIOARGTYPEMULTIPLE)
+  self~controlLeft(fixedcontrol, 'STATIONARY', 'LEFT') 
+  self~controlRight(fixedcontrol, 'STATIONARY', 'LEFT') 
+  self~controlTop(fixedcontrol, 'STATIONARY', 'TOP') 
+  self~controlBottom(fixedcontrol, 'STATIONARY', 'TOP') 
+end
+do movedowncontrol over .Array~of(IDOK, IDCANCEL)
+  self~controlLeft(movedowncontrol, 'STATIONARY', 'LEFT') 
+  self~controlRight(movedowncontrol, 'STATIONARY', 'LEFT') 
+  self~controlTop(movedowncontrol, 'STATIONARY', 'BOTTOM') 
+  self~controlBottom(movedowncontrol, 'STATIONARY', 'BOTTOM') 
+end
+
+
+return 0
+
+------------------------------------------------------
+::method initAutoDetection
+------------------------------------------------------
+self~noAutoDetection
+
+------------------------------------------------------
+::method initDialog
+------------------------------------------------------
+expose controls
+
+minsize = .Size~new(self~pixelCX, self~pixelCY)
+maxsize = .Size~new(1024, self~pixelCY)
+self~minSize = minsize
+self~maxSize = maxsize
+
+parentsize = self~ownerdialog~getrealsize
+parentpos = self~ownerdialog~getrealpos
+mysize= self~getrealsize
+mystartpos = parentpos~~incr((parentsize~width - mysize~width) / 2, (parentsize~height - mysize~height) / 2)
+self~moveto(mystartpos)
+
+controls[self~EDITREXXFILE] = self~NewEdit(self~EDITREXXFILE)
+controls[self~EDITARGS] = self~NewEdit(self~EDITARGS)
+controls[self~EDITARGS] = self~NewEdit(self~EDITARGS)
+controls[self~RADIOARGTYPESINGLE] = self~NewRadioButton(self~RADIOARGTYPESINGLE)
+controls[self~RADIOARGTYPEMULTIPLE] = self~NewRadioButton(self~RADIOARGTYPEMULTIPLE)
+
+
+controls[self~EDITREXXFILE]~settext(.local~rexxdebugger.rexxfile)
+controls[self~EDITARGS]~settext(.local~rexxdebugger.rawargstring)
+if \.local~rexxdebugger.multipleargs then controls[self~RADIOARGTYPESINGLE]~check
+else controls[self~RADIOARGTYPEMULTIPLE]~check
+
+------------------------------------------------------
+::method Ok
+------------------------------------------------------
+expose controls
+
+.local~rexxdebugger.rexxfile = controls[self~EDITREXXFILE]~gettext
+.local~rexxdebugger.rawargstring = controls[self~EDITARGS]~gettext
+.local~rexxdebugger.multipleargs = controls[self~RADIOARGTYPEMULTIPLE]~checked
+
+self~Ok:super
 
 ::requires winsystm.cls
 
