@@ -40,14 +40,18 @@ SOFTWARE.
 ::attribute fontFixed                   public unguarded
 
 ::attribute clsBorderLayout        public unguarded
+::attribute clsBorderFactory       public unguarded
+::attribute clsButtonGroup         public unguarded
 ::attribute clsDefaultListModel    public unguarded
 ::attribute clsDimension           public unguarded
 ::attribute clsEmptyBorder         public unguarded
 ::attribute clsFont                public unguarded
 ::attribute clsInsets              public unguarded 
 ::attribute clsJButton             public unguarded
+::attribute clsJLabel              public unguarded
 ::attribute clsJList               public unguarded
 ::attribute clsJPanel              public unguarded
+::attribute clsJRadioButton        public unguarded
 ::attribute clsJScrollPane         public unguarded
 ::attribute clsJTextField          public unguarded
 ::attribute clsJTextArea           public unguarded
@@ -57,6 +61,7 @@ SOFTWARE.
 ::attribute clsKeyStroke           public unguarded
 ::attribute clsInputEvent          public unguarded
 ::attribute clsJComponent          public unguarded
+::attribute clsRectangle           public unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -74,23 +79,29 @@ if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~ad
 .WatchDialog~inherit(.WatchHelper)
 
 self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")
+self~clsBorderFactory      = bsf.importclass("javax.swing.BorderFactory")
+self~clsButtonGroup        = bsf.importclass("javax.swing.ButtonGroup")
 self~clsDefaultListModel   = bsf.importclass("javax.swing.DefaultListModel")
 self~clsDimension          = bsf.importclass("java.awt.Dimension")
 self~clsEmptyBorder        = bsf.importclass("javax.swing.border.EmptyBorder")
 self~clsFont               = bsf.importclass("java.awt.Font") 
 self~clsInsets             = bsf.importclass("java.awt.Insets") 
 self~clsJButton            = bsf.importclass("javax.swing.JButton")
+self~clsJLabel              = bsf.importclass("javax.swing.JLabel") 
 self~clsJList              = bsf.importclass("javax.swing.JList") 
 self~clsJPanel             = bsf.importclass("javax.swing.JPanel")
+self~clsJRadioButton       = bsf.importclass("javax.swing.JRadioButton")
 self~clsJScrollPane        = bsf.importclass("javax.swing.JScrollPane")
 self~clsJTextArea          = bsf.importclass("javax.swing.JTextArea")
 self~clsJTextField         = bsf.importclass("javax.swing.JTextField")
 self~clsKeyEvent           = bsf.importclass("java.awt.event.KeyEvent")
 self~clsKeyStroke          = bsf.importclass("javax.swing.KeyStroke")
-self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
-self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
+self~clsRectangle          = bsf.importclass("java.awt.Rectangle")
+
 self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
 self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
+self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
+self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -538,9 +549,12 @@ end
 -----------------------------------------------------
 ::method OnOpenButton 
 ------------------------------------------------------
-expose debugger
-debugger~OpenNewProgram("tutorial.rex", "")
+expose debugger gui
 
+newsessionDialog = .NewSessionDialog~new(self, gui, debugger)
+if newsessionDialog~okselected then do 
+  debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs)
+end
 
 ------------------------------------------------------
 ::method OnExecButton 
@@ -1338,6 +1352,153 @@ do with index methodname item method over classobj~methods
     end    
   end  
 end  
+
+--====================================================
+::class NewSessionDialogEscKeyListener public
+--====================================================
+
+------------------------------------------------------
+::method actionperformed
+------------------------------------------------------
+use arg eventobj, slotdir
+dialog = slotdir~userdata
+dialog~dispose
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+--====================================================
+::class NewSessionDialog subclass bsf 
+--====================================================
+::constant EDITREXXFILE         101
+::constant RADIOARGTYPESINGLE   102
+::constant RADIOARGTYPEMULTIPLE 103
+::constant EDITARGS             104
+::constant BUTTONOK             105
+::constant BUTTONCANCEL         106
+
+::attribute okselected
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method init 
+------------------------------------------------------
+expose debugwindow gui debugger controls okselected
+use arg debugwindow,gui,debugger
+
+controls = .Directory~new
+okselected = .False
+
+self~InitDialog
+
+------------------------------------------------------
+::method InitDialog 
+------------------------------------------------------
+expose debugger debugwindow gui controls
+
+-- Create the dialog
+self~init:super('javax.swing.JDialog', debugwindow, "New Debug Session", .True)
+
+self~setDefaultCloseOperation(gui~clsWindowConstants~DISPOSE_ON_CLOSE)
+self~setResizable(.False)
+self~setLayout(.Nil)
+self~getrootPane~setPreferredSize(gui~clsDimension~new(405,170))
+
+labelrexxfile = gui~clsJLabel~new("Rexx program:")
+labelrexxfile~setbounds(5, 10, 95, 25)
+
+textfieldrexxfile = gui~clsJTextField~new
+textfieldrexxfile~setbounds(100, 10, 300, 25)
+
+panelargumentgroup = gui~clsJPanel~new
+panelargumentgroup~setbounds(5, 35, 395, 95)
+panelargumentgroup~setBorder(gui~clsBorderFactory~createTitledBorder("Arguments"))
+panelargumentgroup~setLayout(.Nil)
+
+radiosinglearg = gui~clsJRadioButton~new("Single")
+radiosinglearg~setbounds(5, 15, 70, 20)
+radiomultipleargs = gui~clsJRadioButton~new("Multiple")
+radiomultipleargs~setbounds(5, 35, 80, 20)
+
+buttongroup = gui~clsButtonGroup~new
+buttongroup~add(radiosinglearg)
+buttongroup~add(radiomultipleargs)
+
+textfieldargstring = gui~clsJTextField~new
+textfieldargstring~setbounds(10, 60, 375, 25)
+
+
+panelargumentgroup~add(radiosinglearg)
+panelargumentgroup~add(radiomultipleargs)
+panelargumentgroup~add(textfieldargstring)
+
+buttonok = gui~clsJButton~new("Ok")
+buttonok~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonok~setbounds(10, 135, 60, 25)
+
+buttoncancel = gui~clsJButton~new("Cancel")
+buttoncancel~setMargin(gui~clsInsets~new(0,0,0,0))
+buttoncancel~setbounds(80, 135, 60, 25)
+
+self~add(textfieldrexxfile)
+self~add(labelrexxfile)
+self~add(panelargumentgroup)
+self~add(buttonok)
+self~add(buttoncancel)
+
+self~getrootpane~setdefaultbutton(buttonok)
+
+self~getrootpane~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)~put(gui~clsKeyStroke~getKeyStroke("ESCAPE"), "escape")
+esckeylistener = .NewSessionDialogEscKeyListener~new
+esckeylistenerEH = BsfCreateRexxProxy(esckeylistener, self, "javax.swing.AbstractAction")
+self~getrootpane~getActionMap~put("escape", esckeylistenerEH)
+
+self~pack
+self~setLocationRelativeTo(debugwindow)
+
+textfieldrexxfile~settext(.local~rexxdebugger.rexxfile)
+if \.local~rexxdebugger.multipleargs then radiosinglearg~doclick
+else radiomultipleargs~doclick
+textfieldargstring~settext(.local~rexxdebugger.rawargstring)
+
+controls[self~EDITREXXFILE]         = textfieldrexxfile
+controls[self~RADIOARGTYPESINGLE]   = radiosinglearg
+controls[self~RADIOARGTYPEMULTIPLE] = radiomultipleargs
+controls[self~EDITARGS]             = textfieldargstring
+controls[self~BUTTONOK]             = buttonok
+controls[self~BUTTONCANCEL]         = buttoncancel
+
+controls[self~BUTTONOK]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOK, "java.awt.event.ActionListener"))
+controls[self~BUTTONCANCEL]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONCANCEL, "java.awt.event.ActionListener"))
+
+self~setVisible(.True)
+
+------------------------------------------------------
+::method actionPerformed unguarded
+------------------------------------------------------
+expose controls 
+use arg eventobj, slotdir
+id = slotdir~userdata
+if id = self~BUTTONOK then self~OnOk
+if id = self~BUTTONCANCEL then self~dispose
+
+------------------------------------------------------
+::method OnOk unguarded
+------------------------------------------------------
+expose controls okselected
+
+.local~rexxdebugger.rexxfile = controls[self~EDITREXXFILE]~gettext
+.local~rexxdebugger.rawargstring = controls[self~EDITARGS]~gettext
+.local~rexxdebugger.multipleargs = controls[self~RADIOARGTYPEMULTIPLE]~isselected
+
+okselected = .True
+self~dispose
 
 --====================================================
 ::class DialogControlHelper mixinclass object 

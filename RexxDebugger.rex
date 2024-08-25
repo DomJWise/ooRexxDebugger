@@ -78,7 +78,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.7"
+::CONSTANT VERSION "1.28.8"
 
 --====================================================
 ::class RexxDebugger public
