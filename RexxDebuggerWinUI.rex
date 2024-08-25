@@ -157,9 +157,10 @@ end
 ------------------------------------------------------
 ::method UpdateControlStates 
 ------------------------------------------------------
-expose waiting controls watchwindows debugger
+expose waiting controls watchwindows debugger activesourcename
+
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  if control = self~BUTTONOPEN then self~ControlEnable(controls, control, waiting & debugger~canopensource)
+  if control = self~LISTSOURCE then self~ControlEnable(controls, control, waiting | (activesourcename = .nil))
   else self~ControlEnable(controls, control, waiting)
 end    
 self~ControlEnable(controls, self~BUTTONRUN,   \debugger~canopensource)
@@ -450,7 +451,6 @@ if \.local~rexxdebugger.commandlineisrexxdebugger = .True then do
   self~hidecontrol(self~BUTTONOPEN)
 end
 buttonpushed = .False
-self~UpdateControlStates
 
 minsize = .Size~new(self~pixelCX, self~pixelCY)
 self~minSize = minsize
@@ -458,10 +458,11 @@ self~minSize = minsize
 hfnt = self~createFontEx("Courier New", 8)
 controls[self~LISTSOURCE]~setFont(hfnt, .true)
 controls[self~LISTSTACK]~setFont(hfnt, .true)
-if startuphelptext~isA(.list) then do listrow over startuphelptext
-  self~ListAddItem(controls, self~LISTSOURCE, listrow)
-end
-else self~ListAddItem(controls, self~LISTSOURCE, "No startup help text is available")
+
+if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help text is available") 
+self~SetSourceListInfoText(startuphelptext)
+
+
 self~connectListBoxEvent(self~LISTSTACK, SELCHANGE, "StackFrameChanged")
 self~connectListBoxEvent(self~LISTSOURCE, DBLCLK, "SourceLineDoubleClicked")
 
@@ -672,6 +673,7 @@ if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~ex
     if activesourcename \= .nil then debugger~SendDebugMessage('Switching source to 'thissourcename)
     activesourcename = thissourcename
     self~SetListSource(thissourcename)
+    self~UpdateControlStates
   end  
 
   self~SetSourceListSelectedRow
@@ -704,6 +706,8 @@ return 0
 ------------------------------------------------------
 expose controls debugger activesourcename 
 
+if activesourcename = .Nil then return
+
 itemindex = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 listtext = self~ListGetItem(controls, self~LISTSOURCE, itemindex)
 if listtext~left(1) = ' ' then do
@@ -732,13 +736,18 @@ else return .True
 -------------------------------------------------------
 ::method SetSourceListInfoText
 -------------------------------------------------------
-expose controls 
+expose controls activesourcename
 use arg sourcelist
 
 self~ListDeleteAllItems(controls, self~LISTSOURCE)
 do listrow over sourcelist
   self~ListAddItem(controls, self~LISTSOURCE, listrow)
 end
+
+activesourcename = .nil
+controls[self~EDITSOURCENAME]~settext("")
+
+self~UpdateControlStates
 
 -------------------------------------------------------
 ::method ResetSourceState
@@ -1100,12 +1109,7 @@ self~create(1,1, 260, 100, "New Debug Session", "THICKFRAME, CENTER")
 ::method defineDialog
 ------------------------------------------------------
 expose controls
-/*
-self~createStaticText(-1, 4, 9, 50, 13, , "Rexx program:")
-self~createEdit(self~EDITREXXFILE, 54, 7, 200, 15)
-self~createStaticText(-1, 4, 26, 50, 13, , "Arguments:")
-self~createEdit(self~EDITARGS, 54, 24, 200, 15)
-*/
+
 self~createStaticText(self~STATICREXXFILETEXT, 4, 9, 50, 13, , "Rexx program:")
 self~createEdit(self~EDITREXXFILE, 54, 7, 201, 15)
 self~createGroupBox(self~STATICARGSGROUP, 4, 23, 251, 55, ,"Arguments" )

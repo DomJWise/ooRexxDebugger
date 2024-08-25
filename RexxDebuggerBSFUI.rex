@@ -427,9 +427,10 @@ end
 ------------------------------------------------------
 ::method UpdateControlStates unguarded
 ------------------------------------------------------
-expose waiting controls watchwindows debugger
+expose waiting controls watchwindows debugger activesourcename
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-self~ControlEnable(controls, control, waiting)
+  if control = self~LISTSOURCE then self~ControlEnable(controls, control, waiting | (activesourcename = .nil))
+  else self~ControlEnable(controls, control, waiting)
 end    
 self~ControlEnable(controls, self~BUTTONRUN, \debugger~canopensource)
 self~ControlEnable(controls, self~EDITCOMMAND, \debugger~canopensource)
@@ -649,7 +650,7 @@ if IsWindows() then title = title || " (Java UI)"
 self~init:super('javax.swing.JFrame',.array~of(title))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
 self~setSize(440, 525)
-self~setMinimumSize(gui~clsDimension~new(440,525))
+self~setMinimumSize(gui~clsDimension~new(440,540))
 self~setLayout(gui~clsBorderLayout~new(5,5))
 self~setLocationRelativeTo(.nil)
 
@@ -677,7 +678,7 @@ if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gu
 listsource~setFixedCellHeight(14)
 
 listsourcepane = gui~clsJScrollPane~new
-listsourcepane~setPreferredSize(gui~clsDimension~new(440,50))
+listsourcepane~setPreferredSize(gui~clsDimension~new(440,65))
 listsourcepane~setViewportView(listsource)
 
 panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER)
@@ -820,11 +821,10 @@ self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
 buttonpushed = .False
 
+if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help text is available") 
+self~SetSourceListInfoText(startuphelptext)
+
 self~UpdateControlStates
-if startuphelptext~isA(.list) then do listrow over startuphelptext
-  self~ListAddItem(controls,self~LISTSOURCE, listrow)
-end
-else self~ListAddItem(controls,self~LISTSOURCE, "No startup help text is available")
 /*
 
 offsetDirection = debugger~offsetdirection 
@@ -991,6 +991,7 @@ if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~ex
     if activesourcename \= .nil then self~appendtext('Switching source to 'thissourcename)
     activesourcename = thissourcename
     self~SetListSource(thissourcename)
+    self~UpdateControlStates
   end  
 
 self~SetSourceListSelectedRow
@@ -1017,6 +1018,8 @@ return 0
 ::method SourceLineDoubleClicked 
 ------------------------------------------------------
 expose controls debugger activesourcename 
+
+if activesourcename = .Nil then return
 
 itemindex = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 listtext = self~ListGetItem(controls, self~LISTSOURCE, itemindex)
@@ -1047,13 +1050,18 @@ else return .True
 -------------------------------------------------------
 ::method SetSourceListInfoText
 -------------------------------------------------------
-expose controls
+expose controls activesourcename
 use arg sourcelist
 
 self~ListDeleteAllItems(controls, self~LISTSOURCE)
 do listrow over sourcelist
   self~ListAddItem(controls, self~LISTSOURCE, listrow)
 end
+
+activesourcename = .nil
+controls[self~EDITSOURCENAME]~settext("")
+
+self~UpdateControlStates
 
 -------------------------------------------------------
 ::method ResetSourceState
