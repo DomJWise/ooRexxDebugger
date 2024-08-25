@@ -63,10 +63,14 @@ SAY 'METHODS and ROUTINES have their own variables. Now a ROUTINE will be called
 SAY 'Note that with a CALL statement Rexx breaks AFTER the call has completed.'
 CALL TestRoutine
 SAY 'The same will be true for calls to code blocks which use PROCEDURE'
+SAY ''
+SAY 'At the end of the program:'
+SAY ' When programs launched from rexxdebugger end there is an Open button you can use to start another debug session'
+SAY ' In other scenarios there is no Open button and while the debugger can''t tell when the program has finished the open windows will stay grey'
+SAY ''
 SAY 'That''s all for this tutorial'
 SAY 'For more information hit the Help button'
-SAY ''
-SAY 'NOTE: The debugger can''t tell when the program has finished but the windows will stay grey'
+
 exit
 
 ::ROUTINE TestRoutine

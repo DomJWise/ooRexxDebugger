@@ -50,8 +50,10 @@ if .local~rexxdebugger.startuphelptext = .nil then do
   "TRACE ?R ", - 
   "", -
   "Source code will be shown when debugging is started.", -
+  "To select a program to debug now, click the Open button.", -
   "", -
   "Note: Window positioning is for Windows/ooDialog only.")
+  
 end
 
 -- Set version
@@ -78,7 +80,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.9"
+::CONSTANT VERSION "1.28.10"
 
 --====================================================
 ::class RexxDebugger public
