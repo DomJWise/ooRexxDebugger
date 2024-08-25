@@ -78,7 +78,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.8"
+::CONSTANT VERSION "1.28.9"
 
 --====================================================
 ::class RexxDebugger public
@@ -476,7 +476,7 @@ runroutine = LoadRoutineFromSource(rexxfile)
 signal off ANY
 .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
 
-self~RunNewProgram(runroutine, argstring, multipleargs)
+self~RunNewProgram(rexxfile, runroutine, argstring, multipleargs)
 return
 
 ------------
@@ -486,7 +486,8 @@ cond = .context~condition
 errorlist = .list~new
 if cond~CODE = 3.1 then do 
   filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
-  errorlist~append('Error: rexx file 'filename' not found')
+  if filename = '"&1"' then errorlist~append("Error: No Rexx program specified")
+  else errorlist~append('Error: Rexx program 'filename' not found')
 end
 else do  
   strm = .stream~new(rexxfile)
@@ -507,7 +508,7 @@ return
 ------------------------------------------------------
 expose canopensource debuggerui breakpoints tracedprograms
 
-use arg runroutine,argstring,multipleargs
+use arg rexxfile, runroutine,argstring,multipleargs
 
 reply
 
@@ -530,6 +531,9 @@ end
 canopensource = .False
 debuggerui~ResetUISourceState
 debuggerui~UpdateUIControlStates
+debuggerui~AppendUIConsoleText("")
+debuggerui~AppendUIConsoleText("New debug session started for "rexxfile)
+debuggerui~AppendUIConsoleText("")
 
 runroutine~callwith(runargs)
 
