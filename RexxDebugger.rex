@@ -58,16 +58,20 @@ end
 
 -- Set version
 .local~rexxdebugger.version = GetPackageConstant("Version")
+
 -- Launch debugger
 .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
-  
-if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~canopensource = .True
 
--- Run debuggee (if specified) with or without capture/trace
-if .local~rexxdebugger.runroutine \= .nil then do
-  .local~rexxdebugger.debugger~canopensource = .False
+-- Set some debugger options when launching  with "rexxdebugger ..."
+if .local~rexxdebugger.commandlineisrexxdebugger then do
+  .local~rexxdebugger.debugger~canopensource = .True
   if .local~rexxdebugger.captureoption = '/SHOWTRACE'  then .local~rexxdebugger.debugger~CaptureConsoleOutput(.False)
   else if .local~rexxdebugger.captureoption \= '/NOCAPTURE' then .local~rexxdebugger.debugger~CaptureConsoleOutput(.True)
+end
+
+-- Run debuggee (if specified) 
+if .local~rexxdebugger.runroutine \= .nil then do
+  .local~rexxdebugger.debugger~canopensource = .False
   
   .local~rexxdebugger.runroutine~callwith(.local~rexxdebugger.runargs)
   .local~rexxdebugger.debugger~canopensource = .True
@@ -80,7 +84,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.28.11"
+::CONSTANT VERSION "1.28.12"
 
 --====================================================
 ::class RexxDebugger public
