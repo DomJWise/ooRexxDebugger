@@ -505,12 +505,12 @@ debugger~FlagUIStartupComplete
 ------------------------------------------------------
 ::method OnCopyCommand unguarded
 ------------------------------------------------------
-expose controls
+expose controls debugger
 if self~getFocus = self~getControlHandle(self~LISTSOURCE) then do
   index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
   if index > 0  then do
     text = self~ListGetItem(controls, self~LISTSOURCE, index)
-    parse value text with lineno text
+    if \debugger~canopensource then parse value text with lineno text
     clipboard = .WindowsClipboard~new
     clipboard~copy(text)
   end
