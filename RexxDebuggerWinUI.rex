@@ -1093,6 +1093,8 @@ expose controls
 .local~rexxdebugger.rawargstring = controls[self~EDITARGS]~gettext
 .local~rexxdebugger.multipleargs = controls[self~RADIOARGTYPEMULTIPLE]~checked
 
+self~setforegroundWindow(self~ownerdialog~hwnd)
+
 self~Ok:super
 
 --====================================================
