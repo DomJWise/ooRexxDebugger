@@ -137,7 +137,8 @@ return .False
 ------------------------------------------------------
 expose waiting debugger hfnt watchwindows controls
 close = .True
-if waiting = .True then do
+numeric digits 20
+if waiting | (\debugger~canopensource & .local~rexxdebugger.commandlineisrexxdebugger) | TIME('F') - debugger~lastexecfulltime < 250000 then do
    ret = RxMessageBox("Do you really want to quit and end the program?", "Program still running", "YESNO", "QUESTION")
    if ret = 7 then close = .False
 end

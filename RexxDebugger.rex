@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.29.1"
+::CONSTANT VERSION "1.29.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -93,6 +93,7 @@ The core code of the debugging library follows below
 ::attribute offsetdirection unguarded
 ::attribute canopensource unguarded
 ::attribute debuggerui unguarded
+::attribute lastexecfulltime unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -123,7 +124,7 @@ debuggerui~RunUI
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -136,6 +137,7 @@ outputhandler = .nil
 errorhandler = .nil
 debuggerui = .nil
 canopensource = .False
+lastexecfulltime = 0
 
 .local~debug.channel = .Directory~new
 .debug.channel~status="getprogramstatus"
@@ -301,7 +303,8 @@ return self~ReplyWithTraceCommand
 ------------------------------------------------------
 ::method ReplyWithTraceCommand unguarded
 ------------------------------------------------------
-expose debuggerui shutdown launched canopensource
+expose debuggerui shutdown launched canopensource lastexecfulltime
+lastexecfulltime = TIME('F')
 if shutdown then return 'trace off; exit' 
 if launched = .false then return ''
 else response =self~GetAutoResponse
