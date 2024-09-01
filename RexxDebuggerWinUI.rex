@@ -126,6 +126,9 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ResetSourceState
 ::method activate class
 ------------------------------------------------------
 self~define("AppendText", .Method~new("", self~method("AppendText")~source)~~setUnguarded)
+self~define("SetConsoleUpdateAlarm", .Method~new("", self~method("SetConsoleUpdateAlarm")~source)~~setUnguarded)
+self~define("ProcessConsoleUpdateAlarm", .Method~new("", self~method("ProcessConsoleUpdateAlarm")~source)~~setUnguarded)
+self~define("DoConsoleAppend", .Method~new("", self~method("DoConsoleAppend")~source)~~setUnguarded)
 
 ------------------------------------------------------
 ::method ok  
@@ -135,7 +138,7 @@ return .False
 ------------------------------------------------------
 ::method cancel unguarded
 ------------------------------------------------------
-expose waiting debugger hfnt watchwindows controls
+expose waiting debugger hfnt watchwindows controls consoleupdateactive
 close = .True
 numeric digits 20
 if waiting | (\debugger~canopensource & .local~rexxdebugger.commandlineisrexxdebugger) | TIME('F') - debugger~lastexecfulltime < 250000 then do
@@ -144,13 +147,15 @@ if waiting | (\debugger~canopensource & .local~rexxdebugger.commandlineisrexxdeb
 end
 if close then do
   debugger~informshutdown
+  self~CancelConsoleUpdateAlarm
   self~ListDeleteAllItems(controls, self~LISTSOURCE)
   self~ListDeleteAllItems(controls, self~LISTSTACK)
   self~deletefont(hfnt)
   watchlist = watchwindows~allitems~section(1)
   do watchwindow over watchlist~allitems
      watchwindow~cancel
-  end   
+  end  
+  guard off when consoleupdateactive = .False 
   self~CANCEL:super
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
 end
@@ -176,7 +181,7 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength
+expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer debugconsoleupdatealarm consoleupdateactive
 use strict arg debugger, startuphelptext
 
 arrstack = .nil
@@ -195,7 +200,9 @@ self~connectResize("onResize")
 arrcommands = .Array~new
 commandnum = 0
 debugconsoletextlength = 0
-
+debugconsoleappendbuffer = ''
+debugconsoleupdatealarm = .Nil
+consoleupdateactive = .False
 ------------------------------------------------------
 ::method GetNextResponse 
 ------------------------------------------------------
@@ -546,23 +553,67 @@ self~newPushButton(self~BUTTONEXEC)~click
 return 0
 
 ------------------------------------------------------
+::method SetConsoleUpdateAlarm unguarded
+------------------------------------------------------
+expose debugconsoleupdatealarm
+if .RexxInfo~Class \= .String then do -- 5.0 or later
+  if debugconsoleupdatealarm = .nil then timeout = 10 
+  else timeout = 150000
+  message = .message~new(self, "ProcessConsoleUpdateAlarm")
+  debugconsoleupdatealarm = .Alarm~new(.Timespan~fromMicroseconds(timeout), message)
+end
+
+------------------------------------------------------
+::method CancelConsoleUpdateAlarm unguarded
+------------------------------------------------------
+expose debugconsoleupdatealarm
+if debugconsoleupdatealarm \= .nil then do
+  debugconsoleupdatealarm~cancel
+  debugconsoleupdatealarm = .nil
+end  
+
+------------------------------------------------------
 ::Method AppendText unguarded
 ------------------------------------------------------
-expose controls debugconsoletextlength debugger
+expose debugger debugconsoleappendbuffer debugconsoleupdatealarm
 use arg newtext, newline = .true
-numeric digits 15
-
 if newline then newtext = newtext||.endofline
+debugconsoleappendbuffer = debugconsoleappendbuffer||newtext
 if \debugger~isshutdown then do
-  controls[self~EDITDEBUGLOG]~hidefast
-  controls[self~EDITDEBUGLOG]~select(debugconsoletextlength + 1, debugconsoletextlength + 1)
-  controls[self~EDITDEBUGLOG]~replaceseltext(newtext, .False)
-  scrollcharpos = newtext~left(newtext~length - .endofline~length)~lastpos(.endofline) + debugconsoletextlength +.endofline~length
-  controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
-  debugconsoletextlength = debugconsoletextlength + newtext~length
-  controls[self~EDITDEBUGLOG]~showfast
-  controls[self~EDITDEBUGLOG]~ensureCaretVisibility
-  controls[self~EDITDEBUGLOG]~draw
+  if debugconsoleupdatealarm = .nil then self~SetConsoleUpdateAlarm
+  if debugconsoleupdatealarm = .nil then self~DoConsoleAppend
+end
+
+------------------------------------------------------
+::Method ProcessConsoleUpdateAlarm unguarded
+------------------------------------------------------
+expose  debugger  debugconsoleupdatealarm
+if \debugger~isshutdown then do
+  self~DoConsoleAppend
+  self~SetConsoleUpdateAlarm
+end
+
+------------------------------------------------------
+::Method DoConsoleAppend unguarded
+------------------------------------------------------
+expose controls debugconsoletextlength debugger debugconsoleappendbuffer consoleupdateactive
+numeric digits 15
+if \debugger~isshutdown then do
+  if debugconsoleappendbuffer \= '' then do
+    consoleupdateactive = .true
+    newtext = debugconsoleappendbuffer
+    debugconsoleappendbuffer = ''
+    controls[self~EDITDEBUGLOG]~hidefast
+    controls[self~EDITDEBUGLOG]~select(debugconsoletextlength + 1, debugconsoletextlength + 1)
+    controls[self~EDITDEBUGLOG]~replaceseltext(newtext, .False)
+    scrollcharpos = newtext~left(newtext~length - .endofline~length)~lastpos(.endofline) + debugconsoletextlength +.endofline~length
+    controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
+    debugconsoletextlength = debugconsoletextlength + newtext~length
+    controls[self~EDITDEBUGLOG]~showfast
+    controls[self~EDITDEBUGLOG]~ensureCaretVisibility
+    controls[self~EDITDEBUGLOG]~redraw
+    consoleupdateactive = .False
+  end
 end
 
 ------------------------------------------------------
@@ -738,7 +789,7 @@ else return .True
 -------------------------------------------------------
 ::method SetSourceListInfoText
 -------------------------------------------------------
-expose controls activesourcename
+expose controls activesourcename 
 use arg sourcelist
 
 self~ListDeleteAllItems(controls, self~LISTSOURCE)
@@ -754,12 +805,12 @@ self~UpdateControlStates
 -------------------------------------------------------
 ::method ResetSourceState
 -------------------------------------------------------
-expose loadedsources checkedsources activesourcename
+expose loadedsources checkedsources activesourcename debugconsoleupdatealarm
 
 loadedsources~empty
 checkedsources~empty
 activesourcename=.nil
-
+debugconsoleupdatealarm = .nil
 
  --====================================================
 ::class WatchDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
