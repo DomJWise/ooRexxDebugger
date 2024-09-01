@@ -57,6 +57,7 @@ SOFTWARE.
 ::attribute clsJTextArea           public unguarded
 ::attribute clsKeyEvent            public unguarded
 ::attribute clsListSelectionModel  public unguarded
+::attribute clsTimer               public unguarded
 ::attribute clsWindowConstants     public unguarded
 ::attribute clsKeyStroke           public unguarded
 ::attribute clsInputEvent          public unguarded
@@ -97,6 +98,7 @@ self~clsJTextField         = bsf.importclass("javax.swing.JTextField")
 self~clsKeyEvent           = bsf.importclass("java.awt.event.KeyEvent")
 self~clsKeyStroke          = bsf.importclass("javax.swing.KeyStroke")
 self~clsRectangle          = bsf.importclass("java.awt.Rectangle")
+self~clsTimer              = bsf.importclass("javax.swing.Timer")
 
 self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
 self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
@@ -160,10 +162,7 @@ debugdialog~repaint
 ------------------------------------------------------
 expose debugdialog debugger
 use  arg text, newline = .true
-if debugdialog \= .nil & \debugger~isshutdown then do 
-  if .AWTGuiThread~isGuiThread then debugdialog~appendtext(text, newline)
-  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "appendtext", "I", text, newline)~~result~errorCondition, .context)
-end  
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~appendtext(text, newline)
 
 
 ------------------------------------------------------
@@ -273,6 +272,23 @@ end
 return success
 
 --====================================================
+::class DebugDialogConsoleUpdateTimerListener public
+--====================================================
+
+------------------------------------------------------
+::method actionPerformed
+------------------------------------------------------
+use arg eventobj, slotdir
+dialog = slotdir~userdata
+dialog~DoConsoleUpdate
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+self~define("actionPerformed", .Method~new("", self~method("actionPerformed")~source))
+
+--====================================================
 ::class DebugDialogCopyTextListener public
 --====================================================
 
@@ -281,6 +297,11 @@ return success
 ------------------------------------------------------
 -- Will only be activated for items that dont already intercept the keys e.g. buttons
 NOP
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
 --====================================================
 ::class DebugDialogWindowListener public
@@ -400,6 +421,9 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::method activate class
 ------------------------------------------------------
 if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+self~define("AppendText", .Method~new("", self~method("AppendText")~source))
+self~define("SetConsoleUpdateTimer", .Method~new("", self~method("SetConsoleUpdateTimer")~source))
+self~define("DoConsoleUpdate", .Method~new("", self~method("DoConsoleUpdate")~source))
 
 ------------------------------------------------------
 ::method Cancel unguarded
@@ -418,6 +442,7 @@ if close then do
   do watchwindow over watchlist~allitems
      watchwindow~cancel
   end   
+  self~CancelConsoleUpdateTimer
 
   if waiting then self~HereIsResponse('say "Debugger closed - exiting"')
   self~dispose
@@ -449,7 +474,7 @@ if .BSFPackageDevTestingGlobals~package~local~debugautonext = .true then .AwtGui
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources
+expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoleappendbuffer debugconsoleupdatetimer
 use arg debugger, gui, startuphelptext
 arrstack = .nil
 activesourcename = .nil
@@ -460,10 +485,14 @@ checkedsources = .List~new
 waiting = .false
 controls = .Directory~new
 
-
 arrcommands = .Array~new
 commandnum = 0
+
+debugconsoleappendbuffer = ''
+debugconsoleupdatetimer = .Nil
+
 self~InitDialog
+
 
 -------------------------------------------------------
 ::method SetWaiting unguarded
@@ -879,14 +908,46 @@ if id = self~BUTTONVARS then self~OnVarsButton
 if id = self~BUTTONOPEN then self~OnOpenButton
 
 ------------------------------------------------------
-::Method AppendText unguarded
+::method SetConsoleUpdateTimer 
 ------------------------------------------------------
-expose controls debugger
+expose debugconsoleupdatetimer gui
+if debugconsoleupdatetimer = .nil then do 
+  timerlistener = .DebugDialogConsoleUpdateTimerListener~new
+  timerlistenerEH = BsfCreateRexxProxy(timerlistener, self, "java.awt.event.ActionListener")
+
+  debugconsoleupdatetimer = gui~clsTimer~new(150, timerlistenerEH)
+  debugconsoleupdatetimer~setInitialDelay(10)
+end  
+else if \debugconsoleupdatetimer~IsRunning then debugconsoleupdatetimer~Restart
+
+------------------------------------------------------
+::method CancelConsoleUpdateTimer unguarded
+------------------------------------------------------
+expose debugconsoleupdatetimer
+if debugconsoleupdatetimer \= .nil then debugconsoleupdatetimer~Stop
+
+------------------------------------------------------
+::Method AppendText
+------------------------------------------------------
+expose controls debugger debugconsoleappendbuffer
 use arg newtext, newline = .true
 
 if newline  then newtext = newtext||.endofline
-if \debugger~isshutdown then do
-  controls[self~EDITDEBUGLOG]~append(newtext)
+if \debugger~isshutdown then 
+  do 
+  debugconsoleappendbuffer = debugconsoleappendbuffer||newtext 
+  self~SetConsoleUpdateTimer
+end
+
+------------------------------------------------------
+::Method DoConsoleUpdate 
+------------------------------------------------------
+expose controls debugger debugconsoleappendbuffer
+if debugconsoleappendbuffer \= '' then do
+  if \debugger~isshutdown then do
+    controls[self~EDITDEBUGLOG]~append(debugconsoleappendbuffer)
+  end
+  debugconsoleappendbuffer = ''
 end
 
 ------------------------------------------------------

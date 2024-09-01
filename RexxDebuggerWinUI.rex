@@ -126,9 +126,8 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ResetSourceState
 ::method activate class
 ------------------------------------------------------
 self~define("AppendText", .Method~new("", self~method("AppendText")~source)~~setUnguarded)
-self~define("SetConsoleUpdateAlarm", .Method~new("", self~method("SetConsoleUpdateAlarm")~source)~~setUnguarded)
-self~define("ProcessConsoleUpdateAlarm", .Method~new("", self~method("ProcessConsoleUpdateAlarm")~source)~~setUnguarded)
 self~define("DoConsoleAppend", .Method~new("", self~method("DoConsoleAppend")~source)~~setUnguarded)
+self~define("EnsureFinalConsoleUpdates", .Method~new("", self~method("EnsureFinalConsoleUpdates")~source)~~setUnguarded)
 
 ------------------------------------------------------
 ::method ok  
@@ -147,7 +146,6 @@ if waiting | (\debugger~canopensource & .local~rexxdebugger.commandlineisrexxdeb
 end
 if close then do
   debugger~informshutdown
-  self~CancelConsoleUpdateAlarm
   self~ListDeleteAllItems(controls, self~LISTSOURCE)
   self~ListDeleteAllItems(controls, self~LISTSTACK)
   self~deletefont(hfnt)
@@ -181,7 +179,7 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer debugconsoleupdatealarm consoleupdateactive
+expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage
 use strict arg debugger, startuphelptext
 
 arrstack = .nil
@@ -201,7 +199,8 @@ arrcommands = .Array~new
 commandnum = 0
 debugconsoletextlength = 0
 debugconsoleappendbuffer = ''
-debugconsoleupdatealarm = .Nil
+debugconsolefinalupdatemessage = .Nil
+debugconsolelastupdate = 0
 consoleupdateactive = .False
 ------------------------------------------------------
 ::method GetNextResponse 
@@ -553,45 +552,35 @@ self~newPushButton(self~BUTTONEXEC)~click
 return 0
 
 ------------------------------------------------------
-::method SetConsoleUpdateAlarm unguarded
-------------------------------------------------------
-expose debugconsoleupdatealarm
-if .RexxInfo~Class \= .String then do -- 5.0 or later
-  if debugconsoleupdatealarm = .nil then timeout = 10 
-  else timeout = 150000
-  message = .message~new(self, "ProcessConsoleUpdateAlarm")
-  debugconsoleupdatealarm = .Alarm~new(.Timespan~fromMicroseconds(timeout), message)
-end
-
-------------------------------------------------------
-::method CancelConsoleUpdateAlarm unguarded
-------------------------------------------------------
-expose debugconsoleupdatealarm
-if debugconsoleupdatealarm \= .nil then do
-  debugconsoleupdatealarm~cancel
-  debugconsoleupdatealarm = .nil
-end  
-
-------------------------------------------------------
 ::Method AppendText unguarded
 ------------------------------------------------------
-expose debugger debugconsoleappendbuffer debugconsoleupdatealarm
+expose debugger debugconsoleappendbuffer  debugconsolelastupdate debugconsolefinalupdatemessage
 use arg newtext, newline = .true
 if newline then newtext = newtext||.endofline
 debugconsoleappendbuffer = debugconsoleappendbuffer||newtext
 if \debugger~isshutdown then do
-  if debugconsoleupdatealarm = .nil then self~SetConsoleUpdateAlarm
-  if debugconsoleupdatealarm = .nil then self~DoConsoleAppend
-end
+  numeric digits 20
+  if TIME('F') - debugconsolelastupdate > 150 * 1000 then do
+    debugconsolelastupdate = TIME('F')
+    self~DoConsoleAppend
+  end  
+  if debugconsolefinalupdatemessage = .nil then debugconsolefinalupdatemessage = self~start("EnsureFinalConsoleUpdates", 180)
+end  
 
 ------------------------------------------------------
-::Method ProcessConsoleUpdateAlarm unguarded
+::method EnsureFinalConsoleUpdates unguarded
 ------------------------------------------------------
-expose  debugger  debugconsoleupdatealarm
-if \debugger~isshutdown then do
-  self~DoConsoleAppend
-  self~SetConsoleUpdateAlarm
+expose debugconsolefinalupdatemessage debugconsolelastupdate debugger
+use arg timeout
+numeric digits 20 
+complete = .False
+do while  \complete & \debugger~isshutdown
+  if TIME('F') - debugconsolelastupdate > timeout * 1000 then complete = .True
+  else call SysSleep .025
 end
+debugconsolefinalupdatemessage = .nil
+self~DoConsoleAppend
+
 
 ------------------------------------------------------
 ::Method DoConsoleAppend unguarded
@@ -805,12 +794,11 @@ self~UpdateControlStates
 -------------------------------------------------------
 ::method ResetSourceState
 -------------------------------------------------------
-expose loadedsources checkedsources activesourcename debugconsoleupdatealarm
+expose loadedsources checkedsources activesourcename 
 
 loadedsources~empty
 checkedsources~empty
 activesourcename=.nil
-debugconsoleupdatealarm = .nil
 
  --====================================================
 ::class WatchDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
