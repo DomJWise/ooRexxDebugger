@@ -352,6 +352,15 @@ self~enable
 if dlgres = self~IDOK then do
   debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs)
 end
+self~start("SetForeground")
+
+
+------------------------------------------------------
+::method SetForeground
+------------------------------------------------------
+call SysSleep(0.1)
+self~setforegroundwindow(self~hwnd)
+
 
 ------------------------------------------------------
 ::method OnExecButton unguarded
