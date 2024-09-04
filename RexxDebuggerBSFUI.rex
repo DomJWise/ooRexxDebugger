@@ -1492,8 +1492,10 @@ panelargumentgroup~setBorder(gui~clsBorderFactory~createTitledBorder("Arguments"
 panelargumentgroup~setLayout(.Nil)
 
 radiosinglearg = gui~clsJRadioButton~new("Single")
+radiosinglearg~setMnemonic(gui~clsKeyEvent~VK_S)
 radiosinglearg~setbounds(5, 15, 70, 20)
 radiomultipleargs = gui~clsJRadioButton~new("Multiple")
+radiomultipleargs~setMnemonic(gui~clsKeyEvent~VK_M)
 radiomultipleargs~setbounds(5, 35, 80, 20)
 
 buttongroup = gui~clsButtonGroup~new

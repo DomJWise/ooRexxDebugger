@@ -1070,7 +1070,7 @@ expose controls
 self~createStaticText(self~STATICREXXFILETEXT, 4, 9, 50, 13, , "Rexx program:")
 self~createEdit(self~EDITREXXFILE, 54, 7, 201, 15)
 self~createGroupBox(self~STATICARGSGROUP, 4, 23, 251, 55, ,"Arguments" )
-self~createRadioButtonGroup(self~RADIOARGTYPESINGLE , 6, 33, ,"Single Multiple", "NOBORDER")
+self~createRadioButtonGroup(self~RADIOARGTYPESINGLE , 6, 33, ,"&Single &Multiple", "NOBORDER")
 self~createEdit(self~EDITARGS, 7, 57, 243, 15)
 self~createPushButton(IDOK, 4, 80, 35, 15, "DEFPUSHBUTTON"  ,"Ok")
 self~createPushButton(IDCANCEL, 42, 80, 35, 15, , "Cancel")
