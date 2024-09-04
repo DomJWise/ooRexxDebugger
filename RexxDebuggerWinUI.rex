@@ -342,7 +342,7 @@ end
 -----------------------------------------------------
 ::method OnOpenButton 
 ------------------------------------------------------
-expose debugger
+expose debugger controls
 
 newsessionDialog = .NewSessionDialog~new
 newsessionDialog~ownerDialog = self
@@ -350,6 +350,8 @@ self~disable
 dlgres = newsessiondialog~Execute
 self~enable
 if dlgres = self~IDOK then do
+  self~ListDeleteAllItems(controls, self~LISTSOURCE)
+  self~ListDeleteAllItems(controls, self~LISTSTACK)
   debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs)
 end
 self~start("SetForeground")
@@ -1046,9 +1048,10 @@ self~OnCopyCommand
 ::class NewSessionDialog subclass userdialog inherit ResizingAdmin
 --====================================================
 ::constant EDITREXXFILE         101
-::constant RADIOARGTYPESINGLE   102
-::constant RADIOARGTYPEMULTIPLE 103
-::constant EDITARGS             104
+::constant BUTTONFIND           102
+::constant RADIOARGTYPESINGLE   103
+::constant RADIOARGTYPEMULTIPLE 104
+::constant EDITARGS             105
 
 ::constant STATICREXXFILETEXT   201
 ::constant STATICARGSGROUP      202
@@ -1068,7 +1071,8 @@ self~create(1,1, 260, 100, "New Debug Session", "THICKFRAME, CENTER")
 expose controls
 
 self~createStaticText(self~STATICREXXFILETEXT, 4, 9, 50, 13, , "Rexx program:")
-self~createEdit(self~EDITREXXFILE, 54, 7, 201, 15)
+self~createEdit(self~EDITREXXFILE, 54, 7, 174, 15)
+self~createPushButton(self~BUTTONFIND, 230, 7, 25, 15,,"&Find", OnFindButton)
 self~createGroupBox(self~STATICARGSGROUP, 4, 23, 251, 55, ,"Arguments" )
 self~createRadioButtonGroup(self~RADIOARGTYPESINGLE , 6, 33, ,"&Single &Multiple", "NOBORDER")
 self~createEdit(self~EDITARGS, 7, 57, 243, 15)
@@ -1095,6 +1099,12 @@ do movedowncontrol over .Array~of(IDOK, IDCANCEL)
   self~controlRight(movedowncontrol, 'STATIONARY', 'LEFT') 
   self~controlTop(movedowncontrol, 'STATIONARY', 'BOTTOM') 
   self~controlBottom(movedowncontrol, 'STATIONARY', 'BOTTOM') 
+end
+do moverightcontrol over .Array~of(self~BUTTONFIND)
+  self~controlLeft(moverightcontrol, 'STATIONARY', 'RIGHT') 
+  self~controlRight(moverightcontrol, 'STATIONARY', 'RIGHT') 
+  self~controlTop(moverightcontrol, 'STATIONARY', 'TOP') 
+  self~controlBottom(moverightcontrol, 'STATIONARY', 'TOP') 
 end
 
 
@@ -1145,6 +1155,33 @@ expose controls
 self~setforegroundWindow(self~ownerdialog~hwnd)
 
 self~Ok:super
+
+------------------------------------------------------
+::method OnFindButton
+------------------------------------------------------
+expose controls
+
+curdir = directory()
+
+currentsel = controls[self~EDITREXXFILE]~gettext~strip
+if currentsel \= '' then currentsel =.File~new(currentsel)~absoluteFile~string
+
+delimiter = '0'x
+rexxfiletypes = .Array~of('rex', 'orx', 'rexx', 'rxj', 'rxo')
+rexxseltypes = 'Rexx Files ('
+do ext over rexxfiletypes~allitems
+  rexxseltypes = rexxseltypes||'*.'||ext||','
+end
+rexxseltypes = rexxseltypes~STRIP('T',',')||')'||delimiter
+do ext over rexxfiletypes~allitems
+  rexxseltypes = rexxseltypes||'*.'||ext||';'
+end
+rexxseltypes = rexxseltypes~STRIP('T',';')||delimiter
+seltypes = rexxseltypes||'All Files'||delimiter||'*.*'||delimiter
+findresult= FileNameDialog(currentsel, self~hwnd, seltypes,,"Find Program")
+if findresult \= 0 then controls[self~EDITREXXFILE]~settext(findresult)
+
+call directory curdir
 
 --====================================================
 ::class DialogControlHelper mixinclass object 
