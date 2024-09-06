@@ -80,11 +80,13 @@ if .local~rexxdebugger.runroutine \= .nil then do
 end
 else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 
+if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~WaitForUIToEnd
+
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.29.5.5"
+::CONSTANT VERSION "1.29.6.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -112,7 +114,9 @@ uistartupcomplete = .True
 ------------------------------------------------------
 ::method StartUIThread unguarded
 ------------------------------------------------------
-expose debuggerui
+expose debuggerui uifinished
+
+uifinished = .False
 
 REPLY /* Switch to a new thread */
 
@@ -120,11 +124,12 @@ debuggerui = .DebuggerUI~new(self, .WatchHelper)
 
 debuggerui~RunUI
 
+uiFinished = .True
 
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -138,6 +143,7 @@ errorhandler = .nil
 debuggerui = .nil
 canopensource = .False
 lastexecfulltime = 0
+uifinished = .True
 
 .local~debug.channel = .Directory~new
 .debug.channel~status="getprogramstatus"
@@ -549,6 +555,12 @@ runroutine~callwith(runargs)
 canopensource = .True
 debuggerui~UpdateUIControlStates
 
+------------------------------------------------------
+::method WaitForUIToEnd
+------------------------------------------------------
+expose uifinished
+
+guard on when uifinished = .True
 
 --====================================================
 ::class DebugOutputHandler
