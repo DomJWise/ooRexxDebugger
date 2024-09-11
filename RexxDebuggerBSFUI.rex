@@ -917,6 +917,7 @@ if debugconsoleupdatetimer = .nil then do
 
   debugconsoleupdatetimer = gui~clsTimer~new(150, timerlistenerEH)
   debugconsoleupdatetimer~setInitialDelay(10)
+  debugconsoleupdatetimer~bsf.invoke("Start")
 end  
 else if \debugconsoleupdatetimer~IsRunning then debugconsoleupdatetimer~Restart
 
