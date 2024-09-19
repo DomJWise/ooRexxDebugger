@@ -86,7 +86,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.29.8"
+::CONSTANT VERSION "1.30"
 
 --====================================================
 ::class RexxDebugger public
