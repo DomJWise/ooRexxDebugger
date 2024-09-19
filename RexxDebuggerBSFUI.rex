@@ -48,6 +48,7 @@ SOFTWARE.
 ::attribute clsFont                public unguarded
 ::attribute clsInsets              public unguarded 
 ::attribute clsJButton             public unguarded
+::attribute clsJFileChooser        public unguarded
 ::attribute clsJLabel              public unguarded
 ::attribute clsJList               public unguarded
 ::attribute clsJPanel              public unguarded
@@ -88,7 +89,8 @@ self~clsEmptyBorder        = bsf.importclass("javax.swing.border.EmptyBorder")
 self~clsFont               = bsf.importclass("java.awt.Font") 
 self~clsInsets             = bsf.importclass("java.awt.Insets") 
 self~clsJButton            = bsf.importclass("javax.swing.JButton")
-self~clsJLabel              = bsf.importclass("javax.swing.JLabel") 
+self~clsJFileChooser       = bsf.importclass("javax.swing.JFileChooser")
+self~clsJLabel             = bsf.importclass("javax.swing.JLabel") 
 self~clsJList              = bsf.importclass("javax.swing.JList") 
 self~clsJPanel             = bsf.importclass("javax.swing.JPanel")
 self~clsJRadioButton       = bsf.importclass("javax.swing.JRadioButton")
@@ -1444,11 +1446,12 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
 ::class NewSessionDialog subclass bsf 
 --====================================================
 ::constant EDITREXXFILE         101
-::constant RADIOARGTYPESINGLE   102
-::constant RADIOARGTYPEMULTIPLE 103
-::constant EDITARGS             104
-::constant BUTTONOK             105
-::constant BUTTONCANCEL         106
+::constant BUTTONFIND           102
+::constant RADIOARGTYPESINGLE   103
+::constant RADIOARGTYPEMULTIPLE 104
+::constant EDITARGS             105
+::constant BUTTONOK             106
+::constant BUTTONCANCEL         107
 
 ::attribute okselected
 
@@ -1485,7 +1488,12 @@ labelrexxfile = gui~clsJLabel~new("Rexx program:")
 labelrexxfile~setbounds(5, 10, 95, 25)
 
 textfieldrexxfile = gui~clsJTextField~new
-textfieldrexxfile~setbounds(100, 10, 300, 25)
+textfieldrexxfile~setbounds(100, 10, 235, 25)
+
+buttonfind = gui~clsJButton~new("Find")
+buttonfind~setMnemonic(gui~clsKeyEvent~VK_F)
+buttonfind~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonfind~setbounds(340, 10, 60, 25)
 
 panelargumentgroup = gui~clsJPanel~new
 panelargumentgroup~setbounds(5, 35, 395, 95)
@@ -1494,10 +1502,10 @@ panelargumentgroup~setLayout(.Nil)
 
 radiosinglearg = gui~clsJRadioButton~new("Single")
 radiosinglearg~setMnemonic(gui~clsKeyEvent~VK_S)
-radiosinglearg~setbounds(5, 15, 70, 20)
+radiosinglearg~setbounds(5, 15, 90, 20)
 radiomultipleargs = gui~clsJRadioButton~new("Multiple")
 radiomultipleargs~setMnemonic(gui~clsKeyEvent~VK_M)
-radiomultipleargs~setbounds(5, 35, 80, 20)
+radiomultipleargs~setbounds(5, 35, 90, 20)
 
 buttongroup = gui~clsButtonGroup~new
 buttongroup~add(radiosinglearg)
@@ -1513,13 +1521,14 @@ panelargumentgroup~add(textfieldargstring)
 
 buttonok = gui~clsJButton~new("Ok")
 buttonok~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonok~setbounds(10, 135, 60, 25)
+buttonok~setbounds(10, 135, 70, 25)
 
 buttoncancel = gui~clsJButton~new("Cancel")
 buttoncancel~setMargin(gui~clsInsets~new(0,0,0,0))
-buttoncancel~setbounds(80, 135, 60, 25)
+buttoncancel~setbounds(90, 135, 70, 25)
 
 self~add(textfieldrexxfile)
+self~add(buttonfind)
 self~add(labelrexxfile)
 self~add(panelargumentgroup)
 self~add(buttonok)
@@ -1541,12 +1550,14 @@ else radiomultipleargs~doclick
 textfieldargstring~settext(.local~rexxdebugger.rawargstring)
 
 controls[self~EDITREXXFILE]         = textfieldrexxfile
+controls[self~BUTTONFIND]           = buttonfind
 controls[self~RADIOARGTYPESINGLE]   = radiosinglearg
 controls[self~RADIOARGTYPEMULTIPLE] = radiomultipleargs
 controls[self~EDITARGS]             = textfieldargstring
 controls[self~BUTTONOK]             = buttonok
 controls[self~BUTTONCANCEL]         = buttoncancel
 
+controls[self~BUTTONFIND]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONFIND, "java.awt.event.ActionListener"))
 controls[self~BUTTONOK]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOK, "java.awt.event.ActionListener"))
 controls[self~BUTTONCANCEL]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONCANCEL, "java.awt.event.ActionListener"))
 
@@ -1558,8 +1569,51 @@ self~setVisible(.True)
 expose controls 
 use arg eventobj, slotdir
 id = slotdir~userdata
+if id = self~BUTTONFIND then self~OnFindButton
 if id = self~BUTTONOK then self~OnOk
 if id = self~BUTTONCANCEL then self~dispose
+
+------------------------------------------------------
+::method OnFindButton unguarded
+------------------------------------------------------
+expose controls gui
+
+curdir = directory()
+
+currentsel = controls[self~EDITREXXFILE]~gettext~strip
+
+startdirname = ''
+startfilename = ''
+if currentsel \= '' then do
+  currentselfile = .File~new(currentsel)
+  currentseldir = currentselfile~parentfile
+  if currentseldir \= .nil, currentseldir~exists then do 
+    startdirname = currentseldir~absolutePath~string
+    if currentselfile~isFile & currentselfile~exists then startfilename = currentselfile~name
+  end
+end  
+
+if startdirname = '' then do 
+  filechooser = gui~clsJFileChooser~new
+end
+else do
+  filechooser = gui~clsJFileChooser~new(startdirname)
+  if startfilename \= '' then filechooser~setSelectedFile(.bsf~new("java.io.File", startfilename))
+end
+
+rexxfileTypes = .Array~of('rex', 'orx', 'rexx', 'rxj', 'rxo')
+finderFilter = .FinderFilter~new(rexxFileTypes, 'Rexx Files')
+proxyFinderFilter=BsfCreateRexxProxy(finderFilter, , "javax.swing.filechooser.FileFilter")
+filechooser~setFileFilter(proxyFinderFilter)
+
+res = filechooser~showOpenDialog(self)
+if res = gui~clsJFileChooser~APPROVE_OPTION then do
+  findresult = filechooser~getSelectedFile~getAbsolutePath
+  controls[self~EDITREXXFILE]~settext(findresult)
+end
+
+call directory curdir
+
 
 ------------------------------------------------------
 ::method OnOk unguarded
@@ -1572,6 +1626,43 @@ expose controls okselected
 
 okselected = .True
 self~dispose
+
+--====================================================
+::class FinderFilter
+--====================================================
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose fileextensions fileclassname
+use arg fileextensions, fileclassname = ''
+
+------------------------------------------------------
+::method getDescription
+------------------------------------------------------
+expose fileextensions fileclassname
+description = ''
+if fileclassname \= '' then description = fileclassname' ('
+do ext over fileextensions~allitems
+  description = description||'*.'||ext||','
+end
+description = description~STRIP('T',',')
+if fileclassname \= '' then description = description||')'
+return description
+
+------------------------------------------------------
+::method accept
+------------------------------------------------------
+expose fileextensions
+use arg fileobject
+
+if fileobject~isDirectory then return .true
+name = fileobject~getName
+do ext over fileextensions~allitems
+  if name~translate~right(ext~length + 1)~caselesscompare('.'||ext) = 0 then return .true
+end
+return .false
+
 
 --====================================================
 ::class DialogControlHelper mixinclass object 
