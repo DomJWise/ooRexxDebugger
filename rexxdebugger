@@ -1,2 +1,23 @@
-#!/usr/bin/bash
-rexx "RexxDebugger.rex" $*
+#!/bin/sh
+path_to_rexxjh=$(which rexxjh.sh)
+path_to_rexxj=$(which rexxj.sh)
+path_to_rexx=$(which rexx)
+os_platform=$(uname)
+if [ -x "$path_to_rexx" ]; then
+  if [ "$os_platform" = "Darwin" ] ; then
+    if [ -x "$path_to_rexxjh" ] ; then
+      $path_to_rexxjh "RexxDebugger.rex" $* 
+    elif [ -x "$path_to_rexxj" ] ; then
+      $path_to_rexxj "RexxDebugger.rex" $* 
+    else
+      echo "Error: Unable to locate bsf4oorexx installation"
+    fi
+  elif [ -x "$path_to_rexxj" ] || [ -x "$path_to_rexxjh" ]; then
+    $path_to_rexx "RexxDebugger.rex" $* 
+  else
+    echo "Error: Unable to locate bsf4oorexx installation"
+  fi
+else 
+  echo "Error: Unable to locate rexx installation"
+fi  
+
