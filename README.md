@@ -3,11 +3,11 @@
 A cross platform dialog based ooRexx debugger
 
 Written in ooRexx with support from version 4.2 on Windows where ooDialog is used for the user interface, 
-and on platforms with Java and bsf4ooRexx (minimum tested versions bsf4ooRexx 850 + ooRexx 5.0) where the 
+and on platforms with Java and bsf4ooRexx (minimum tested versions bsf4ooRexx 641 + ooRexx 5.0) where the 
 Swing/AWT libraries are used. The JRE/JDK version should not matter unless it is especially ancient or
 specifically excludes Swing and/or AWT.
 
-Validation testing for the  Swing/AWT version is limited to  Windows, Mac OS and Ubuntu 24.04 at this time.
+Validation testing for the  Swing/AWT version is limited to  Windows, MacOS and Ubuntu 24.04 at this time.
 
 It's still in active development so you will likely find bugs but features include:
 
@@ -60,11 +60,13 @@ If /nocapture option is specified nothing will be captured.
 
 The ability to control what is captured to the console is available in any debug session using the CAPTURE/CAPTUREX/NOCAPTURE commands. Note that some embedded environments will not allow redirection of output in which case these commands will have no effect.
 
-NB: On Mac OS it may be that the rexxdebugger script cannot be used and so to run either of the above you will need to use the Rexx+Java launcher script and the full name of the debugger rexx file
+NB: On MacOS the rexxdebugger script cannot be used and so to run either of the above you will need to use a Rexx+Java launcher script and the full name of the debugger rexx file. For version 641 of BSF400Rexx this is rexxj.sh and for later versions rexxjh.sh can be used
 
-e.g. rexxjh.sh RexxDebugger.rex [/showtrace | /nocpature] myprogram.rex [{argstring}]
+e.g. rexxj{h}.sh RexxDebugger.rex [/showtrace | /nocapture] myprogram.rex [{argstring}]
 
 The /javaui option can be used on Windows with ooRexx 5.0 or later to run the debugger with the Swing/AWT (Java) interface
+
+If no program is specified when launching the debugger some help text is displayed and a program can be selected for debugging using the Open button
 
 If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
 
