@@ -25,12 +25,10 @@ SOFTWARE.
 if .local~rexxdebugger.debuggerinit \= .nil then  return
 .local~rexxdebugger.debuggerinit = .Object~new
 
-if SetCommandLineIsRexxDebugger() then do
-
-  if \ConfigureCommandLineDebuggee(ARG(1)~strip) then do 
-    parentwindowname = arg(1)
-    offsetdirection = arg(2)
-  end
+if SetCommandLineIsRexxDebugger() then call ConfigureCommandLineDebuggee(ARG(1)~strip)
+else do
+  parentwindowname = arg(1)
+  offsetdirection = arg(2)
 end  
 
 if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
@@ -78,8 +76,7 @@ if .local~rexxdebugger.runroutine \= .nil then do
   .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
   call say 'Debuggee has finished running.'
 end
-else .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
-
+else if .local~rexxdebugger.debugger~debuggerui \= .nil then .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~WaitForUIToEnd
 
 /*====================================================
@@ -712,7 +709,6 @@ return retval
 ::ROUTINE ConfigureCommandLineDebuggee
 ------------------------------------------------------
 use arg debuggerargstring
-retval = .False
 if .local~rexxdebugger.commandlineisrexxdebugger then do 
   .local~rexxdebugger.captureoption = ''
   forcejava = .false
@@ -749,7 +745,6 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   .local~rexxdebugger.rexxfile = rexxfile
   
   if rexxfile \= '' then do
-    retval = .True
     signal on ANY name HandleError
     runroutine = LoadRoutineFromSource(rexxfile)
     signal off ANY
@@ -758,7 +753,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
     .local~rexxdebugger.runargs = runargs
   end
 end
-return retval
+return
 
 ------------
 HandleError: 
@@ -786,8 +781,7 @@ do item over errorlist
   say item
 end  
 say
-return  .True
-
+return
 ------------------------------------------------------
 ::ROUTINE LoadRoutineFromSource
 ------------------------------------------------------
