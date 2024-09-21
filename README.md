@@ -1,48 +1,76 @@
 # ooRexxDebugger
 
-A cross platform dialog based ooRexx debugger
+A dialog-based ooRexx debugger for the Windows, Linux and MacOS desktop (*)
 
-Written in ooRexx with support from version 4.2 on Windows where ooDialog is used for the user interface, 
-and on platforms with Java and bsf4ooRexx (minimum tested versions bsf4ooRexx 641 + ooRexx 5.0) where the 
-Swing/AWT libraries are used. The JRE/JDK version should not matter unless it is especially ancient or
-specifically excludes Swing and/or AWT.
+Available for Windows running ooRexx 4.2 or later via a native user interface, with an aternative Java (Swing/AWT) user interface for other platforms running ooRexx 5.0 or later. 
 
-Validation testing for the  Swing/AWT version is limited to  Windows, MacOS and Ubuntu 24.04 at this time.
+(*) Although testing is limited to Windows, Linux and MacOS, other platforms for which the prerequisites can be met can be reasonably be expected to work.
 
-It's still in active development so you will likely find bugs but features include:
+It's still in active development and you may find bugs but features include:
 
 - A main window with:
   -  Source display of the code being debugged
   -  Stack trace that allows switching between active source locations and files
   -  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
-  -  A console window to display basic help information, status and (optionally) code and debugger output 
+  -  A console window to display basic help information, status and (optionally) program and debugger output 
   -  Single step or run to breakpoints (*)
-  -  Break button to interrupt running code or (useful for event driven based code) break when the next line of traceable code is hit 
+  -  Break button to interrupt running code or set an automatic breakpoint for when the next line of traceable code is hit 
   -  Toggling of breakpoints in an active session
 - Watch windows for display of simple variables and drilldown into many collection types
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/) at the start of traceable lines.
 
-(*) Note that this is built around the interactive trace framework included with ooRexx so can only pause
-where that framework would pause. Some statements are never hit at all, other statements only once. 
-Note also that global TRACE options are generally a good idea if your code includes METHOD or ROUTINE
-sections so you dont have to add TRACE statements to them manually. TRACE ?R is a good tracing option for 
-keeping the trace output low and minimizing the overhead of processing the trace text, though in many cases the 
-CAPTUREX debugger command can be used to discard all TRACE output and speed things up considerably.
+(*) Note that this is built around the interactive trace framework included with ooRexx so can only pause where that framework would pause. Some statements are never hit at all, other statements only once. The Rexx documentation provides information on which instructions will pause during interactive tracing, used to guide the "hit" likelihood indicator when setting breakpoints but this may not always be 100% accurate.
 
-To  use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory, along with one of the user interface modules below:
+Prerequisites
+-------------
 
-   - RexxDebuggerWinUI.rex is required for the Windows ooDialog version
+For Windows using the native interface ooRexx 4.2 or later must be installed.
 
-   - RexxDebuggerBSFUI.rex in required for the Swing/AWT version
+For any platform using the Java interface the following are needed:
+  - ooRexx 5.0 (recommended) or later (*)
+  - Any Java JRE/JDK with Swing and AWT support
+  - bsf4oorexx version 641 or 850
 
-On Windows when both modules are available the native ooDialog module will be preferred but this can be overridden by including ::REQUIRES "RexxDebuggerBSFUI.rex" in your source. If the source also includes ::REQUIRES "RexxDebugger.rex" the latter must appear later on in the source for this override to work. Alternatively if launching via RexxDebugger you can specify the /javaui command line option (see below)
+(*) The debugger can be used with the ooRexx 5.1 beta release but at time of writing there are some stability issues with tracing in this version which may result in hangs or crashes when using the debugger.
 
-On Unix platforms the (bash) script rexxdebugger can be copied into the path e.g. /usr/local/bin and marked executable. This will
-invoke RexxDebugger.rex from the rexx executable passing all your arguments, saving you from having to type e.g. rexx RexxDebugger .... 
+Deployment of the files in this package
+---------------------------------------
 
-Standalone programs or programs called as a single routine with multiple arguments can be debugged without modification via command line options available to RexxDebugger.rex
+To use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory along with one of the user interface modules below:
 
-For a standalone program  where a single argument string is passed unaltered to the program you would use:
+   - RexxDebuggerWinUI.rex is required for the Windows native interface
+
+   - RexxDebuggerBSFUI.rex is required for the Java interface
+
+   On Windows when both modules are available the native interface module will be preferred but this can be overridden if needed. See usage instructions below for further details
+
+On Linux and MacOS the following launcher script should be copied into the path or local directory and set as executable
+
+   - rexxdebugger 
+
+The package file tutorial.rex is not required but may be helpful for learning how to navigate the various debugger features
+
+Getting started
+---------------
+
+To launch the main debugger window so that you can open a Rexx program for debugging use the following command:
+
+    rexxdebugger
+
+The Open button can be used on the main dialog to select a program to debug
+
+By default the debugger will use the preferred interface for the current platform, program output will appear in the debugger console pane, and trace output will be dropped but this can be overridden with the following command-line options
+
+/JAVAUI    - Force the Java interface to be used (Windows only)
+/NOCAPTURE - Send all program and trace output to the console window that launched the debugger
+/SHOWTRACE - Include trace output in the debugger console pane along with the program output
+
+Specifying a program to debug
+-----------------------------
+
+A Rexx program can be specified for debugging on the rexxdebugger command line. The program name and any parameters must come after any of the debugger specific parameters described above.
+
+For a standalone program where a single argument string is passed unaltered to the program you would use:
 
 rexxdebugger [/showtrace | /nocapture] [/javaui] myprogram.rex [{argstring}]
 
@@ -52,60 +80,98 @@ rexxdebugger [/showtrace | /nocapture] [/javaui] CALL myroutine.rex [{arg1}] ...
 
 Multi-word aruments need to be surrounded by double quotes and (at present) double quotes cannot be included within an argument
 
-For both of the above the default is to capture all program output in the debugger console with trace output discarded to improve performance and reduce "noise". 
+Embedded Rexx programs / special requirements
+---------------------------------------------
 
-If /showtrace is specified the trace output is also captured in the debugger console.
+Starting debug sessions with the rexxdebugger command facilitates debugging for a huge range of scenarios but there are situations where it either cannot be used or where finer controls over some aspects of debugging are needed. So long as the Rexx source can be modified many of these scenarios can also be handled using certain Rexx directives and statements.
 
-If /nocapture option is specified nothing will be captured.
+  Embedded Rexx programs
+  ----------------------
+ 
+  If you have an application in which a Rexx interpreter is embedded, a Rexx program run within that environment cannot be debugged using the rexxdebugger command, but so long as the embedding application does not itself capture trace input you will very likely be able to debug the script when it is run by the application.
+  
+  For this to work you will need modify the Rexx program to load the debugger and activate tracing, either with a TRACE statement or ::OPTIONS TRACE if you have methods and routines that should be debuggable. You may also want to have the debugger open relative to a specific window e.g. to the right of the application window. Following are 3 example scenarios 
+  
+  (1) There are global TRACE options but debugger window placement and start point of debugging don't matter
 
-The ability to control what is captured to the console is available in any debug session using the CAPTURE/CAPTUREX/NOCAPTURE commands. Note that some embedded environments will not allow redirection of output in which case these commands will have no effect.
-
-NB: On MacOS the rexxdebugger script cannot be used and so to run either of the above you will need to use a Rexx+Java launcher script and the full name of the debugger rexx file. For version 641 of BSF400Rexx this is rexxj.sh and for later versions rexxjh.sh can be used
-
-e.g. rexxj{h}.sh RexxDebugger.rex [/showtrace | /nocapture] myprogram.rex [{argstring}]
-
-The /javaui option can be used on Windows with ooRexx 5.0 or later to run the debugger with the Swing/AWT (Java) interface
-
-If no program is specified when launching the debugger some help text is displayed and a program can be selected for debugging using the Open button
-
-If more fine-grained control over debugging is needed or when your Rexx code is embedded and run from within another application, source code modification is required and there are various options depending on your requirements.
-
-If not using RexxDebugger to launch a program i.e. if running it directly or if it is embedded in another application some modifications to the code will be required and some example usage scenarios are as follows:
-
-(1) There are global TRACE options but debugger window placement and start point of debugging don't matter
-
-At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended) add:
+  At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended) add:
 
   ::REQUIRES "RexxDebugger.rex"
 
-Note that double quotes will not generally be required on Windows but may be needed on operating systems that use
-a case-sensitive filesystem
+  Note that double quotes will not generally be required on Windows but may be needed on operating systems that use a case-sensitive filesystem
 
-With this option the debugger will break at the start of the code
+  With this option the debugger will launch and break at the start of the Rexx program
 
-(2) There are no global TRACE options but debugger window placement and/or start point of debugging matter (*)
+  (2) There are no global TRACE options but debugger window placement and/or start point of debugging matter (*)
 
-Before the first line of code to debug add:
+  Before the first line of code to debug add:
   
   Call RexxDebugger [parentwindowname, offsetdirection-LRUD]  
   TRACE ?R
 
-With this option the debugger will break after the TRACE ?R statement
+  With this option the debugger will launch during the CALL statement and break after the TRACE ?R statement
   
-(3) There are global TRACE options (::OPTIONS TRACE ?R is recommended) and debugger window placement and/or start point of debugging matter (*)
+  (3) There are global TRACE options (::OPTIONS TRACE ?R is recommended) and debugger window placement and/or start point of debugging matter (*)
 
-Before the first line to debug add:
+  Before the first line to debug add:
 
   CALL LaunchDebugger [parentWindowName, offsetdirection-LRUD]
 
-At the end of the code along with the TRACE option add:
+  At the end of the code, you should not add a requires statement for RexxDebugger.rex, but along with the TRACE option you should add 
 
   ::REQUIRES "DeferRexxDebuggerLaunch.rex"
 
-With this option the debugger will trace from the start of the code  but wont break until the LaunchDebugger call
+  With this option the debugger will show trace output from the start of the program but wont break until the LaunchDebugger call
+  
+  Note that if you are running on Windows but wish to use the Java interface you can include the following line before any other ::requires statements for the debugging modules to activate this
+  
+  ::REQUIRES RexxDebuggerBSFUI.rex
 
-(*) Debugger window placement is only supported on the Windows ooDialog version
+  (*) Debugger window placement is only supported by the Windows native interface
 
-THe Help button will send more information about the various options to the debugger console window and is worth checking out at least once, even though it's not very structured or pretty.
 
-For an interactive walkthrough of many of the features run tutorial.rex, ideally from a command prompt / terminal, and follow the instructions.
+  Direct launch of a Rexx program (and known limitations of rexxdebugger launching)
+  ---------------------------------------------------------------------------------
+  
+  The code modification examples above can also be used for debugging Rexx programs that you launch directly instead of via the rexxdebugger command. Sometimes you may just do this for convenience or for additional control, and you may also need to modify programs called by your top-level program to activate tracing in those, but there is at least one known scenario where using rexxdebugger to launch a program will fail and code modification must be used.
+  
+  When you have classes in your top level program which include a class init or activate method and module level tracing is activated, these methods will be traced before the debugger library is properly initialised causing unpredictable behaviour when such programs are invoked via rexxdebugger
+  
+  You can either:
+  
+    Modify your program to activate tracing but create a wrapper program which calls this program and which can safely be launched from rexxdebugger
+  
+    or
+  
+    Use direct launch with your program and include code to activate tracing but place any ::REQUIRES "RexxDebugger.Rex" line earlier in your code than the definition of the first class which includes such method calls
+
+  In term of directly launching a Rexx program, in Windows you can do this just by specifying its name but on other platforms you will generally need to precede the program name with a launcher command
+  
+  On Linux:
+    rexx <program> <arguments>
+	
+  On MacOS running bsf4oorexx 641
+	rexxj.sh <program> <arguments>
+  
+  On MacOS running bsf4oorexx 850
+	rexxjh.sh <program> <arguments>
+  
+  Note that when a debug session launched this way on MacOS reaches the end of the program or aborts due to an unhandled error the debugger window will disappear. Possible ways of avoiding this will be investigated for future releases.
+ 
+Control of program / trace output and possible limitations
+----------------------------------------------------------
+
+When launching a debug session via rexxdebugger there are command line options (see above) for controlling where these types of ouput go but there are additional debugger commands (CAPTURE/CAPTUREX/NOCAPTURE) that can be used to make changes during any active debug session. Further details on what they do can can found in the Help text, but it is important to note that some embedded environments may take full control of program and trace output. For these environments you may not be able to redirect ouput to the debug console window and will be limited to  whatever output is generated by the embedding application.
+
+Multiple debug runs in the same rexxdebugger session
+----------------------------------------------------
+
+If you have run a debug session using rexxdebugger to completion, the Open button will become avaialable and you can launch a new debug session. However, you will be running with the same Rexx interpreter instance as previously so you should ensure that any files or other resources have been released by the code in your previous debug session or you may see unexpected behaviour in the new debug session. 
+
+Closing the rexxdebugger window and launching a new one for the next debug session will ensure that you are using a new Rexx interpreter each time and will avoid this issue.
+
+Final notes and further information
+-----------------------------------
+The Help button will send output information about the various options to the debugger console window and is worth checking out at least once, even though it's not very structured or pretty.
+
+For an interactive walkthrough of many of the features run tutorial.rex, ideally from a command prompt / terminal using direct launch, and follow the instructions.
