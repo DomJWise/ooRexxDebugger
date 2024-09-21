@@ -106,7 +106,7 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
 
   Before the first line of code to debug add:
   
-    Call RexxDebugger [parentwindowname, offsetdirection-LRUD]  
+    CALL RexxDebugger [parentwindowname, offsetdirection-LRUD]  
     TRACE ?R
 
   With this option the debugger will launch during the CALL statement and break after the TRACE ?R statement
@@ -125,7 +125,7 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   
   Note that if you are running on Windows but wish to use the Java interface you can include the following line before any other ::requires statements for the debugging modules to activate this.
   
-      ::REQUIRES "RexxDebuggerBSFUI.rex"
+    ::REQUIRES "RexxDebuggerBSFUI.rex"
 
   (*) Debugger window placement is only supported by the Windows native interface
 
