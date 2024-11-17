@@ -25,14 +25,9 @@ SOFTWARE.
 if .local~rexxdebugger.debuggerinit \= .nil then  return
 .local~rexxdebugger.debuggerinit = .Object~new
 
-if SetCommandLineIsRexxDebugger() then call ConfigureCommandLineDebuggee(ARG(1)~strip)
-else do
-  parentwindowname = arg(1)
-  offsetdirection = arg(2)
-end  
+-- Set version
+.local~rexxdebugger.version = GetPackageConstant("Version")
 
-if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
-if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
 
 -- Below is the help text List that will initially be added to the source list unless already set by the caller (or a source load error)
 if .local~rexxdebugger.startuphelptext = .nil then do 
@@ -54,36 +49,42 @@ if .local~rexxdebugger.startuphelptext = .nil then do
   
 end
 
--- Set version
-.local~rexxdebugger.version = GetPackageConstant("Version")
+if SetCommandLineIsRexxDebugger() then do
+   
+  call ConfigureCommandLineDebuggee(ARG(1)~strip)
 
--- Launch debugger
-.local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
-
--- Set some debugger options when launching  with "rexxdebugger ..."
-if .local~rexxdebugger.commandlineisrexxdebugger then do
-  .local~rexxdebugger.debugger~canopensource = .True
+  .local~rexxdebugger.deferlaunch = .true
+  .local~rexxdebugger.debugger = .RexxDebugger~new
+  .local~rexxdebugger.debugger~canopensource = .true
   if .local~rexxdebugger.captureoption = '/SHOWTRACE'  then .local~rexxdebugger.debugger~CaptureConsoleOutput(.False)
   else if .local~rexxdebugger.captureoption \= '/NOCAPTURE' then .local~rexxdebugger.debugger~CaptureConsoleOutput(.True)
-end
 
--- Run debuggee (if specified) 
-if .local~rexxdebugger.runroutine \= .nil then do
-  .local~rexxdebugger.debugger~canopensource = .False
-  
-  .local~rexxdebugger.runroutine~callwith(.local~rexxdebugger.runargs)
-  .local~rexxdebugger.debugger~canopensource = .True
-  .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
-  call say 'Debuggee has finished running.'
-end
-else if .local~rexxdebugger.debugger~debuggerui \= .nil then .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
+   if .local~rexxdebugger.rexxfile = '' then .local~rexxdebugger.debugger~launch
+   else do
+     .local~rexxdebugger.startuphelptext~empty
+     .local~rexxdebugger.debugger~launch
+     .local~rexxdebugger.debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs, .True)
+   end  
+  end  
+else do
+  parentwindowname = arg(1)
+  offsetdirection = arg(2)
+
+  if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
+  if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
+
+  -- Launch debugger
+  .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
+end  
+if .local~rexxdebugger.debugger~debuggerui \= .nil then .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
+
 if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~WaitForUIToEnd
 
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.30"
+::CONSTANT VERSION "1.31"
 
 --====================================================
 ::class RexxDebugger public
@@ -408,7 +409,7 @@ end
 else if status="programstatusupdated" then do
   if .debug.channel~frames \=.nil then do
     frames = .debug.channel~frames
-    if .local~rexxdebugger.runroutine \=.nil then frames = frames~section(1, frames~items-2)
+    if .local~rexxdebugger.runroutine \=.nil then frames = frames~section(1, frames~items-3)
     tracedprograms~put(frames~firstitem~executable~package~name)
     debuggerui~UpdateUICodeView(frames, 1)
   end  
@@ -479,22 +480,84 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown
-use arg rexxfile,argstring,multipleargs = .False
+expose debuggerui shutdown breakpoints tracedprograms canopensource
+
+use arg rexxfile,argstring,multipleargs = .False, firsttime = .False
 
 shutdown = .False
-signal on ANY name HandleError
-runroutine = LoadRoutineFromSource(rexxfile)
-signal off ANY
-.context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
+breakpoints~empty
+tracedprograms~empty
+.debug.channel~status = "getprogramstatus"
+.local~rexxdebugger.runroutine = runroutine
 
-self~RunNewProgram(rexxfile, runroutine, argstring, multipleargs)
+runroutine = .nil
+strm = .stream~new(rexxfile)
+signal on ANY name HandleSyntaxError
+if strm~query('EXISTS') = '' then  raise syntax 3.1 ADDITIONAL (Rexxfile)
+else do  
+  signal off ANY 
+  arrsource = strm~arrayin
+  strm~close
+  if arrSource~items = 0 then arrSource = .array~of('')
+  if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
+  arrSource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R')
+
+  if \firsttime then do
+    debuggerui~AppendUIConsoleText("")
+    debuggerui~AppendUIConsoleText("New debug session started for "rexxfile)
+    debuggerui~AppendUIConsoleText("")
+  end
+  self~canopensource = .False
+  debuggerui~InitUISource(arrSource, rexxfile)
+
+  signal on ANY name HandleSyntaxError
+  runroutine = .routine~new(rexxfile, arrSource)
+  routinepackage = runroutine~package
+
+  signal off ANY
+
+  debuggerui~ResetUISourceState
+  debuggerui~UpdateUIControlStates
+
+  -- Init code for classes is run on the next line
+  signal on ANY name HandleRuntimeError
+  packages = routinepackage~importedpackages 
+  signal off ANY
+  do i over packages~allitems
+    if i~findclass("DebuggerUI") \= .nil  then .context~package~addpackage(i)
+  end  
+
+  signal off ANY
+  .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
+
+  
+  if \multipleargs then runargs = .array~of(argstring)
+  else do
+    runargs = .array~new
+    do while argstring \= ''
+      if argstring~left(1) \= '"' then parse value argstring with nextarg argstring 
+      else parse value  argstring with '"' nextarg '"' argstring
+      runargs~append(nextarg~strip)
+      argstring = argstring~strip
+    end  
+  end  
+
+  
+  signal on ANY name HandleRuntimeError
+  runroutine~callwith(runargs)
+  signal off ANY
+  canopensource = .True
+  debuggerui~UpdateUIControlStates
+end  
+
 return
 
 ------------
-HandleError: 
+HandleSyntaxError: 
 ------------
 cond = .context~condition
+sourceerrorline = cond~POSITION
+
 errorlist = .list~new
 if cond~CODE = 3.1 then do 
   filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
@@ -505,14 +568,33 @@ else do
   strm = .stream~new(rexxfile)
   arrsource = strm~arrayin
   strm~close
-  errorlist~append('Error: Syntax error parsing 'rexxfile' at line '.local~rexxdebugger.sourceerrorline)
+  errorlist~append('Error: Syntax error parsing 'rexxfile' at line 'sourceerrorline)
   errorlist~append('')
-  errorlist~append(.local~rexxdebugger.sourceerrorline~right(5)' *-* 'arrSource[.local~rexxdebugger.sourceerrorline])
+  if sourceerrorline \= 0 then errorlist~append(sourceerrorline~right(5)' *-* 'arrSource[sourceerrorline])
   errorlist~append('')
   errorlist~append('Error 'cond~RC' : 'cond~ERRORTEXT)
   errorlist~append('Error 'cond~CODE': 'cond~MESSAGE)
 end  
 debuggerui~SetUISourceListInfoText(errorlist)
+self~canopensource = .true
+debuggerui~UpdateUIControlStates
+return
+
+------------
+HandleRuntimeError: 
+------------
+self~SendDebugMessage('Runtime error:')   
+cond = .context~condition
+do lineidx = 0 to cond~Traceback~items -1
+  if cond~Traceback[lineidx]~pos('runroutine~callwith(runargs)') \= 0 then leave
+  self~SendDebugMessage(cond~Traceback[lineidx])
+end    
+self~SendDebugMessage('Error 'cond~RC' running 'cond~package~name' line 'cond~Position': 'cond~ErrorText)   
+self~SendDebugMessage('Error 'cond~code': 'cond~message)
+
+self~canopensource = .true
+debuggerui~UpdateUIControlStates
+
 return
 
 ------------------------------------------------------
@@ -520,14 +602,9 @@ return
 ------------------------------------------------------
 expose canopensource debuggerui breakpoints tracedprograms
 
-use arg rexxfile, runroutine,argstring,multipleargs
+use arg rexxfile, runroutine,argstring,multipleargs, firsttime
 
-reply
 
-breakpoints~empty
-tracedprograms~empty
-.debug.channel~status = "getprogramstatus"
-.local~rexxdebugger.runroutine = runroutine
 
 if \multipleargs then runargs = .array~of(argstring)
 else do
@@ -540,12 +617,8 @@ else do
   end  
 end  
 
-canopensource = .False
 debuggerui~ResetUISourceState
 debuggerui~UpdateUIControlStates
-debuggerui~AppendUIConsoleText("")
-debuggerui~AppendUIConsoleText("New debug session started for "rexxfile)
-debuggerui~AppendUIConsoleText("")
 
 runroutine~callwith(runargs)
 
@@ -635,7 +708,7 @@ self~define("LINEOUT", .Method~new("", self~method("LINEOUT")~source)~~setUnguar
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger discard canusetraceobjects capture originaltraceoutput
+expose debugger discard canusetraceobjects capture originaltraceoutput 
 use arg debugger
 discard = .False
 capture = .False
@@ -729,89 +802,12 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   else .local~rexxdebugger.multipleargs = .False
   if debuggerargstring~left(1) \= '"' then parse value debuggerargstring with rexxfile debuggerargstring 
   else parse value  debuggerargstring with '"' rexxfile '"' debuggerargstring
-  debuggerargstring = debuggerargstring~strip
-  .local~rexxdebugger.rawargstring = debuggerargstring
-  if \.local~rexxdebugger.multipleargs then runargs = .array~of(debuggerargstring)
-  else do
-    runargs = .array~new
-    do while debuggerargstring \= ''
-      if debuggerargstring~left(1) \= '"' then parse value debuggerargstring with nextarg debuggerargstring 
-      else parse value  debuggerargstring with '"' nextarg '"' debuggerargstring
-      runargs~append(nextarg~strip)
-      debuggerargstring = debuggerargstring~strip
-    end  
-  end  
   if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then call RexxDebuggerBSFUI.rex
-  .local~rexxdebugger.rexxfile = rexxfile
+  .local~rexxdebugger.rexxfile = rexxfile~strip
+  .local~rexxdebugger.rawargstring = debuggerargstring~strip
   
-  if rexxfile \= '' then do
-    signal on ANY name HandleError
-    runroutine = LoadRoutineFromSource(rexxfile)
-    signal off ANY
-    .context~package~addRoutine('REXXDEBUGGEEMAIN', runroutine)
-    .local~rexxdebugger.runroutine = runroutine
-    .local~rexxdebugger.runargs = runargs
-  end
 end
 return
-
-------------
-HandleError: 
-------------
-cond = .context~condition
-errorlist = .list~new
-if cond~CODE = 3.1 then do 
-  filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
-  errorlist~append('Error: rexx file 'filename' not found')
-end
-else do  
-  strm = .stream~new(rexxfile)
-  arrsource = strm~arrayin
-  strm~close
-  errorlist~append('Error: Syntax error parsing 'rexxfile' at line '.local~rexxdebugger.sourceerrorline)
-  errorlist~append('')
-  errorlist~append(.local~rexxdebugger.sourceerrorline~right(5)' *-* 'arrSource[.local~rexxdebugger.sourceerrorline])
-  errorlist~append('')
-  errorlist~append('Error 'cond~RC' : 'cond~ERRORTEXT)
-  errorlist~append('Error 'cond~CODE': 'cond~MESSAGE)
-end  
-.local~rexxdebugger.startuphelptext = errorlist
-say
-do item over errorlist
-  say item
-end  
-say
-return
-------------------------------------------------------
-::ROUTINE LoadRoutineFromSource
-------------------------------------------------------
-use arg rexxfile
-
-runroutine = .nil
-strm = .stream~new(rexxfile)
-signal on ANY name PropagateSourceError
-if strm~query('EXISTS') = '' then  raise syntax 3.1 ADDITIONAL (Rexxfile)
-else do  
-  signal off ANY 
-  arrsource = strm~arrayin
-  strm~close
-  if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
-  arrsource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R')
-  signal on ANY name PropagateSourceError
-  runroutine = .routine~new(rexxfile, arrSource)
-  signal off ANY
-  routinepackage = runroutine~package
-  do i over routinepackage~importedpackages
-    if i~findclass("DebuggerUI") \= .nil  then .context~package~addpackage(i)
-  end  
-end  
-return runroutine
-
----------------
-PropagateSourceError:
----------------
-.local~rexxdebugger.sourceerrorline = .context~condition~POSITION
-RAISE PROPAGATE
 
 --====================================================
 ::class WatchHelper mixinclass object public

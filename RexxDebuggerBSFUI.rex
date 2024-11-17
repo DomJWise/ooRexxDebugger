@@ -174,13 +174,28 @@ expose debugdialog  debugdialogresponse awaitingmaindialogresponse
 
 awaitingmaindialogresponse = .True
 debugdialogresponse = ''
-if debugdialog \= .nil & \.AWTGuiThread~isGuiThread then do
-  debugdialog~SetWaiting(.true)
-  success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
+if debugdialog \= .nil then do
+  if  \.AWTGuiThread~isGuiThread then do
+    debugdialog~SetWaiting(.true)
+    success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
 
-  guard off when awaitingmaindialogresponse = .False
+    guard off when awaitingmaindialogresponse = .False
+  end
+  else say '## Unexpected dialog response fetch from the GUI thread'  
 end  
 return debugdialogresponse
+
+
+------------------------------------------------------
+::method InitUISource unguarded
+------------------------------------------------------
+expose debugdialog debugger
+use arg arrSource, sourceName
+
+if debugdialog \= .nil & \debugger~isshutdown then do
+  if .AWTGuiThread~isGuiThread then debugdialog~InitSource(arrSource, sourceName)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "InitSource", "I", arrSource, sourceName)~~result~errorCondition, .context)
+end
 
 ------------------------------------------------------
 ::method UpdateUICodeView unguarded
@@ -457,7 +472,7 @@ end
 ------------------------------------------------------
 expose waiting controls watchwindows debugger activesourcename
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  if control = self~LISTSOURCE then self~ControlEnable(controls, control, waiting | (activesourcename = .nil))
+  if control = self~LISTSOURCE | control = self~LISTSTACK then self~ControlEnable(controls, control, waiting | debugger~canopensource | (activesourcename = .nil))
   else self~ControlEnable(controls, control, waiting)
 end    
 self~ControlEnable(controls, self~BUTTONRUN, \debugger~canopensource)
@@ -580,12 +595,13 @@ if waiting then do
 end
 
 -----------------------------------------------------
-::method OnOpenButton 
+::method OnOpenButton unguarded
 ------------------------------------------------------
 expose debugger gui
 
 newsessionDialog = .NewSessionDialog~new(self, gui, debugger)
 if newsessionDialog~okselected then do 
+  reply
   debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs)
 end
 
@@ -1017,6 +1033,19 @@ end
 if newfirstvisible \= -1 then do
   self~ListSetFirstVisible(controls, self~LISTSOURCE, newfirstvisible)
 end  
+
+------------------------------------------------------
+::method InitSource unguarded
+------------------------------------------------------
+expose loadedsources activesourcename
+use arg source,sourcename
+
+self~ResetSourceState
+
+loadedsources[sourcename] = source
+activesourcename = sourcename
+
+self~SetListSource(sourcename)
 
 ------------------------------------------------------
 ::method UpdateCodeView unguarded

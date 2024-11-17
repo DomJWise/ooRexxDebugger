@@ -65,6 +65,15 @@ if debugdialog \= .nil & \debugger~isshutdown then return debugdialog~GetNextRes
 else return ''
 
 ------------------------------------------------------
+::method InitUISource
+------------------------------------------------------
+expose debugdialog debugger
+use arg arrSource, sourcename
+
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~InitSource(arrsource, sourcename)
+
+
+------------------------------------------------------
 ::method UpdateUICodeView 
 ------------------------------------------------------
 expose debugdialog debugger
@@ -159,12 +168,12 @@ if close then do
 end
 
 ------------------------------------------------------
-::method UpdateControlStates 
+::method UpdateControlStates unguarded
 ------------------------------------------------------
 expose waiting controls watchwindows debugger activesourcename
 
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
-  if control = self~LISTSOURCE then self~ControlEnable(controls, control, waiting | (activesourcename = .nil))
+  if control = self~LISTSOURCE | control = self~LISTSTACK then self~ControlEnable(controls, control, waiting | debugger~canopensource |(activesourcename = .nil))
   else self~ControlEnable(controls, control, waiting)
 end    
 self~ControlEnable(controls, self~BUTTONRUN,   \debugger~canopensource)
@@ -203,7 +212,7 @@ debugconsolefinalupdatemessage = .Nil
 debugconsolelastupdate = 0
 consoleupdateactive = .False
 ------------------------------------------------------
-::method GetNextResponse 
+::method GetNextResponse unguarded
 ------------------------------------------------------
 expose  waiting response
 
@@ -287,7 +296,7 @@ self~controlBottom(self~EDITCOMMAND, 'MYTOP', 'BOTTOM')
 return 0
 
 ------------------------------------------------------
-::method OnNextButton 
+::method OnNextButton unguarded
 ------------------------------------------------------
 expose waiting controls
 if waiting then do
@@ -297,7 +306,7 @@ if waiting then do
   self~HereIsResponse(instructions)
 end
 ------------------------------------------------------
-::method OnRunButton 
+::method OnRunButton unguarded
 ------------------------------------------------------
 expose waiting debugger controls
 if waiting then do
@@ -340,7 +349,7 @@ if waiting then do
 end
 
 -----------------------------------------------------
-::method OnOpenButton 
+::method OnOpenButton unguarded
 ------------------------------------------------------
 expose debugger controls
 
@@ -352,17 +361,21 @@ self~enable
 if dlgres = self~IDOK then do
   self~ListDeleteAllItems(controls, self~LISTSOURCE)
   self~ListDeleteAllItems(controls, self~LISTSTACK)
+  self~start("SetForeground")
+  reply
   debugger~OpenNewProgram(.local~rexxdebugger.rexxfile, .local~rexxdebugger.rawargstring, .local~rexxdebugger.multipleargs)
 end
-self~start("SetForeground")
+else self~start("SetForeground")
 
+  
 
 ------------------------------------------------------
-::method SetForeground
+::method SetForeground unguarded
 ------------------------------------------------------
-call SysSleep(0.1)
-self~setforegroundwindow(self~hwnd)
-
+do i = 1 to 5
+  call SysSleep(0.1)
+  self~setforegroundwindow(self~hwnd)
+end
 
 ------------------------------------------------------
 ::method OnExecButton unguarded
@@ -655,7 +668,7 @@ self~setListWidthpx(self~LISTSOURCE, maxwidth)
 
 
 ------------------------------------------------------
-::method SetSourceListSelectedRow 
+::method SetSourceListSelectedRow unguarded
 ------------------------------------------------------
 expose controls arrStack
 
@@ -689,7 +702,20 @@ if newfirstvisible \= -1 then do
 end
 
 ------------------------------------------------------
-::method UpdateCodeView 
+::method InitSource unguarded
+------------------------------------------------------
+expose loadedsources activesourcename
+use arg source,sourcename
+
+self~ResetSourceState
+
+loadedsources[sourcename] = source
+activesourcename = sourcename
+
+self~SetListSource(sourcename)
+
+------------------------------------------------------
+::method UpdateCodeView unguarded
 ------------------------------------------------------
 expose controls arrStack activesourcename loadedsources debugger
 use arg arrStack, activateindex

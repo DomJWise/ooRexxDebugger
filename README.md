@@ -130,21 +130,11 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   (*) Debugger window placement is only supported by the Windows native interface
 
 
-  ### Direct launch of a Rexx program (and known limitations of rexxdebugger launching)
-  -------------------------------------------------------------------------------------
+  ### Direct launch of a Rexx program 
+  -----------------------------------
   
-  The code modification examples above can also be used for debugging Rexx programs that you launch directly instead of via the rexxdebugger command. Sometimes you may just do this for convenience or for additional control, and you may also need to modify programs called by your top-level program to activate tracing in those, but there is at least one known scenario where using rexxdebugger to launch a program will fail and code modification must be used.
+  The code modification examples above can also be used for debugging Rexx programs that you launch directly instead of via the rexxdebugger command. Sometimes you may just do this for convenience or for additional control but it's possible you may find specific situations where launching a program from rexxdebugger does not work as expected. In these situations modifying the program and using direct launch is an alternative that may be successful.
   
-  When you have classes in your top level program which include a class init or activate method and module level tracing is activated, these methods will be traced before the debugger library is properly initialised causing unpredictable behaviour when such programs are invoked via rexxdebugger
-  
-  You can either:
-  
-  Modify your program to activate tracing but create a wrapper program which calls this program and which can safely be launched from rexxdebugger
-  
-  or
-  
-  Use direct launch with your program and include code to activate tracing but place any ::REQUIRES "RexxDebugger.Rex" line earlier in your code than the definition of the first class which includes such method calls
-
   In term of directly launching a Rexx program, in Windows you can do this just by specifying its name but on other platforms you will generally need to precede the program name with a launcher command
   
   On Linux:
