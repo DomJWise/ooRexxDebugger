@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.31"
+::CONSTANT VERSION "1.31.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -132,7 +132,7 @@ use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
 launched = .False
-breakpoints = .Set~new
+breakpoints = .Properties~new
 tracedprograms = .Set~new
 manualbreak = .false
 traceoutputhandler = .nil
@@ -147,6 +147,7 @@ uifinished = .True
 .debug.channel~status="getprogramstatus"
 .debug.channel~frames=.Nil
 .debug.channel~variables=.Nil
+.debug.channel~breakpointtestresult = .False
 
 uiloaded = self~findandloadui()
 
@@ -229,7 +230,15 @@ return shutdown
 expose breakpoints
 use arg sourcefile, sourceline
 
-breakpoints~put(sourcefile'>'sourceline)
+breakpoints~put('',sourcefile'>'sourceline)
+
+------------------------------------------------------
+::method SetBreakPointTest unguarded
+------------------------------------------------------
+expose breakpoints
+use arg sourcefile, sourceline, test
+
+breakpoints~put(test, sourcefile'>'sourceline)
 
 ------------------------------------------------------
 ::method ClearBreakPoint  unguarded
@@ -252,7 +261,7 @@ return breakpoints~hasindex(sourcefile'>'sourceline)
 expose breakpoints
 use arg sourcefile 
 listBreakpoints = .List~new
-do breakpoint over breakpoints
+do breakpoint over breakpoints~allindexes
   if breakpoint~pos(sourcefile'>') = 1 then listbreakpoints~append(breakpoint~changestr(sourcefile'>', ''))
 end
 
@@ -376,7 +385,13 @@ if status="breakpointcheckgetlocation" then return '.debug.channel~result = resu
 else if status~pos("breakpointchecklocationis") = 1 then do
   parse value status with ignore breakpoint -- Is this a breakpoint ?
   if breakpoints~hasindex(breakpoint) then do  
-    return '.debug.channel~result = result;.debug.channel~status="getprogramstatus"; result =.debug.channel~result'
+    test = breakpoints[breakpoint]
+    if test = '' then return '.debug.channel~result = result;.debug.channel~status="getprogramstatus"; result =.debug.channel~result'
+    else do
+      .debug.channel~status="breakpointprocesstestresult" 
+      .debug.channel~breakpointtestresult = .True
+      return '.debug.channel~result = result; .debug.channel~breakpointtestresult = ('||test||');  result =.debug.channel~result'
+      end
   end
   else if \tracedprograms~hasitem(breakpoint~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
     tracedprograms~put(breakpoint~makearray('>')[1])
@@ -392,6 +407,15 @@ else if status~pos("breakpointchecklocationis") = 1 then do
     return ''
   end  
 end  
+else if status~pos("breakpointprocesstestresult") = 1 then do
+  testresult = .debug.channel~breakpointtestresult
+  .debug.channel~breakpointtestresult = .False
+  if testresult = .True then return '.debug.channel~result = result;.debug.channel~status="getprogramstatus"; result =.debug.channel~result'
+  else do
+    .debug.channel~status = "breakpointcheckgetlocation"
+    return ''
+  end
+end
 else if status~word(1)="getprogramstatus" then do
   instructions = status~delword(1,1)~strip
   if instructions \= '' then do 
