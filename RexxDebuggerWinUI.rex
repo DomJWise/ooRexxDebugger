@@ -118,19 +118,19 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ResetSourceState
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
 
-::constant EDITSOURCENAME 100
-::constant LISTSOURCE     101
-::constant LISTSTACK      102
-::constant EDITDEBUGLOG   103
-::constant BUTTONNEXT     104
-::constant BUTTONRUN      105
-::constant BUTTONEXIT     106
-::constant BUTTONVARS     107
-::constant BUTTONHELP     108
-::constant BUTTONOPEN     109
-::constant EDITCOMMAND    110
-::constant BUTTONEXEC     111
-
+::constant EDITSOURCENAME     100
+::constant LISTSOURCE         101
+::constant LISTSTACK          102
+::constant EDITDEBUGLOG       103
+::constant BUTTONNEXT         104
+::constant BUTTONRUN          105
+::constant BUTTONEXIT         106
+::constant BUTTONVARS         107
+::constant BUTTONHELP         108
+::constant BUTTONOPEN         109
+::constant EDITCOMMAND        110
+::constant BUTTONEXEC         111
+::constant BPSETTINGSMENUITEM 112
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -457,7 +457,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose u controls buttonpushed debugger hfnt startuphelptext
+expose u controls buttonpushed debugger hfnt startuphelptext sourcepopupmenu
 
 controls[self~EDITSOURCENAME] = self~newEdit(.DebugDialog~EDITSOURCENAME)
 self~setTabStop(self~EDITSOURCENAME, .False)
@@ -475,6 +475,11 @@ controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
 controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
 controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
+
+sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
+sourcepopupmenu~insertItem(self~BPSETTINGSMENUITEM, self~BPSETTINGSMENUITEM, "Breakpoint Settings")
+sourcepopupmenu~assignTo(self, .true)
+sourcepopupmenu~connectContextMenu(onListSourceContext, controls[self~LISTSOURCE]~hwnd) 
 
 self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
 self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
@@ -534,6 +539,48 @@ end
 debugger~FlagUIStartupComplete
 
 ------------------------------------------------------
+::method OnListSourceContext
+------------------------------------------------------
+expose sourcepopupmenu controls 
+use arg hwnd,x,y
+listbox = controls[self~LISTSOURCE]
+
+if x == -1, y == -1 then do
+  rect = listbox~windowRect
+  x = rect~right - .SM~cxVScroll + 15
+  y = rect~bottom - 15
+end
+index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+enable = .False
+if index > 0  then do
+  listtext = self~ListGetItem(controls, self~LISTSOURCE, index)
+  if listtext~left(1) = '*' | listtext~left(1) = '?' then enable = .True
+end
+if enable then sourcepopupmenu~enable(self~BPSETTINGSMENUITEM)
+else  sourcepopupmenu~disable(self~BPSETTINGSMENUITEM)
+sourcepopupmenu~show(.Point~new(x,y))
+
+--------------------------------------------
+::method BreakPointSettings 
+--------------------------------------------
+expose activesourcename controls debugger
+debugsettingsdialog = .BreakPointSettingsDialog~new
+
+linenum = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+debugsettingsdialog~breakpointcondition = debugger~GetBreakPointTest(activesourcename, linenum)
+
+debugsettingsdialog~ownerDialog = self
+self~disable
+dlgres = debugsettingsdialog~Execute
+self~enable
+
+if dlgres = self~IDOK then do
+  debugger~SetBreakPointTest(activesourcename, linenum, debugsettingsdialog~breakpointcondition)
+end
+
+self~start("SetForeground")
+
+--------------------------------------------
 ::method OnCopyCommand unguarded
 ------------------------------------------------------
 expose controls debugger
@@ -1069,6 +1116,80 @@ end
 ::method OnCopyCommand2 unguarded
 ------------------------------------------------------
 self~OnCopyCommand
+
+--====================================================
+::class BreakPointSettingsDialog subclass userdialog --inherit ResizingAdmin
+--====================================================
+::constant RADIOALWAYSBREAK           101
+::constant RADIOCONDITIONALBREAK      102
+::constant EDITBREAKCONDITION         103
+
+::attribute BreakpointCondition unguarded
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose controls breakpointcondition
+controls = .Directory~new
+breakpointcondition = ''
+forward class (super) continue 
+self~create(1,1, 260, 70, "Breakpoint Hit", "CENTER")
+
+------------------------------------------------------
+::method defineDialog
+------------------------------------------------------
+expose controls
+
+self~createRadioButtonGroup(self~RADIOALWAYSBREAK , 4, 4 , , "&Always  &When", "NOBORDER")
+self~createEdit(self~EDITBREAKCONDITION, 12, 30, 242, 15)
+self~createPushButton(IDOK, 4, 50, 38, 15, "DEFPUSHBUTTON"  ,"Ok")
+self~createPushButton(IDCANCEL, 42, 50, 35, 15, , "Cancel")
+
+------------------------------------------------------
+::method initAutoDetection
+------------------------------------------------------
+self~noAutoDetection
+
+------------------------------------------------------
+::method InitDialog 
+------------------------------------------------------
+expose controls breakpointcondition
+
+controls[self~RADIOALWAYSBREAK] = self~NewRadioButton(self~RADIOALWAYSBREAK)
+controls[self~RADIOCONDITIONALBREAK] = self~NewRadioButton(self~RADIOCONDITIONALBREAK)
+controls[self~EDITBREAKCONDITION] = self~NewEdit(self~EDITBREAKCONDITION)
+if breakpointcondition = '' then do 
+  self~focusControl(self~RADIOALWAYSBREAK)
+  controls[self~RADIOALWAYSBREAK]~check
+  controls[self~EDITBREAKCONDITION]~disable
+end  
+else controls[self~RADIOCONDITIONALBREAK]~check
+self~connectButtonEvent(self~RADIOALWAYSBREAK, "CLICKED", "OnBreakPointAlways")
+self~connectButtonEvent(self~RADIOCONDITIONALBREAK, "CLICKED", "OnBreakPointWhen")
+
+controls[self~EDITBREAKCONDITION]~settext(breakpointcondition)
+
+------------------------------------------------------
+::method OnBreakPointAlways 
+------------------------------------------------------
+expose controls
+controls[self~EDITBREAKCONDITION]~disable
+
+------------------------------------------------------
+::method OnBreakPointWhen
+------------------------------------------------------
+expose controls
+controls[self~EDITBREAKCONDITION]~enable
+
+------------------------------------------------------
+::method Ok
+------------------------------------------------------
+expose controls breakpointcondition
+
+if controls[self~RADIOALWAYSBREAK]~checked then breakpointcondition = ''
+else breakpointcondition = controls[self~EDITBREAKCONDITION]~gettext
+
+self~Ok:super
 
 --====================================================
 ::class NewSessionDialog subclass userdialog inherit ResizingAdmin

@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.31.2"
+::CONSTANT VERSION "1.31.2.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -256,7 +256,7 @@ use arg sourcefile, sourceline
 return breakpoints~hasindex(sourcefile'>'sourceline)
 
 ------------------------------------------------------
-::method GetBreakPointTest
+::method GetBreakPointTest unguarded
 ------------------------------------------------------
 expose breakpoints
 use arg sourcefile, sourceline
