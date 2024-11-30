@@ -51,7 +51,9 @@ SOFTWARE.
 ::attribute clsJFileChooser        public unguarded
 ::attribute clsJLabel              public unguarded
 ::attribute clsJList               public unguarded
+::attribute clsJMenuItem           public unguarded
 ::attribute clsJPanel              public unguarded
+::attribute clsJPopupMenu          public unguarded
 ::attribute clsJRadioButton        public unguarded
 ::attribute clsJScrollPane         public unguarded
 ::attribute clsJTextField          public unguarded
@@ -92,7 +94,9 @@ self~clsJButton            = bsf.importclass("javax.swing.JButton")
 self~clsJFileChooser       = bsf.importclass("javax.swing.JFileChooser")
 self~clsJLabel             = bsf.importclass("javax.swing.JLabel") 
 self~clsJList              = bsf.importclass("javax.swing.JList") 
+self~clsJMenuItem          = bsf.importclass("javax.swing.JMenuItem") 
 self~clsJPanel             = bsf.importclass("javax.swing.JPanel")
+self~clsJPopupMenu         = bsf.importclass("javax.swing.JPopupMenu")
 self~clsJRadioButton       = bsf.importclass("javax.swing.JRadioButton")
 self~clsJScrollPane        = bsf.importclass("javax.swing.JScrollPane")
 self~clsJTextArea          = bsf.importclass("javax.swing.JTextArea")
@@ -372,10 +376,20 @@ dialog~StackFrameChanged
 ------------------------------------------------------
 if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
-::method mousepressed
-::method mousereleased
 ::method mouseexited
 ::method mouseentered
+
+------------------------------------------------------
+::method mousepressed
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~isPopupTrigger() then slotdir~userdata~ShowSourcePopupMenu(eventobj)
+
+------------------------------------------------------
+::method mousereleased
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~isPopupTrigger() then slotdir~userdata~ShowSourcePopupMenu(eventobj)
 
 ------------------------------------------------------
 ::method mouseclicked
@@ -433,6 +447,8 @@ if event~getKeycode = vkdown then dialog~OnNextCommand
 ::constant EDITCOMMAND    110
 ::constant BUTTONEXEC     111
 ::constant PANESOURCE     112
+::constant SOURCEMENU     113
+::constant BPSETTINGS     114
 
 ------------------------------------------------------
 ::method activate class
@@ -624,6 +640,10 @@ if waiting then do
   self~HereIsResponse(returnstring)
 end
 
+------------------------------------------------------
+::method OnBreakpointSettings
+------------------------------------------------------
+self~AppendText("So you want to modify a breakpoint...")
 
 ------------------------------------------------------
 ::method OnPrevCommand 
@@ -724,6 +744,10 @@ listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
 listsource~setFixedCellHeight(14)
+
+sourcecontextmenu = gui~clsJPopupMenu~new("")
+breakpointsettingsmenuitem = gui~clsJMenuItem~new("Breakpoint Settings")
+sourcecontextmenu~add(breakpointsettingsmenuitem)
 
 listsourcepane = gui~clsJScrollPane~new
 listsourcepane~setPreferredSize(gui~clsDimension~new(440,65))
@@ -829,6 +853,9 @@ controls[self~BUTTONHELP] = buttonhelp
 controls[self~BUTTONOPEN] = buttonopen
 controls[self~BUTTONEXEC] = buttonexec
 controls[self~PANESOURCE] = listsourcepane
+controls[self~SOURCEMENU] = sourcecontextmenu
+controls[self~BPSETTINGS] = breakpointsettingsmenuitem
+
 self~ControlsSetPaneLink(self~LISTSOURCE, self~PANESOURCE)
 
 windowlistener = .DebugDialogWindowListener~new
@@ -842,6 +869,7 @@ controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXEC, "java.awt.event.ActionListener"))
 controls[self~BUTTONVARS]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONVARS, "java.awt.event.ActionListener"))
 controls[self~BUTTONOPEN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOPEN, "java.awt.event.ActionListener"))
+controls[self~BPSETTINGS]~addActionListener(BsfCreateRexxProxy(self, self~BPSETTINGS, "java.awt.event.ActionListener"))
 
 
 stackmouselistener = .DebugDialogListStackMouseListener~new
@@ -924,6 +952,7 @@ if id = self~BUTTONEXIT then self~OnExitButton
 if id = self~BUTTONEXEC then self~OnExecButton
 if id = self~BUTTONVARS then self~OnVarsButton
 if id = self~BUTTONOPEN then self~OnOpenButton
+if id = self~BPSETTINGS then self~OnBreakpointSettings
 
 ------------------------------------------------------
 ::method SetConsoleUpdateTimer 
@@ -1165,6 +1194,24 @@ expose loadedsources checkedsources activesourcename
 loadedsources~empty
 checkedsources~empty
 activesourcename=.nil
+
+-------------------------------------------------------
+::method ShowSourcePopupMenu
+-------------------------------------------------------
+expose gui controls
+use arg eventobj
+
+contextmenu = controls[self~SOURCEMENU]
+breakpointsettingsmenuitem = controls[self~BPSETTINGS]
+index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+enable = .False
+if index > 0  then do
+  listtext = self~ListGetItem(controls, self~LISTSOURCE, index)
+  if listtext~left(1) = '*' | listtext~left(1) = '?' then enable = .True
+end
+breakpointsettingsmenuitem~setEnabled(enable)
+
+contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
 
 --====================================================
 ::class WatchDialogWindowListener public
