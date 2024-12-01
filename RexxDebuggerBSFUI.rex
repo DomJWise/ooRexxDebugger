@@ -643,7 +643,13 @@ end
 ------------------------------------------------------
 ::method OnBreakpointSettings
 ------------------------------------------------------
-self~AppendText("So you want to modify a breakpoint...")
+expose gui debugger controls activesourcename
+
+linenum = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+breakpointcondition = debugger~GetBreakPointTest(activesourcename, linenum)
+breakpointsettingsdialog = .BreakPointSettingsDialog~new(self, gui, breakpointcondition)
+
+if breakpointsettingsdialog~okselected then debugger~SetBreakPointTest(activesourcename, linenum, breakpointsettingsdialog~breakpointcondition)
 
 ------------------------------------------------------
 ::method OnPrevCommand 
@@ -1501,6 +1507,147 @@ do with index methodname item method over classobj~methods
     end    
   end  
 end  
+
+--====================================================
+::class BreakpointSettingsDialogEscKeyListener public
+--====================================================
+
+------------------------------------------------------
+::method actionperformed
+------------------------------------------------------
+use arg eventobj, slotdir
+dialog = slotdir~userdata
+dialog~dispose
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+
+--====================================================
+::class BreakpointSettingsDialog subclass bsf 
+--====================================================
+::constant RADIOALWAYSBREAK      101
+::constant RADIOCONDITIONALBREAK 102
+::constant EDITBREAKCONDITION    103
+::constant BUTTONOK              104
+::constant BUTTONCANCEL          105
+
+::attribute okselected
+::attribute breakpointcondition
+
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method init 
+------------------------------------------------------
+expose debugwindow gui controls okselected breakpointcondition
+use arg debugwindow,gui, breakpointcondition
+
+controls = .Directory~new
+okselected = .False
+
+self~InitDialog
+
+------------------------------------------------------
+::method InitDialog 
+------------------------------------------------------
+expose debugwindow gui controls breakpointcondition
+
+-- Create the dialog
+self~init:super('javax.swing.JDialog', debugwindow, "Breakpoint Hit", .True)
+
+self~setDefaultCloseOperation(gui~clsWindowConstants~DISPOSE_ON_CLOSE)
+self~setResizable(.False)
+self~setLayout(.Nil)
+self~getrootPane~setPreferredSize(gui~clsDimension~new(405,130))
+
+radioalwaysbutton = gui~clsJRadioButton~new("Always")
+radioalwaysbutton~setMnemonic(gui~clsKeyEvent~VK_A)
+radioalwaysbutton~setbounds(5, 15, 90, 20)
+radiowhenbutton = gui~clsJRadioButton~new("When")
+radiowhenbutton~setMnemonic(gui~clsKeyEvent~VK_W)
+radiowhenbutton~setbounds(5, 35, 90, 20)
+buttongroup = gui~clsButtonGroup~new
+buttongroup~add(radioalwaysbutton)
+buttongroup~add(radiowhenbutton)
+
+textfieldcondition = gui~clsJTextField~new
+textfieldcondition~setbounds(20, 60, 375, 25)
+
+buttonok = gui~clsJButton~new("Ok")
+buttonok~setMargin(gui~clsInsets~new(0,0,0,0))
+buttonok~setbounds(10, 95, 70, 25)
+
+buttoncancel = gui~clsJButton~new("Cancel")
+buttoncancel~setMargin(gui~clsInsets~new(0,0,0,0))
+buttoncancel~setbounds(90, 95, 70, 25)
+
+self~add(radiowhenbutton)
+self~add(radioalwaysbutton)
+self~add(textfieldcondition)
+self~add(buttonok)
+self~add(buttoncancel)
+
+self~getrootpane~setdefaultbutton(buttonok)
+
+self~getrootpane~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)~put(gui~clsKeyStroke~getKeyStroke("ESCAPE"), "escape")
+esckeylistener = .BreakpointSettingsDialogEscKeyListener~new
+esckeylistenerEH = BsfCreateRexxProxy(esckeylistener, self, "javax.swing.AbstractAction")
+self~getrootpane~getActionMap~put("escape", esckeylistenerEH)
+
+self~pack
+self~setLocationRelativeTo(debugwindow)
+
+if breakpointcondition = '' then do
+  radioalwaysbutton~doclick
+  textfieldcondition~setEnabled(.False)
+end
+else do
+  textfieldcondition~setText(breakpointcondition)
+  radiowhenbutton~doclick
+end
+
+controls[self~RADIOALWAYSBREAK]      = radioalwaysbutton
+controls[self~RADIOCONDITIONALBREAK] = radiowhenbutton
+controls[self~EDITBREAKCONDITION]    = textfieldcondition
+controls[self~BUTTONOK]              = buttonok
+controls[self~BUTTONCANCEL]          = buttoncancel
+
+controls[self~RADIOALWAYSBREAK]~addActionListener(BsfCreateRexxProxy(self, self~RADIOALWAYSBREAK, "java.awt.event.ActionListener"))
+controls[self~RADIOCONDITIONALBREAK]~addActionListener(BsfCreateRexxProxy(self, self~RADIOCONDITIONALBREAK, "java.awt.event.ActionListener"))
+controls[self~BUTTONOK]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOK, "java.awt.event.ActionListener"))
+controls[self~BUTTONCANCEL]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONCANCEL, "java.awt.event.ActionListener"))
+
+
+self~setVisible(.True)
+
+------------------------------------------------------
+::method actionPerformed unguarded
+------------------------------------------------------
+expose controls 
+use arg eventobj, slotdir
+id = slotdir~userdata
+if id = self~RADIOALWAYSBREAK      then controls[self~EDITBREAKCONDITION]~setEnabled(.False)
+if id = self~RADIOCONDITIONALBREAK then controls[self~EDITBREAKCONDITION]~setEnabled(.True)
+
+if id = self~BUTTONOK then self~OnOk
+if id = self~BUTTONCANCEL then self~dispose
+
+------------------------------------------------------
+::method OnOk unguarded
+------------------------------------------------------
+expose controls okselected breakpointcondition
+
+if controls[self~RADIOALWAYSBREAK]~isSelected then breakpointcondition = ''
+else breakpointcondition = controls[self~EDITBREAKCONDITION]~gettext
+
+okselected = .True
+self~dispose
 
 --====================================================
 ::class NewSessionDialogEscKeyListener public
