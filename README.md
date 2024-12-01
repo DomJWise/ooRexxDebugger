@@ -13,13 +13,16 @@ It's still in active development and you may find bugs but features include:
   -  Stack trace that allows switching between active source locations and files
   -  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
   -  A console window to display basic help information, status and (optionally) program and debugger output 
-  -  Single step or run to breakpoints (*)
+  -  Breakpoint functionality including the ability to set conditional breakpoints (*)
+  -  Single step or run to next breakpoint (or the end of the program)
   -  Break button to interrupt running code or set an automatic breakpoint for when the next line of traceable code is hit 
   -  Toggling of breakpoints in an active session
 - Watch windows for display of simple variables and drilldown into many collection types
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/) at the start of traceable lines.
 
-(*) Note that this is built around the interactive trace framework included with ooRexx so can only pause where that framework would pause. Some statements are never hit at all, other statements only once. The Rexx documentation provides information on which instructions will pause during interactive tracing, used to guide the "hit" likelihood indicator when setting breakpoints but this may not always be 100% accurate.
+(*) Note that the debugger is built around the interactive trace framework included with ooRexx so can only pause where that framework would pause. Some statements are hit at all, other statements only once. The Rexx documentation provides information on which instructions will pause during interactive tracing, used to guide the "hit" likelihood indicator when setting breakpoints but this may notalways be 100% accurate.
+
+The ooRexx tracing framework pauses for feedback AFTER excuting an instruction, not before. If you want to see the value of a variable just before a particular line which changes that variable you need to check the value before stepping or running to that line. This behaviour also means that instructions which change the control flow of a program (e.g. call) will not pause on that statement unless and until control is returned there e.g. by a return from a called function
 
 Prerequisites
 -------------
@@ -159,9 +162,9 @@ When launching a debug session via rexxdebugger there are command line options (
 Multiple debug runs in the same rexxdebugger session
 ----------------------------------------------------
 
-If you have run a debug session using rexxdebugger to completion, the Open button will become available and you can launch a new debug session. However, you will be running with the same Rexx interpreter instance as previously so you should ensure that any files or other resources have been released by the code in your previous debug session or you may see unexpected behaviour in the new debug session. 
+If you have run a debug session using rexxdebugger to completion, the Open button will become available and you can launch a new debug session. However, you will be running with the same Rexx interpreter instance as previously so you should ensure that any files or other resources have been released by the code in your previous debug session or you may see unexpected behaviour in the new debug session. Furthermore, modules included in your program via a ::REQUIRES statement may not be reloaded on subsequent debug runs so changes you make to these modules may not be picked up when you reuse a debug session
 
-Closing the rexxdebugger window and launching a new one for the next debug session will ensure that you are using a new Rexx interpreter each time and will avoid this issue.
+Closing the rexxdebugger window and launching a new one for the next debug session will ensure that you are using a new Rexx interpreter each time and will avoid these issue.
 
 Final notes and further information
 -----------------------------------

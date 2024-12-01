@@ -18,7 +18,19 @@ CALL SAY 'Double clicking on the following line  will insert a ? breakpoint mark
 /* comment or intruction  Rexx tracing wont stop at */
 CALL SAY 'Double click on any breakpoint line above to remove the breakpoint'
 NOP
-CALL SAY 'Enter "SAY 1+2" into the debugger command prompt below (without the quotes) and hit Execute or Next'
+CALL SAY 'Breakpoints can have conditions set on them via a right-click action when they are selected'
+CALL SAY 'Click on line 29 then use the right-click action to set the condition i=5 for the breakpoint'
+CALL SAY 'With this set the breakpoint will be ignored until the loop variable i has the value 5 so when running'
+CALL SAY 'you should see 1-5 printed out before the breakpoint is hit, after which it won''t be hit again'
+CALL SAY 'Hit the Run button twice to see the conditional breakpoint in action'
+CALL SAY 'Running loop 8 times'
+do i = 1 to 8
+  CALL SAY i
+  /**/ NOP
+end
+CALL SAY 'Loop finished'
+
+/**/CALL SAY 'Enter "SAY 1+2" into the debugger command prompt below (without the quotes) and hit Execute or Next'
 CALL SAY 'Enter "CAPTURE" into the debugger prompt and hit Execute. Trace and SAY output will be moved here'
 SAY 'Try hitting NEXT with "CAPTURE" still in the debugger prompt. Debugger commands can''t be present when using Next'
 SAY 'Enter "SAY 2+3"  into the debugger prompt and hit Execute or Next'
