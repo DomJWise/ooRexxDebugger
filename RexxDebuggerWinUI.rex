@@ -314,9 +314,9 @@ if waiting then do
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
-  debugger~SetManualBreak(.True)
   self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
   self~appendtext('Automatic breakpoint set for the next line of traceable code.')
+  debugger~SetManualBreak(.True)
 end
 else do
   debugger~SetManualBreak(.False)
