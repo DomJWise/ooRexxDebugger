@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.3"
+::CONSTANT VERSION "1.32.4"
 
 --====================================================
 ::class RexxDebugger public
@@ -401,7 +401,7 @@ else if status~pos("breakpointchecklocationis") = 1 then do
   if breakpoints~hasindex(codelocation) then do  
     test = breakpoints[codelocation]
     if test = '' | manualbreak then do
-       manualbreak = .False
+      manualbreak = .False
       .debug.channel~status="getprogramstatus"
       return 'NOP'
     end  
@@ -533,13 +533,14 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown breakpoints tracedprograms canopensource
+expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler
 
 use arg rexxfile,argstring,multipleargs = .False, firsttime = .False
 
 shutdown = .False
 breakpoints~empty
 tracedprograms~empty
+if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
 .debug.channel~status = "getprogramstatus"
 .local~rexxdebugger.runroutine = runroutine
 
@@ -752,6 +753,7 @@ debugger~SendDebugMessage(text)
 --====================================================
 ::class DebugTraceOutputHandler 
 --====================================================
+::attribute dononwrappedchecks unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -761,10 +763,12 @@ self~define("LINEOUT", .Method~new("", self~method("LINEOUT")~source)~~setUnguar
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugger discard canusetraceobjects capture originaltraceoutput 
+expose debugger discard canusetraceobjects capture originaltraceoutput dononwrappedchecks
+
 use arg debugger
 discard = .False
 capture = .False
+dononwrappedchecks = .True
 
 originaltraceoutput = .traceoutput~current
 ign = .traceoutput~destination(self)
@@ -789,15 +793,15 @@ use arg discard
 ------------------------------------------------------
 ::method LINEOUT
 ------------------------------------------------------
-expose debugger discard canusetraceobjects capture originaltraceoutput
-use arg tracething
+expose debugger discard canusetraceobjects capture originaltraceoutput dononwrappedchecks
+use arg tracestring
 
 if \capture | debugger~isshutdown then forward to (originaltraceoutput)
 
-if canusetraceobjects, tracething~isA(.Traceobject) then tracestring = tracething~makestring
-else tracestring = tracething
+if canusetraceobjects then tracestring = tracestring~makestring
 
-if tracestring~word(1)~translate='ERROR' | tracestring~pos('+++ Interactive trace.  Error') = 1 | \discard then debugger~SendDebugMessage(tracestring)
+if \discard | tracestring~pos('+++ Interactive trace.  Error') = 1  then debugger~SendDebugMessage(tracestring)
+else if dononwrappedchecks , tracestring~pos('Error') = 1, tracestring~word(2)~strip('T',':')~datatype='NUM' then debugger~SendDebugMessage(tracestring)
 
 return 0
 
