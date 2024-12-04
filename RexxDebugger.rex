@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.4"
+::CONSTANT VERSION "1.32.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -460,7 +460,7 @@ end
 else if status="programstatusupdated" then do
   if .debug.channel~frames \=.nil then do
     frames = .debug.channel~frames
-    if .local~rexxdebugger.runroutine \=.nil then frames = frames~section(1, frames~items-3)
+    frames = frames~section(1, frames~items-3)
     tracedprograms~put(frames~firstitem~executable~package~name)
     debuggerui~UpdateUICodeView(frames, 1)
   end  
@@ -542,7 +542,6 @@ breakpoints~empty
 tracedprograms~empty
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
 .debug.channel~status = "getprogramstatus"
-.local~rexxdebugger.runroutine = runroutine
 
 runroutine = .nil
 strm = .stream~new(rexxfile)
@@ -884,4 +883,5 @@ if itemclass =.Directory | -
   itemclass =.Array then return .True
 else return .False
 
+--::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
 --::options trace R
