@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.2"
+::CONSTANT VERSION "1.32.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -400,7 +400,8 @@ else if status~pos("breakpointchecklocationis") = 1 then do
   parse value status with ignore codelocation -- Is this a breakpoint ?
   if breakpoints~hasindex(codelocation) then do  
     test = breakpoints[codelocation]
-    if test = '' then do
+    if test = '' | manualbreak then do
+       manualbreak = .False
       .debug.channel~status="getprogramstatus"
       return 'NOP'
     end  
