@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.7"
+::CONSTANT VERSION "1.32.8"
 
 --====================================================
 ::class RexxDebugger public
@@ -129,7 +129,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -144,6 +144,7 @@ debuggerui = .nil
 canopensource = .False
 lastexecfulltime = 0
 uifinished = .True
+runroutine = .nil
 
 .local~debug.channel = .Directory~new
 .debug.channel~status=.MutableBuffer~new("getprogramstatus", 256)
@@ -391,7 +392,7 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse unguarded
 ------------------------------------------------------
-expose debuggerui tracedprograms manualbreak breakpoints
+expose debuggerui tracedprograms manualbreak breakpoints runroutine
 
 status = .debug.channel~status~string
 
@@ -465,7 +466,7 @@ end
 else if status="programstatusupdated" then do
   if .debug.channel~frames \=.nil then do
     frames = .debug.channel~frames
-    frames = frames~section(1, frames~items-3)
+    if runroutine \= .nil then  frames = frames~section(1, frames~items-3)
     tracedprograms~put(frames~firstitem~executable~package~name)
     debuggerui~UpdateUICodeView(frames, 1)
   end  
@@ -538,7 +539,7 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler
+expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine
 
 use arg rexxfile,argstring,multipleargs = .False, firsttime = .False
 
