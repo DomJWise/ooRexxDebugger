@@ -315,21 +315,24 @@ if waiting then do
 end
 else if \debugger~GetManualBreak then do
   self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
-  self~appendtext('Automatic breakpoint set for the next line of traceable code.')
+  self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
   debugger~SetManualBreak(.True)
 end
 else do
   debugger~SetManualBreak(.False)
-  self~appendtext('Automatic breakpoint removed. Program will run normally.')
+  self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint removed. Program will run normally.')
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
 end   
 ------------------------------------------------------
 ::method OnExitButton 
 ------------------------------------------------------
-expose waiting 
+expose waiting debugger
 if waiting then do
    ret = RxMessageBox("Do you really want to exit the program?", "Program still running", "YESNO", "QUESTION")
-   if ret \= 7 then  self~HereIsResponse('EXIT')
+   if ret \= 7 then  do
+    self~appendtext(debugger~DebugMsgPrefix||"Debug session terminated", .true, .true)
+    self~HereIsResponse('EXIT')
+   end  
 end
 
 ------------------------------------------------------
@@ -626,12 +629,12 @@ return 0
 ::Method AppendText unguarded
 ------------------------------------------------------
 expose debugger debugconsoleappendbuffer  debugconsolelastupdate debugconsolefinalupdatemessage
-use arg newtext, newline = .true
+use arg newtext, newline = .true, forcenow = .false
 if newline then newtext = newtext||.endofline
 debugconsoleappendbuffer = debugconsoleappendbuffer||newtext
 if \debugger~isshutdown then do
   numeric digits 20
-  if TIME('F') - debugconsolelastupdate > 150 * 1000 then do
+  if TIME('F') - debugconsolelastupdate > 150 * 1000 | forcenow then do
     debugconsolelastupdate = TIME('F')
     self~DoConsoleAppend
   end  

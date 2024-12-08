@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.8"
+::CONSTANT VERSION "1.32.9"
 
 --====================================================
 ::class RexxDebugger public
@@ -368,15 +368,15 @@ if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do
   if translate(response) = 'CAPTURE' then discardtrace = .False
   else  discardtrace = .True
   if self~CaptureConsoleOutput(discardtrace) then do
-    retstr = 'call SAY "Output redirected to the debugger if the program permits this."'
-    if discardtrace = .False then retstr = retstr||'.endofline||"CAPTUREX does the same but discards trace text."'
-    else retstr = retstr||'.endofline||"All trace apart from runtime error messages will be discarded."'
+    retstr = 'call SAY "'self~DebugMsgPrefix||'Output redirected to the debugger if the program permits this."'
+    if discardtrace = .False then retstr = retstr||'.endofline||"'self~DebugMsgPrefix||'CAPTUREX does the same but discards trace text."||.endofline'
+    else retstr = retstr||'.endofline||"'self~DebugMsgPrefix||'All trace apart from runtime error messages will be discarded."||.endofline'
     return retstr
   end  
 end
 if translate(response) = 'NOCAPTURE' then do
   self~StopCaptureConsoleOutput
-  return 'call SAY "If active, console redirection has been switched off."||.endofline||"Use CAPTURE/CAPTUREX to switch it back on."'
+  return 'call SAY "'self~DebugMsgPrefix||'If active, console redirection has been switched off."||.endofline||"'self~DebugMsgPrefix||'Use CAPTURE/CAPTUREX to switch it back on."||.endofline'
 end  
 if translate(response) = 'HELP' then do
   self~ShowHelpText
@@ -423,7 +423,7 @@ else if status~pos("breakpointchecklocationis") = 1 then do
     return 'NOP'
   end
   else if manualbreak then do -- Was a break issued from the dialog? 
-    CALL SAY 'Automatic breakpoint hit.'
+    CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
     manualbreak = .false
     .debug.channel~status~append("getprogramstatus")
     return 'NOP'

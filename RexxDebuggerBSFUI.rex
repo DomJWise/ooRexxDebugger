@@ -571,11 +571,11 @@ end
 else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
   self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
-  self~appendtext('Automatic breakpoint set for the next line of traceable code.')
+  self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
 end
 else do
   debugger~SetManualBreak(.False)
-  self~appendtext('Automatic breakpoint removed. Program will run normally.')
+  self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint removed. Program will run normally.')
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
 end   
 
@@ -583,11 +583,11 @@ end
 ------------------------------------------------------
 ::method OnExitButton
 ------------------------------------------------------
-expose waiting 
+expose waiting debugger
 if waiting then do
   ret = .bsf.dialog~dialogbox("Do you really want to exit the program ?", "Program still running","question", "YesNo")
   if ret = 0 then do
-    self~appendtext("Program requested to exit.")
+    self~appendtext(debugger~DebugMsgPrefix||"Debug session terminated", .true, .true)
     self~HereIsResponse('EXIT')
   end  
 end
@@ -984,12 +984,13 @@ if debugconsoleupdatetimer \= .nil then debugconsoleupdatetimer~Stop
 ::Method AppendText
 ------------------------------------------------------
 expose controls debugger debugconsoleappendbuffer
-use arg newtext, newline = .true
+use arg newtext, newline = .true, forcenow = .false
 
 if newline  then newtext = newtext||.endofline
 if \debugger~isshutdown then 
   do 
   debugconsoleappendbuffer = debugconsoleappendbuffer||newtext 
+  if forcenow then self~DoConsoleUpdate
   self~SetConsoleUpdateTimer
 end
 
