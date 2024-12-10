@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.9"
+::CONSTANT VERSION "1.32.10"
 
 --====================================================
 ::class RexxDebugger public
@@ -606,17 +606,19 @@ else do
     end  
   end  
 
-  
   signal on ANY name HandleRuntimeError
+  DROP RESULT
   runroutine~callwith(runargs)
-  
   signal off ANY
+  
+  proghasresult = .True
+  if Symbol('RESULT') \= 'VAR' then proghasresult = .False; else progresult = RESULT
+  
   canopensource = .True
   debuggerui~UpdateUIControlStates
-
   debuggerui~AppendUIConsoleText("")
   debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session ended normally")
-
+  if proghasresult then debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Program returned : "progresult~string)
 end  
 
 return
