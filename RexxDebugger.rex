@@ -406,6 +406,7 @@ else if status~pos("breakpointchecklocationis") = 1 then do
   if breakpoints~hasindex(codelocation) then do  
     test = breakpoints[codelocation]
     if test = '' | manualbreak then do
+      if manualbreak then CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
       manualbreak = .False
       .debug.channel~status~append("getprogramstatus")
       return 'NOP'
