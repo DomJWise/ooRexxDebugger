@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.32.10"
+::CONSTANT VERSION "1.32.11"
 
 --====================================================
 ::class RexxDebugger public
@@ -396,7 +396,7 @@ expose debuggerui tracedprograms manualbreak breakpoints runroutine
 
 status = .debug.channel~status~string
 
-.debug.channel~status~delete
+.debug.channel~status~delete(1)
 
 if status="breakpointcheckgetlocation" then do
   return '_rexdeebugeer_tmp = .debug.channel~status~append("breakpointchecklocationis ".context~package~name">".context~line);  drop _rexdeebugeer_tmp'
@@ -547,7 +547,7 @@ shutdown = .False
 breakpoints~empty
 tracedprograms~empty
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
-.debug.channel~status~delete 
+.debug.channel~status~delete(1) 
 .debug.channel~status~append("getprogramstatus")
 runroutine = .nil
 strm = .stream~new(rexxfile)
