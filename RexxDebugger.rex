@@ -903,6 +903,7 @@ if itemclass =.Directory | -
   itemclass =.List | -
   itemclass =.Queue | -
   itemclass =.CircularQueue | -
+  itemclass =.Set | -
   itemclass =.Array then return .True
 else return .False
 
