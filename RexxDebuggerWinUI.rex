@@ -188,7 +188,7 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage
+expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage scrollcharpos
 use strict arg debugger, startuphelptext
 
 arrstack = .nil
@@ -196,7 +196,7 @@ activesourcename = .nil
 loadedsources = .Directory~new
 watchwindows = .Directory~new
 checkedsources = .List~new
-
+scrollcharpos = 1
 waiting = .false
 controls = .Directory~new
 
@@ -659,7 +659,7 @@ self~DoConsoleAppend
 ------------------------------------------------------
 ::Method DoConsoleAppend unguarded
 ------------------------------------------------------
-expose controls debugconsoletextlength debugger debugconsoleappendbuffer consoleupdateactive
+expose controls debugconsoletextlength debugger debugconsoleappendbuffer consoleupdateactive scrollcharpos
 numeric digits 15
 if \debugger~isshutdown then do
   if debugconsoleappendbuffer \= '' then do
@@ -669,8 +669,9 @@ if \debugger~isshutdown then do
     controls[self~EDITDEBUGLOG]~hidefast
     controls[self~EDITDEBUGLOG]~select(debugconsoletextlength + 1, debugconsoletextlength + 1)
     controls[self~EDITDEBUGLOG]~replaceseltext(newtext, .False)
-    scrollcharpos = newtext~left(newtext~length - .endofline~length)~lastpos(.endofline) + debugconsoletextlength +.endofline~length
+    if newtext~pos(.endofline) \= 0 then scrollcharpos = newtext~left(newtext~length - .endofline~length)~lastpos(.endofline) + debugconsoletextlength + .endofline~length
     controls[self~EDITDEBUGLOG]~select(scrollcharpos,scrollcharpos)
+    if newtext~length + 1 - newtext~lastpos(.endofline) \= .endofline~length then controls[self~EDITDEBUGLOG]~scrollcommand("DOWN", 1)
     debugconsoletextlength = debugconsoletextlength + newtext~length
     controls[self~EDITDEBUGLOG]~showfast
     controls[self~EDITDEBUGLOG]~ensureCaretVisibility
