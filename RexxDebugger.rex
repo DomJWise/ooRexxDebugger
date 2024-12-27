@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.2"
+::CONSTANT VERSION "1.33.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -959,7 +959,7 @@ else do
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   
   self~ListDeleteAllItems(self~controls, self~LISTVARS)
-  self~ListBeginSetHorizonalExtent(self~LISTVARS)
+  self~ListBeginSetHorizonalExtent(self~controls, self~LISTVARS)
 
   dosort = .False
   if variablescollection~isA(.Directory) | -

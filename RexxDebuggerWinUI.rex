@@ -896,7 +896,6 @@ activesourcename=.nil
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 
-::ATTRIBUTE hfnt                 private unguarded
 ::ATTRIBUTE parentlist           private unguarded
 ::ATTRIBUTE itemidentifiers      private unguarded
 ::ATTRIBUTE itemclasses          private unguarded
@@ -1304,10 +1303,10 @@ controls[listid]~modify(itemindex, text)
 ::method ListBeginSetHorizonalExtent
 ------------------------------------------------------
 expose dc oldfont maxwidth
-use arg listid
+use arg controls, listid
 
 dc = self~getControlDC(listid)
-oldfont = self~fonttodc(dc, self~hfnt)
+oldfont = self~fonttodc(dc, controls[listid]~getFont)
 maxwidth = 0
 
 ------------------------------------------------------
