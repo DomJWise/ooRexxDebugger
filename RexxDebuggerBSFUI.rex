@@ -1281,6 +1281,14 @@ end
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 
+::ATTRIBUTE parentlist           private unguarded
+::ATTRIBUTE itemidentifiers      private unguarded
+::ATTRIBUTE itemclasses          private unguarded
+::ATTRIBUTE currentselectioninfo private unguarded
+::ATTRIBUTE varsvalid            private unguarded
+::ATTRIBUTE controls             private unguarded
+::ATTRIBUTE debugwindow          private unguarded
+
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -1297,13 +1305,7 @@ controls = .Directory~new
 currentselectioninfo = ""
 varsvalid = .False
 
-dialogtitle = ''
-do elementname over parentlist
-  if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
-  if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
-  else dialogtitle = elementname||dialogtitle 
-end
-dialogtitle = "Watch "||dialogtitle
+dialogtitle = self~GetDialogTitle
 
 self~Initdialog
 
@@ -1372,117 +1374,7 @@ debugwindow~NotifyChildReady
 expose hfnt debugwindow
 debugwindow~RemoveWatchWindow(self)
 self~dispose
-
-
-------------------------------------------------------
-::METHOD VariableSelected
-------------------------------------------------------
-expose controls itemidentifiers currentselectioninfo
-itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
-if itemindex \= 0 then do
-  selectedidentifierstring = itemidentifiers[itemindex]~makestring
-  rowsbefore = itemindex - self~ListGetFirstVisible(controls, self~LISTVARS)
-  currentselectioninfo = rowsbefore':'selectedidentifierstring
-end  
-
-
-------------------------------------------------------
-::METHOD UpdateWatchWindow unguarded
-------------------------------------------------------
-expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
-use arg root
-
-variablescollection = root
-if parentlist~items \= 0 then do
-  variablescollection~put(.environment, ".ENVIRONMENT")
-  variablescollection~put(.local, ".LOCAL")
-end
-do nextchild over parentlist
-  variablescollection = variablescollection[nextchild]
-  if variablescollection = .nil then leave
-end
-if variablescollection = .nil then do
-  self~ListClearSelection(controls, self~LISTVARS)
-  varsvalid = .False
-end
-else do
-  varsvalid = .True
-  self~ListDeleteAllItems(controls,self~LISTVARS)
-  dosort = .False
-  if variablescollection~isA(.Directory) | -
-       variablescollection~isA(.Properties) | -
-       variablescollection~isA(.Stem) -
-  then  dosort = .True
-  if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
-  if dosort then itemidentifiers = variablescollection~allindexes~sort
-  else  itemidentifiers = variablescollection~allindexes
-  if parentlist~items = 0 then do
-    variablescollection~put(.environment, ".ENVIRONMENT")
-    itemidentifiers~append(".ENVIRONMENT")
-    variablescollection~put(.local, ".LOCAL")
-    itemidentifiers~append(".LOCAL")
-  end
-  itemclasses = .Array~new
-  do varname over itemidentifiers
-    if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
-    else vardisplayname = varname
-    varvalue = variablescollection[varname]~defaultname
-    if variablescollection[varname]~isA(.string) then
-    varvalue = variablescollection[varname]~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-    if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-    if variablescollection[varname]~isInstanceOf(.Collection) then do
-      varvalue = varvalue' ('variablescollection[varname]~items' item'
-      if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
-      varvalue = varvalue||')'
-    end 
-    if self~IsExpandable(variablescollection[varname]~class) then text = '+'
-    else text = ' '
-    text = text||vardisplayname' = 'varvalue
-    self~ListAddItem(controls,self~LISTVARS, text)
-    itemclasses~append(variablescollection[varname]~class)
-  end
   
-  parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
-  if currentselectioninfo \= "" then do 
-    indextoselect = 0
-    if prevselectedidentifierstring \= "" then do i = 1 to itemidentifiers~items
-      if itemidentifiers[i]~makestring = prevselectedidentifierstring then do
-        indextoselect = i
-        leave
-      end
-    end    
-    if indextoselect \= 0 then do
-      self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
-      newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
-      self~ListSetFirstVisible(controls, self~LISTVARS, newfirstvisible)
-    end
-    else if self~ListGetRowCount(controls, self~LISTVARS) \= 0  then self~ListSetFirstVisible(controls, self~LISTVARS, 1)
-  end  
-
-end  
-
-------------------------------------------------------
-::method VariableDoubleClicked
-------------------------------------------------------
-expose controls debugwindow itemidentifiers itemclasses parentlist
-
-itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
-if itemindex \= 0 then do
-  itemidentifier = itemidentifiers[itemindex]
-  if self~IsExpandable(itemclasses[itemindex]) then do
-    if parentlist~items \= 0 then newlist =parentlist~section(0)
-    else newlist = .List~new
-    newlist~append(itemidentifier)
-    debugwindow~AddWatchWindow(self, newlist)
-  end
-end  
-------------------------------------------------------
-::method SetListState unguarded
-------------------------------------------------------
-expose controls varsvalid
-use arg enablelist
-self~ControlEnable(controls, self~LISTVARS, enablelist & varsvalid)
-
 ------------------------------------------------------
 ::ROUTINE IsWindows
 ------------------------------------------------------
@@ -1971,11 +1863,25 @@ use arg controls, listid, itemindex, listtext
 controls[listid]~getmodel~set(itemindex - 1, listtext)
 
 ------------------------------------------------------
+::method ListBeginSetHorizonalExtent
+------------------------------------------------------
+------------------------------------------------------
+::method ListUpdateMaxHorizonalExtent
+------------------------------------------------------
+------------------------------------------------------
+::method ListEndSetHorizonalExtent
+------------------------------------------------------
+
+------------------------------------------------------
 ::method ControlEnable
 ------------------------------------------------------
 use arg controls, controlid, enable
 
 controls[controlid]~setEnabled(enable)
+
+------------------------------------------------------
+::method ControlDeferRedraw
+------------------------------------------------------
 
 ------------------------------------------------------
 ::method ControlsInitPaneMap

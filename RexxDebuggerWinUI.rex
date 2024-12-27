@@ -896,6 +896,14 @@ activesourcename=.nil
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 
+::ATTRIBUTE hfnt                 private unguarded
+::ATTRIBUTE parentlist           private unguarded
+::ATTRIBUTE itemidentifiers      private unguarded
+::ATTRIBUTE itemclasses          private unguarded
+::ATTRIBUTE currentselectioninfo private unguarded
+::ATTRIBUTE varsvalid            private unguarded
+::ATTRIBUTE controls             private unguarded
+::ATTRIBUTE debugwindow          private unguarded
 
  ------------------------------------------------------
 ::method init 
@@ -909,13 +917,7 @@ currentselectioninfo = ""
 varsvalid = .False
 forward class (super) continue array(.nil)
 
-dialogtitle = ''
-do elementname over parentlist
-  if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
-  if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
-  else dialogtitle = elementname||dialogtitle 
-end
-dialogtitle = "Watch "||dialogtitle
+dialogtitle = self~GetDialogTitle
 
 self~create(0, 0, 180, 73, dialogtitle, "THICKFRAME")
 
@@ -977,131 +979,6 @@ expose hfnt debugwindow
 self~deletefont(hfnt)
 debugwindow~RemoveWatchWindow(self)
 self~CANCEL:super
-
-------------------------------------------------------
-::METHOD VariableSelected
-------------------------------------------------------
-expose controls itemidentifiers currentselectioninfo
-
-itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
-if itemindex \= 0 then do
-  selectedidentifierstring = itemidentifiers[itemindex]~makestring
-  rowsbefore = itemindex - self~ListGetFirstVisible(controls, self~LISTVARS)
-  currentselectioninfo = rowsbefore':'selectedidentifierstring
-end  
- 
-
-------------------------------------------------------
-::METHOD UpdateWatchWindow
-------------------------------------------------------
-expose controls parentlist  hfnt itemidentifiers itemclasses currentselectioninfo varsvalid
-use arg root
-
-variablescollection = root
-if parentlist~items \= 0 then do
-  variablescollection~put(.environment, ".ENVIRONMENT")
-  variablescollection~put(.local, ".LOCAL")
-end
-do nextchild over parentlist
-  variablescollection = variablescollection[nextchild]
-  if variablescollection = .nil then leave
-end
-if variablescollection = .nil then do
-  self~ListClearSelection(controls, self~LISTVARS)
-  varsvalid = .False
-end
-else do
-  varsvalid = .True
-  controls[self~LISTVARS]~hidefast
-  self~ListDeleteAllItems(controls, self~LISTVARS)
-  dc = self~getControlDC(self~LISTVARS)
-  oldfont = self~fonttodc(dc, hfnt)
-
-  maxwidth = 0
-  dosort = .False
-  if variablescollection~isA(.Directory) | -
-       variablescollection~isA(.Properties) | -
-       variablescollection~isA(.Stem) -
-  then  dosort = .True
-  if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
-  if dosort then itemidentifiers = variablescollection~allindexes~sort
-  else  itemidentifiers = variablescollection~allindexes
-  if parentlist~items = 0 then do
-    variablescollection~put(.environment, ".ENVIRONMENT")
-    itemidentifiers~append(".ENVIRONMENT")
-    variablescollection~put(.local, ".LOCAL")
-    itemidentifiers~append(".LOCAL")
-  end
-
-  itemclasses = .Array~new
-  do varname over itemidentifiers
-    if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
-    else vardisplayname = varname
-    varvalue = variablescollection[varname]~defaultname
-    if variablescollection[varname]~isA(.string) then
-    varvalue = variablescollection[varname]~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-    if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-    if variablescollection[varname]~isInstanceOf(.Collection) then do
-      varvalue = varvalue' ('variablescollection[varname]~items' item'
-      if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
-      varvalue = varvalue||')'
-    end  
-    if self~IsExpandable(variablescollection[varname]~class) then text = '+'
-    else text = ' '
-    text= text||vardisplayname' = 'varvalue
-    width = self~getTextExtent(dc, text)~width
-    if width > maxwidth then maxwidth = width
-      self~ListAddItem(controls, self~LISTVARS, text)
-    itemclasses~append(variablescollection[varname]~class)
-  end
-
-  self~fonttodc(dc, oldfont)
-  self~freecontroldc(self~LISTVARS, oldfont)
-  self~setListWidthpx(self~LISTVARS, maxwidth)
-
-  parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
-  if currentselectioninfo \= "" then do 
-    indextoselect = 0
-    if prevselectedidentifierstring \= "" then do i = 1 to itemidentifiers~items
-      if itemidentifiers[i]~makestring = prevselectedidentifierstring then do
-        indextoselect = i
-        leave
-      end
-    end    
-    if indextoselect \= 0 then do
-      self~ListSetSelectedIndex(controls, self~LISTVARS, indextoselect)
-      newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
-      self~ListSetFirstVisible(controls, self~LISTVARS, newfirstvisible)
-    end  
-    else if self~ListGetRowCount(controls, self~LISTVARS) \= 0 then self~ListSetFirstVisible(controls, self~LISTVARS, 1)
-  end  
-  controls[self~LISTVARS]~showfast
-  controls[self~LISTVARS]~redraw
- 
-end
-
-------------------------------------------------------
-::method VariableDoubleClicked
-------------------------------------------------------
-expose controls debugwindow itemidentifiers itemclasses parentlist
-
-itemindex = self~ListGetSelectedIndex(controls, self~LISTVARS)
-if itemindex \= 0 then do
-  itemidentifier = itemidentifiers[itemindex]
-  if self~IsExpandable(itemclasses[itemindex]) then do
-    if parentlist~items \= 0 then newlist =parentlist~section(0)
-    else newlist = .List~new
-    newlist~append(itemidentifier)
-    debugwindow~AddWatchWindow(self, newlist)
-  end
-end  
-------------------------------------------------------
-::method SetListState
-------------------------------------------------------
-expose controls varsvalid
-use arg enablelist
-
-self~ControlEnable(controls, self~LISTVARS, enablelist & varsvalid)
 
 ------------------------------------------------------
 ::method OnCopyCommand unguarded
@@ -1422,6 +1299,36 @@ use arg controls, listid, itemindex, text
 
 controls[listid]~modify(itemindex, text)
 
+
+------------------------------------------------------
+::method ListBeginSetHorizonalExtent
+------------------------------------------------------
+expose dc oldfont maxwidth
+use arg listid
+
+dc = self~getControlDC(listid)
+oldfont = self~fonttodc(dc, self~hfnt)
+maxwidth = 0
+
+------------------------------------------------------
+::method ListUpdateMaxHorizonalExtent
+------------------------------------------------------
+expose dc maxwidth
+use arg text
+
+width = self~getTextExtent(dc, text)~width
+if width > maxwidth then maxwidth = width
+
+------------------------------------------------------
+::method ListEndSetHorizonalExtent
+------------------------------------------------------
+expose dc oldfont maxwidth
+use arg listid
+
+self~fonttodc(dc, oldfont)
+self~freecontroldc(listid, oldfont)
+self~setListWidthpx(listid, maxwidth)
+
 ------------------------------------------------------
 ::method ControlEnable
 ------------------------------------------------------
@@ -1429,6 +1336,17 @@ use arg controls, controlid, enable
 
 if enable then self~EnableControl(controlid)
 else self~DisableControl(controlid)
+
+------------------------------------------------------
+::method ControlDeferRedraw
+------------------------------------------------------
+use arg controls, controlid, defer
+if defer then controls[controlid]~hidefast
+else do
+  controls[controlid]~showfast
+  controls[controlid]~redraw
+end
+
 
 ------------------------------------------------------
 ::method ButtonSetText

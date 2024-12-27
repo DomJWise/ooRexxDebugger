@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.1"
+::CONSTANT VERSION "1.33.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -892,6 +892,133 @@ return
 --====================================================
 ::class WatchHelper mixinclass object public
 --====================================================
+
+------------------------------------------------------
+::METHOD VariableSelected
+------------------------------------------------------
+itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
+if itemindex \= 0 then do
+  selectedidentifierstring = self~itemidentifiers[itemindex]~makestring
+  rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
+  self~currentselectioninfo = rowsbefore':'selectedidentifierstring
+end  
+
+------------------------------------------------------
+::method VariableDoubleClicked
+------------------------------------------------------
+itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
+if itemindex \= 0 then do
+  itemidentifier = self~itemidentifiers[itemindex]
+  if self~IsExpandable(self~itemclasses[itemindex]) then do
+    if self~parentlist~items \= 0 then newlist = self~parentlist~section(0)
+    else newlist = .List~new
+    newlist~append(itemidentifier)
+    self~debugwindow~AddWatchWindow(self, newlist)
+  end
+end
+
+------------------------------------------------------
+::method SetListState unguarded
+------------------------------------------------------
+use arg enablelist
+self~ControlEnable(self~controls, self~LISTVARS, enablelist & self~varsvalid)
+
+------------------------------------------------------
+::method GetDialogTitle unguarded
+------------------------------------------------------
+dialogtitle = ''
+do elementname over self~parentlist
+  if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
+  if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
+  else dialogtitle = elementname||dialogtitle 
+end
+dialogtitle = "Watch "||dialogtitle
+
+return dialogTitle
+
+------------------------------------------------------
+::METHOD UpdateWatchWindow unguarded
+------------------------------------------------------
+use arg root
+
+variablescollection = root
+if self~parentlist~items \= 0 then do
+  variablescollection~put(.environment, ".ENVIRONMENT")
+  variablescollection~put(.local, ".LOCAL")
+end
+do nextchild over self~parentlist
+  variablescollection = variablescollection[nextchild]
+  if variablescollection = .nil then leave
+end
+if variablescollection = .nil then do
+  self~ListClearSelection(self~controls, self~LISTVARS)
+  self~varsvalid = .False
+end
+else do
+  self~varsvalid = .True
+  self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
+  
+  self~ListDeleteAllItems(self~controls, self~LISTVARS)
+  self~ListBeginSetHorizonalExtent(self~LISTVARS)
+
+  dosort = .False
+  if variablescollection~isA(.Directory) | -
+       variablescollection~isA(.Properties) | -
+       variablescollection~isA(.Stem) -
+  then  dosort = .True
+  if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
+  if dosort then self~itemidentifiers = variablescollection~allindexes~sort
+  else  self~itemidentifiers = variablescollection~allindexes
+  if self~parentlist~items = 0 then do
+    variablescollection~put(.environment, ".ENVIRONMENT")
+    self~itemidentifiers~append(".ENVIRONMENT")
+    variablescollection~put(.local, ".LOCAL")
+    self~itemidentifiers~append(".LOCAL")
+  end
+
+  self~itemclasses = .Array~new
+  do varname over self~itemidentifiers
+    if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
+    else vardisplayname = varname
+    varvalue = variablescollection[varname]~defaultname
+    if variablescollection[varname]~isA(.string) then
+    varvalue = variablescollection[varname]~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+    if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
+    if variablescollection[varname]~isInstanceOf(.Collection) then do
+      varvalue = varvalue' ('variablescollection[varname]~items' item'
+      if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
+      varvalue = varvalue||')'
+    end  
+    if self~IsExpandable(variablescollection[varname]~class) then text = '+'
+    else text = ' '
+    text= text||vardisplayname' = 'varvalue
+    self~ListUpdateMaxHorizonalExtent(text)
+    self~ListAddItem(self~controls, self~LISTVARS, text)
+    self~itemclasses~append(variablescollection[varname]~class)
+  end
+
+  self~ListEndSetHorizonalExtent(self~LISTVARS)
+
+  parse value self~currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
+  if self~currentselectioninfo \= "" then do 
+    indextoselect = 0
+    if prevselectedidentifierstring \= "" then do i = 1 to self~itemidentifiers~items
+      if self~itemidentifiers[i]~makestring = prevselectedidentifierstring then do
+        indextoselect = i
+        leave
+      end
+    end    
+    if indextoselect \= 0 then do
+      self~ListSetSelectedIndex(self~controls, self~LISTVARS, indextoselect)
+      newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
+      self~ListSetFirstVisible(self~controls, self~LISTVARS, newfirstvisible)
+    end  
+    else if self~ListGetRowCount(self~controls, self~LISTVARS) \= 0 then self~ListSetFirstVisible(self~controls, self~LISTVARS, 1)
+  end  
+  self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
+ 
+end
+
 
 ------------------------------------------------------
 ::method IsExpandable
