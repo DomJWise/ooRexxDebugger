@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.4"
+::CONSTANT VERSION "1.33.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -964,11 +964,10 @@ else do
   dosort = .False
   if variablescollection~isA(.Directory) | -
        variablescollection~isA(.Properties) | -
-       variablescollection~isA(.Stem) -
-  then  dosort = .True
-  if .StringTable~class~defaultname = .class~defaultname, variablescollection~isA(.StringTable) then dosort = .True
-  if dosort then self~itemidentifiers = variablescollection~allindexes~sort
-  else  self~itemidentifiers = variablescollection~allindexes
+       variablescollection~isA(.Stem) | -
+       variablescollection~isA(.StringTable) -
+  then self~itemidentifiers = variablescollection~allindexes~sort
+  else self~itemidentifiers = variablescollection~allindexes
   if self~parentlist~items = 0 then do
     variablescollection~put(.environment, ".ENVIRONMENT")
     self~itemidentifiers~append(".ENVIRONMENT")
@@ -1025,14 +1024,14 @@ end
 ::method IsExpandable
 ------------------------------------------------------
 use arg itemclass
-if itemclass =.Directory | -
-  itemclass =.StringTable | -
-  itemclass =.Properties | -
-  itemclass =.Stem | -
-  itemclass =.List | -
-  itemclass =.Queue | -
-  itemclass =.CircularQueue | -
-  itemclass =.Array then return .True
+if itemclass~IsSubClassOf(.Directory)     | -
+   itemclass~IsSubClassOf(.StringTable)   | -
+   itemclass~IsSubClassOf(.Properties)    | -
+   itemclass~IsSubClassOf(.Stem)          | -
+   itemclass~IsSubClassOf(.List)          | -
+   itemclass~IsSubClassOf(.Queue)         | - 
+   itemclass~IsSubClassOf(.CircularQueue) | -
+   itemclass~IsSubClassOf(.Array) then return .True
 else return .False
 
 --::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
