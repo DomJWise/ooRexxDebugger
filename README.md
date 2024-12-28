@@ -166,6 +166,58 @@ If you have run a debug session using rexxdebugger to completion, the Open butto
 
 Closing the rexxdebugger window and launching a new one for the next debug session will ensure that you are using a new Rexx interpreter each time and will avoid these issue.
 
+
+Showing object detail in Watch windows - the makedebuggerstring method
+----------------------------------------------------------------------
+
+Apart from string and collection classes most object types show only the class name in Watch windows. This means that if you have a variable called pt holding an instance of a user-defined Point class you would just see something like the following:
+
+pt = a Point
+
+This does not give you any indication as to what is in the object including any public attributes that may have been defined, and while you can use the command console to print out these public attributes this can be cumbersome, especially when there is a large number of attributes or multiple instances of the object to monitor
+
+To facilitate greater visibilty into user-defined classes a special method can be defined for the class to format and return a string for inclusion in Watch windows. This string can be made up of text and any combination of simple object variables. Defining this method for a Point class with object variables x and y (i.e. the co-ordinates of the point) would enable these co-ordinates to be shown in the Watch windows for each instance of this class
+
+The method to be defined is: makedebuggerstring
+
+The following requirements must be met to use this method. Failing to meet these requirements will likely cause the debugger to hang and this is the main reason the debugger doesn't just check for a more standard makestring method and use it if it exists 
+
+(1) The method must be unguarded
+
+(2) The method must not be configured for tracing, nor must it call any method that has tracing
+
+For rule (2), when the class is defined in a secondary source file that does not have global tracing active this may not require any action other than adding the method to the class and accessing the required object variables via an expose instruction. However, when global tracing is active e.g. for classes in the main source file being debugged the following syntax is needed for the debugger to safely call the method:
+
+- The first instruction in the method must be CALL TRACE('O') to deactivate tracing. This requirement means that expose (which must, when used, be the first instruction) cannot be used to access object variables so :-
+
+- Any object variables used in the method must be exposed as simple attributes using a bare (with no code) ::attribute get directive so they can be accessed in the method using e.g. self~x
+
+This is not too difficult to code and a simple Point class below illustrates how to follow this pattern
+
+```
+
+::class Point
+
+-- Existing init method
+::method init
+expose x y
+use arg x,y
+
+-- Attributes - Expose any object variables needed in the makedebuggerstring method
+::attribute x get
+::attribute y get
+
+::method makedebuggerstring unguarded     -- must be unguarded
+CALL TRACE('O')                           -- must be the very first instruction
+return 'x='||self~x||',y='self~y          -- build the return string from the exposed attributes
+
+```
+
+In the Watch window the return value will be appended to the display line in square brackets so for a Point at (0,0) called 'origin' you would see:
+
+origin = a Point [x=0,y=0]
+
+
 Final notes and further information
 -----------------------------------
 The Help button will send output information about the various options to the debugger console window and is worth checking out at least once, even though it's not very structured or pretty.

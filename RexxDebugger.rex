@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.3"
+::CONSTANT VERSION "1.33.4"
 
 --====================================================
 ::class RexxDebugger public
@@ -981,14 +981,15 @@ else do
     if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
     else vardisplayname = varname
     varvalue = variablescollection[varname]~defaultname
-    if variablescollection[varname]~isA(.string) then
-    varvalue = variablescollection[varname]~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-    if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-    if variablescollection[varname]~isInstanceOf(.Collection) then do
+    if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
+    else if variablescollection[varname]~isInstanceOf(.Collection) then do
       varvalue = varvalue' ('variablescollection[varname]~items' item'
       if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
       varvalue = varvalue||')'
     end  
+    if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
+    varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+    if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
     if self~IsExpandable(variablescollection[varname]~class) then text = '+'
     else text = ' '
     text= text||vardisplayname' = 'varvalue
