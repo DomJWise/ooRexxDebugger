@@ -182,7 +182,7 @@ The method to be defined is: makedebuggerstring
 
 The following requirements must be met to use this method. Failing to meet these requirements will likely cause the debugger to hang and this is the main reason the debugger doesn't just check for a more standard makestring method and use it if it exists 
 
-(1) The method must be unguarded
+(1) The method must be unguarded and must call no guarded methods including any attribute get methods it needs
 
 (2) The method must not be configured for tracing, nor must it call any method that has tracing
 
@@ -190,7 +190,7 @@ For rule (2), when the class is defined in a secondary source file that does not
 
 - The first instruction in the method must be CALL TRACE('O') to deactivate tracing. This requirement means that expose (which must, when used, be the first instruction) cannot be used to access object variables so :-
 
-- Any object variables used in the method must be exposed as simple attributes using a bare (with no code) ::attribute get directive so they can be accessed in the method using e.g. self~x
+- Any object variables needed in the method must be accessed using attribute get methods created with bare (no code) ::attribute directives so they can be accessed in the method using e.g. self~x. To adhere to rule (1) the attribute get methods must themselves be unguarded
 
 This is not too difficult to code and a simple Point class below illustrates how to follow this pattern
 
@@ -203,9 +203,9 @@ This is not too difficult to code and a simple Point class below illustrates how
 expose x y
 use arg x,y
 
--- Attributes - Expose any object variables needed in the makedebuggerstring method
-::attribute x get
-::attribute y get
+-- Attributes - Expose any object variables needed in the makedebuggerstring method - must be unguarded and contain no code
+::attribute x get unguarded
+::attribute y get unguarded
 
 ::method makedebuggerstring unguarded     -- must be unguarded
 CALL TRACE('O')                           -- must be the very first instruction
