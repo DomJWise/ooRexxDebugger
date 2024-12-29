@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.5"
+::CONSTANT VERSION "1.33.6"
 
 --====================================================
 ::class RexxDebugger public
@@ -950,7 +950,7 @@ do nextchild over self~parentlist
   variablescollection = variablescollection[nextchild]
   if variablescollection = .nil then leave
 end
-if variablescollection = .nil then do
+if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
   self~ListClearSelection(self~controls, self~LISTVARS)
   self~varsvalid = .False
 end
