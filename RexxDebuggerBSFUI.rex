@@ -1288,6 +1288,7 @@ end
 ::ATTRIBUTE varsvalid            private unguarded
 ::ATTRIBUTE controls             private unguarded
 ::ATTRIBUTE debugwindow          private unguarded
+::ATTRIBUTE cantrackitems        private unguarded
 
 ------------------------------------------------------
 ::method activate class

@@ -17,7 +17,7 @@ It's still in active development and you may find bugs but features include:
   -  Single step or run to next breakpoint (or the end of the program)
   -  Break button to interrupt running code or set an automatic breakpoint for when the next line of traceable code is hit 
   -  Toggling of breakpoints in an active session
-- Watch windows for display of simple variables and drilldown into many collection types
+- Watch windows for display of simple variables and drilldown into most collection types
 - Presetting of breakpoints in the Rexx source by adding  empty comments (/**/) at the start of traceable lines.
 
 (*) Note that the debugger is built around the interactive trace framework included with ooRexx so can only pause where that framework would pause. Some statements are hit at all, other statements only once. The Rexx documentation provides information on which instructions will pause during interactive tracing, used to guide the "hit" likelihood indicator when setting breakpoints but this may notalways be 100% accurate.

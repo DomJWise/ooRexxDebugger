@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.6"
+::CONSTANT VERSION "1.33.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -896,27 +896,30 @@ return
 ------------------------------------------------------
 ::METHOD VariableSelected
 ------------------------------------------------------
-itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
-if itemindex \= 0 then do
-  selectedidentifierstring = self~itemidentifiers[itemindex]~makestring
-  rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
-  self~currentselectioninfo = rowsbefore':'selectedidentifierstring
-end  
+if self~cantrackitems then do 
+  itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
+  if itemindex \= 0 then do
+    selectedidentifierstring = self~itemidentifiers[itemindex]~makestring
+    rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
+    self~currentselectioninfo = rowsbefore':'selectedidentifierstring
+  end  
+end
 
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
-itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
-if itemindex \= 0 then do
-  itemidentifier = self~itemidentifiers[itemindex]
-  if self~IsExpandable(self~itemclasses[itemindex]) then do
-    if self~parentlist~items \= 0 then newlist = self~parentlist~section(0)
-    else newlist = .List~new
-    newlist~append(itemidentifier)
-    self~debugwindow~AddWatchWindow(self, newlist)
+if self~cantrackitems then do 
+  itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
+  if itemindex \= 0 then do
+    itemidentifier = self~itemidentifiers[itemindex]
+    if self~IsExpandable(self~itemclasses[itemindex]) then do
+      if self~parentlist~items \= 0 then newlist = self~parentlist~section(0)
+      else newlist = .List~new
+      newlist~append(itemidentifier)
+      self~debugwindow~AddWatchWindow(self, newlist)
+    end
   end
 end
-
 ------------------------------------------------------
 ::method SetListState unguarded
 ------------------------------------------------------
@@ -956,6 +959,8 @@ if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
 end
 else do
   self~varsvalid = .True
+  self~cantrackitems = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
+  showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   
   self~ListDeleteAllItems(self~controls, self~LISTVARS)
@@ -977,7 +982,8 @@ else do
 
   self~itemclasses = .Array~new
   do varname over self~itemidentifiers
-    if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
+    if \showvariablenames then vardisplayname = ''
+    else if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
     else vardisplayname = varname
     varvalue = variablescollection[varname]~defaultname
     if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
@@ -989,9 +995,11 @@ else do
     if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
     varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
     if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-    if self~IsExpandable(variablescollection[varname]~class) then text = '+'
+    if \self~cantrackitems then text = ''
+    else if self~IsExpandable(variablescollection[varname]~class) then text = '+'
     else text = ' '
-    text= text||vardisplayname' = 'varvalue
+    if vardisplayname \= '' then text= text||vardisplayname' = 'varvalue
+    else text=text||varvalue
     self~ListUpdateMaxHorizonalExtent(text)
     self~ListAddItem(self~controls, self~LISTVARS, text)
     self~itemclasses~append(variablescollection[varname]~class)
@@ -1031,6 +1039,8 @@ if itemclass~IsSubClassOf(.Directory)     | -
    itemclass~IsSubClassOf(.List)          | -
    itemclass~IsSubClassOf(.Queue)         | - 
    itemclass~IsSubClassOf(.CircularQueue) | -
+   itemclass~IsSubClassOf(.Set)           | -
+   itemclass~IsSubClassOf(.Bag)           | -
    itemclass~IsSubClassOf(.Array) then return .True
 else return .False
 

@@ -903,11 +903,12 @@ activesourcename=.nil
 ::ATTRIBUTE varsvalid            private unguarded
 ::ATTRIBUTE controls             private unguarded
 ::ATTRIBUTE debugwindow          private unguarded
+::ATTRIBUTE cantrackitems        private unguarded
 
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow parentlist currentselectioninfo varsvalid
+expose debugwindow controls parentwindow parentlist currentselectioninfo varsvalid 
 use arg debugwindow, parentwindow, parentlist
 
 
