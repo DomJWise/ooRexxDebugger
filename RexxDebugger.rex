@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.7"
+::CONSTANT VERSION "1.33.8"
 
 --====================================================
 ::class RexxDebugger public
@@ -959,7 +959,7 @@ if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
 end
 else do
   self~varsvalid = .True
-  self~cantrackitems = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
+  self~cantrackitems = \(variablescollection~IsA(.Table) | variablescollection~IsA(.IdentityTable) | variablescollection~IsA(.Relation) | variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   
@@ -983,8 +983,25 @@ else do
   self~itemclasses = .Array~new
   do varname over self~itemidentifiers
     if \showvariablenames then vardisplayname = ''
-    else if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
-    else vardisplayname = varname
+    else if self~cantrackitems then do 
+      if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
+      else vardisplayname = varname
+    end  
+    else do
+      if varname~isA(.String) then vardisplayname = varname
+      else do 
+        vardisplayname = varname~defaultname
+        if varname~isInstanceOf(.Collection) then do
+          vardisplayname = vardisplayname' ('varname~items' item'    
+          if varname~items \=1 then vardisplayname=vardisplayname||'s'
+          vardisplayname = vardisplayname||')'
+        end
+        if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
+        vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+        if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||'...'
+      end
+    end  
+
     varvalue = variablescollection[varname]~defaultname
     if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
     else if variablescollection[varname]~isInstanceOf(.Collection) then do
@@ -1041,6 +1058,9 @@ if itemclass~IsSubClassOf(.Directory)     | -
    itemclass~IsSubClassOf(.CircularQueue) | -
    itemclass~IsSubClassOf(.Set)           | -
    itemclass~IsSubClassOf(.Bag)           | -
+   itemclass~IsSubClassOf(.Relation)      | -
+   itemclass~IsSubClassOf(.Table)         | -
+   itemclass~IsSubClassOf(.IdentityTable) | -
    itemclass~IsSubClassOf(.Array) then return .True
 else return .False
 

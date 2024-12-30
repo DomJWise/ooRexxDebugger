@@ -895,6 +895,7 @@ activesourcename=.nil
 ::CONSTANT LISTVARS 101
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
+::CONSTANT MAXNAMESTRINGLENGTH   64
 
 ::ATTRIBUTE parentlist           private unguarded
 ::ATTRIBUTE itemidentifiers      private unguarded
