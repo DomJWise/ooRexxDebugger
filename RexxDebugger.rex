@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.8"
+::CONSTANT VERSION "1.33.9"
 
 --====================================================
 ::class RexxDebugger public
@@ -944,11 +944,8 @@ return dialogTitle
 ------------------------------------------------------
 use arg root
 
-variablescollection = root
-if self~parentlist~items \= 0 then do
-  variablescollection~put(.environment, ".ENVIRONMENT")
-  variablescollection~put(.local, ".LOCAL")
-end
+variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
+
 do nextchild over self~parentlist
   variablescollection = variablescollection[nextchild]
   if variablescollection = .nil then leave
@@ -966,7 +963,6 @@ else do
   self~ListDeleteAllItems(self~controls, self~LISTVARS)
   self~ListBeginSetHorizonalExtent(self~controls, self~LISTVARS)
 
-  dosort = .False
   if variablescollection~isA(.Directory) | -
        variablescollection~isA(.Properties) | -
        variablescollection~isA(.Stem) | -
@@ -974,10 +970,11 @@ else do
   then self~itemidentifiers = variablescollection~allindexes~sort
   else self~itemidentifiers = variablescollection~allindexes
   if self~parentlist~items = 0 then do
-    variablescollection~put(.environment, ".ENVIRONMENT")
-    self~itemidentifiers~append(".ENVIRONMENT")
-    variablescollection~put(.local, ".LOCAL")
-    self~itemidentifiers~append(".LOCAL")
+    count = self~itemidentifiers~items
+    self~itemidentifiers~delete(self~itemidentifiers~index(".ENVIRONMENT"))
+    self~itemidentifiers~delete(self~itemidentifiers~index(".LOCAL"))
+    self~itemidentifiers[count-1] = ".ENVIRONMENT"
+    self~itemidentifiers[count]   = ".LOCAL"
   end
 
   self~itemclasses = .Array~new
