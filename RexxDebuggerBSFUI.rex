@@ -1282,14 +1282,8 @@ end
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 ::CONSTANT MAXNAMESTRINGLENGTH   64
 
-::ATTRIBUTE parentlist           private unguarded
-::ATTRIBUTE itemidentifiers      private unguarded
-::ATTRIBUTE itemclasses          private unguarded
-::ATTRIBUTE currentselectioninfo private unguarded
-::ATTRIBUTE varsvalid            private unguarded
 ::ATTRIBUTE controls             private unguarded
 ::ATTRIBUTE debugwindow          private unguarded
-::ATTRIBUTE cantrackitems        private unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -1299,13 +1293,13 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow parentlist currentselectioninfo varsvalid dialogtitle gui
+expose debugwindow controls parentwindow dialogtitle gui
 use arg debugwindow, gui, parentwindow, parentlist
 
+self~init:.WatchHelper(parentlist)
 
 controls = .Directory~new
 currentselectioninfo = ""
-varsvalid = .False
 
 dialogtitle = self~GetDialogTitle
 

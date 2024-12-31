@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.9"
+::CONSTANT VERSION "1.33.10"
 
 --====================================================
 ::class RexxDebugger public
@@ -894,26 +894,39 @@ return
 --====================================================
 
 ------------------------------------------------------
+::METHOD init
+------------------------------------------------------
+expose currentselectioninfo varsvalid parentlist
+use arg parentlist
+
+currentselectioninfo = ""
+varsvalid = .False
+
+
+------------------------------------------------------
 ::METHOD VariableSelected
 ------------------------------------------------------
-if self~cantrackitems then do 
+expose currentselectioninfo itemidentifiers cantrackitems
+
+if cantrackitems then do 
   itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
   if itemindex \= 0 then do
-    selectedidentifierstring = self~itemidentifiers[itemindex]~makestring
+    selectedidentifierstring = itemidentifiers[itemindex]~makestring
     rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
-    self~currentselectioninfo = rowsbefore':'selectedidentifierstring
+    currentselectioninfo = rowsbefore':'selectedidentifierstring
   end  
 end
 
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
-if self~cantrackitems then do 
+expose itemidentifiers itemclasses cantrackitems parentlist
+if cantrackitems then do 
   itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
   if itemindex \= 0 then do
-    itemidentifier = self~itemidentifiers[itemindex]
-    if self~IsExpandable(self~itemclasses[itemindex]) then do
-      if self~parentlist~items \= 0 then newlist = self~parentlist~section(0)
+    itemidentifier = itemidentifiers[itemindex]
+    if self~IsExpandable(itemclasses[itemindex]) then do
+      if parentlist~items \= 0 then newlist = parentlist~section(0)
       else newlist = .List~new
       newlist~append(itemidentifier)
       self~debugwindow~AddWatchWindow(self, newlist)
@@ -923,14 +936,17 @@ end
 ------------------------------------------------------
 ::method SetListState unguarded
 ------------------------------------------------------
+expose varsvalid
 use arg enablelist
-self~ControlEnable(self~controls, self~LISTVARS, enablelist & self~varsvalid)
+
+self~ControlEnable(self~controls, self~LISTVARS, enablelist & varsvalid)
 
 ------------------------------------------------------
 ::method GetDialogTitle unguarded
 ------------------------------------------------------
+expose parentlist
 dialogtitle = ''
-do elementname over self~parentlist
+do elementname over parentlist
   if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
   if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
   else dialogtitle = elementname||dialogtitle 
@@ -942,21 +958,22 @@ return dialogTitle
 ------------------------------------------------------
 ::METHOD UpdateWatchWindow unguarded
 ------------------------------------------------------
+expose currentselectioninfo varsvalid itemidentifiers itemclasses cantrackitems parentlist
 use arg root
 
 variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
 
-do nextchild over self~parentlist
+do nextchild over parentlist
   variablescollection = variablescollection[nextchild]
   if variablescollection = .nil then leave
 end
 if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
   self~ListClearSelection(self~controls, self~LISTVARS)
-  self~varsvalid = .False
+  varsvalid = .False
 end
 else do
-  self~varsvalid = .True
-  self~cantrackitems = \(variablescollection~IsA(.Table) | variablescollection~IsA(.IdentityTable) | variablescollection~IsA(.Relation) | variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
+  varsvalid = .True
+  cantrackitems = \(variablescollection~IsA(.Table) | variablescollection~IsA(.IdentityTable) | variablescollection~IsA(.Relation) | variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   
@@ -967,20 +984,20 @@ else do
        variablescollection~isA(.Properties) | -
        variablescollection~isA(.Stem) | -
        variablescollection~isA(.StringTable) -
-  then self~itemidentifiers = variablescollection~allindexes~sort
-  else self~itemidentifiers = variablescollection~allindexes
-  if self~parentlist~items = 0 then do
-    count = self~itemidentifiers~items
-    self~itemidentifiers~delete(self~itemidentifiers~index(".ENVIRONMENT"))
-    self~itemidentifiers~delete(self~itemidentifiers~index(".LOCAL"))
-    self~itemidentifiers[count-1] = ".ENVIRONMENT"
-    self~itemidentifiers[count]   = ".LOCAL"
+  then itemidentifiers = variablescollection~allindexes~sort
+  else itemidentifiers = variablescollection~allindexes
+  if parentlist~items = 0 then do
+    count = itemidentifiers~items
+    itemidentifiers~delete(itemidentifiers~index(".ENVIRONMENT"))
+    itemidentifiers~delete(itemidentifiers~index(".LOCAL"))
+    itemidentifiers[count-1] = ".ENVIRONMENT"
+    itemidentifiers[count]   = ".LOCAL"
   end
 
-  self~itemclasses = .Array~new
-  do varname over self~itemidentifiers
+  itemclasses = .Array~new
+  do varname over itemidentifiers
     if \showvariablenames then vardisplayname = ''
-    else if self~cantrackitems then do 
+    else if cantrackitems then do 
       if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
       else vardisplayname = varname
     end  
@@ -1009,23 +1026,23 @@ else do
     if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
     varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
     if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-    if \self~cantrackitems then text = ''
+    if \cantrackitems then text = ''
     else if self~IsExpandable(variablescollection[varname]~class) then text = '+'
     else text = ' '
     if vardisplayname \= '' then text= text||vardisplayname' = 'varvalue
     else text=text||varvalue
     self~ListUpdateMaxHorizonalExtent(text)
     self~ListAddItem(self~controls, self~LISTVARS, text)
-    self~itemclasses~append(variablescollection[varname]~class)
+    itemclasses~append(variablescollection[varname]~class)
   end
 
   self~ListEndSetHorizonalExtent(self~LISTVARS)
 
-  parse value self~currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
-  if self~currentselectioninfo \= "" then do 
+  parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
+  if currentselectioninfo \= "" then do 
     indextoselect = 0
-    if prevselectedidentifierstring \= "" then do i = 1 to self~itemidentifiers~items
-      if self~itemidentifiers[i]~makestring = prevselectedidentifierstring then do
+    if prevselectedidentifierstring \= "" then do i = 1 to itemidentifiers~items
+      if itemidentifiers[i]~makestring = prevselectedidentifierstring then do
         indextoselect = i
         leave
       end
