@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.12"
+::CONSTANT VERSION "1.33.13"
 
 --====================================================
 ::class RexxDebugger public
@@ -897,6 +897,7 @@ return
 ::METHOD FindWatchWindow class unguarded
 ------------------------------------------------------
 use arg watchwindows, testparentlist
+
 existingwindow = .nil
 do window over watchwindows~allitems while existingwindow = .nil
   if window~HasIdenticalParentList(testparentlist) then existingwindow = window
@@ -917,6 +918,7 @@ varsvalid = .False
 ::METHOD HasIdenticalParentList
 ------------------------------------------------------
 expose parentlist
+
 use arg testparentlist
 if parentlist~items \= testparentlist~items then return .False
 myitems = parentlist~allitems
@@ -931,6 +933,9 @@ do i = 1 to myitems~items while matches = .True
   do j = 1 to myitems[i]~dimension(1) while matches = .True
     if  myitems[i][j] \= testitems[i][j] then matches = .False
   end
+  else if myitems[i]~IsA(.WeakReference) then do
+    if myitems[i]~value = .nil | myitems[i]~value \= testitems[i]~value then matches = .False
+  end
   else matches = .False
 end  
 
@@ -939,33 +944,30 @@ return matches
 ------------------------------------------------------
 ::METHOD VariableSelected
 ------------------------------------------------------
-expose currentselectioninfo itemidentifiers cantrackitems
-if cantrackitems then do 
-  itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
-  if itemindex \= 0 then do
-    rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
-    currentselectioninfo = .Array~of(itemidentifiers[itemindex], rowsbefore)
-  end  
+expose currentselectioninfo itemidentifiers
+
+itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
+if itemindex \= 0 then do
+  rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
+  currentselectioninfo = .Array~of(itemidentifiers[itemindex], rowsbefore)
 end
 
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
-expose itemidentifiers itemclasses cantrackitems parentlist isarraywindow
-if cantrackitems then do 
-  itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
-  if itemindex \= 0 then do
-    itemidentifier = itemidentifiers[itemindex]
-    if self~IsExpandable(itemclasses[itemindex]) then do
-      if parentlist~items \= 0 then newlist = parentlist~section(0)
-      else newlist = .List~new
-      if itemidentifier~IsA(.String) then itemtoadd = itemidentifier
-      else if itemidentifier~IsA(.Array) & isarraywindow then itemtoadd = itemidentifier
-      else itemtoadd = .nil
-      if itemtoadd \= .nil then do 
-        newlist~append(itemtoadd)
-        self~debugwindow~AddWatchWindow(self, newlist)
-      end  
+expose itemidentifiers itemclasses parentlist isarraywindow
+itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
+if itemindex \= 0 then do
+  itemidentifier = itemidentifiers[itemindex]
+  if self~IsExpandable(itemclasses[itemindex]) then do
+    if parentlist~items \= 0 then newlist = parentlist~section(0)
+    else newlist = .List~new
+    if itemidentifier~IsA(.String) then itemtoadd = itemidentifier
+    else if itemidentifier~IsA(.Array) & isarraywindow then itemtoadd = itemidentifier
+    else itemtoadd = .WeakReference~new(itemidentifier~value)
+    if itemtoadd \= .nil then do
+      newlist~append(itemtoadd)
+      self~debugwindow~AddWatchWindow(self, newlist)
     end
   end
 end
@@ -981,11 +983,14 @@ self~ControlEnable(self~controls, self~LISTVARS, enablelist & varsvalid)
 ::method GetDialogTitle unguarded
 ------------------------------------------------------
 expose parentlist
+
 dialogtitle = ''
 do elementname over parentlist
   if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
-  if elementname~isA(.Array) then dialogtitle = elementname~makestring(,",")||dialogtitle
-  else dialogtitle = elementname||dialogtitle 
+  if elementname~isA(.Array) then itemtoadd = elementname~makestring(,",")
+  else if elementname~IsA(.WeakReference) then itemtoadd = elementname~value~defaultname
+  else itemtoadd = elementname
+  dialogtitle = itemtoadd||dialogtitle
 end
 dialogtitle = "Watch "||dialogtitle
 
@@ -994,13 +999,14 @@ return dialogTitle
 ------------------------------------------------------
 ::METHOD UpdateWatchWindow unguarded
 ------------------------------------------------------
-expose currentselectioninfo varsvalid itemidentifiers itemclasses cantrackitems parentlist isarraywindow
+expose currentselectioninfo varsvalid itemidentifiers itemclasses parentlist isarraywindow
 use arg root
 
 variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
-
 do nextchild over parentlist
+  if nextchild~IsA(.WeakReference) then nextchild = nextchild~value
   variablescollection = variablescollection[nextchild]
+  if variablescollection~IsA(.WeakReference) then variablescollection = variablescollection~value
   if variablescollection = .nil then leave
 end
 if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
@@ -1010,7 +1016,6 @@ end
 else do
   varsvalid = .True
   isarraywindow = variablescollection~IsA(.Array)
-  cantrackitems = \(variablescollection~IsA(.Table) | variablescollection~IsA(.IdentityTable) | variablescollection~IsA(.Relation) | variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   
@@ -1030,32 +1035,36 @@ else do
     itemidentifiers[count-1] = ".ENVIRONMENT"
     itemidentifiers[count]   = ".LOCAL"
   end
-
+  if \isarraywindow then do i = 1 to itemidentifiers~items
+    if \itemidentifiers[i]~IsA(.String) then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
+  end
   itemclasses = .Array~new
   do varname over itemidentifiers
+    if varname~IsA(.WeakReference)then varname = varname~value
     if \showvariablenames then vardisplayname = ''
-    else if cantrackitems then do 
-      if varname~isA(.Array) then vardisplayname = varname~makestring(,",")
-      else vardisplayname = varname
-    end  
-    else do
-      if varname~isA(.String) then vardisplayname = varname
+    else do 
+
+      if varname~isA(.Array) & isarraywindow then vardisplayname = varname~makestring(,",")
+      else if varname~isA(.String) then vardisplayname = varname
       else do 
-        vardisplayname = varname~defaultname
-        if varname~isInstanceOf(.Collection) then do
-          vardisplayname = vardisplayname' ('varname~items' item'    
-          if varname~items \=1 then vardisplayname=vardisplayname||'s'
-          vardisplayname = vardisplayname||')'
+        if varname = .Nil then  vardisplayname = ' <Unknown>'
+        else do
+          vardisplayname = varname~defaultname
+          if varname~isInstanceOf(.Collection) then do
+            vardisplayname = vardisplayname' ('varname~items' item'    
+            if varname~items \=1 then vardisplayname=vardisplayname||'s'
+            vardisplayname = vardisplayname||')'
+          end
+          if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
+          vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+          if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||'...'
         end
-        if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
-        vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-        if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||'...'
       end
     end  
 
-    varvalue = variablescollection[varname]~defaultname
     if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
-    else if variablescollection[varname]~isInstanceOf(.Collection) then do
+    else varvalue = variablescollection[varname]~defaultname
+    if variablescollection[varname]~isInstanceOf(.Collection) then do
       varvalue = varvalue' ('variablescollection[varname]~items' item'
       if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
       varvalue = varvalue||')'
@@ -1063,7 +1072,7 @@ else do
     if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
     varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
     if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-    if \cantrackitems then text = ''
+
     else if self~IsExpandable(variablescollection[varname]~class) then text = '+'
     else text = ' '
     if vardisplayname \= '' then text= text||vardisplayname' = 'varvalue
@@ -1074,32 +1083,24 @@ else do
   end
 
   self~ListEndSetHorizonalExtent(self~LISTVARS)
-  indextoselect = 0
   if currentselectioninfo \= .Nil then do 
+    indextoselect = 0
     prevselectedidentifier = currentselectioninfo[1]
     prevrowsbefore = currentselectioninfo[2]
     if prevselectedidentifier \= "" & prevselectedidentifier \=.Nil then do
-      if prevselectedidentifier~IsA(.String) then do
-        do i = 1 to itemidentifiers~items
-          if prevselectedidentifier = itemidentifiers[i] then do
-            indextoselect = i
-            leave
-          end  
+      do i = 1 to itemidentifiers~items while indextoselect = 0
+        if prevselectedidentifier~IsA(.String) & itemidentifiers[i]~IsA(.String) then do
+          if prevselectedidentifier = itemidentifiers[i] then indextoselect = i
         end
-      end
-      else if prevselectedidentifier~IsA(.Array) then do
-        do i = 1 to itemidentifiers~items
+        else if prevselectedidentifier~IsA(.Array) & itemidentifiers[i]~IsA(.Array) then do
           matches = .True
-          do j = 1 to prevselectedidentifier~dimension(1)
-            if  prevselectedidentifier[j] \= itemidentifiers[i][j] then do
-              matches = .False
-              leave
-            end
-          end  
-          if matches then do
-            indextoselect = i
-            leave
-          end  
+          do j = 1 to prevselectedidentifier~dimension(1) while matches = .True
+            if  prevselectedidentifier[j] \= itemidentifiers[i][j] then matches = .False
+          end
+          if matches then indextoselect = i
+        end
+        else if prevselectedidentifier~IsA(.WeakReference) & itemidentifiers[i]~IsA(.WeakReference) then do
+          if prevselectedidentifier~value = itemidentifiers[i]~value then indextoselect = i
         end  
       end
     end  

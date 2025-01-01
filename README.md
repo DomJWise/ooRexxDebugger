@@ -22,7 +22,7 @@ It's still in active development and you may find bugs but features include:
 
 (*) Note that the debugger is built around the interactive trace framework included with ooRexx so can only pause where that framework would pause. Some statements are hit at all, other statements only once. The Rexx documentation provides information on which instructions will pause during interactive tracing, used to guide the "hit" likelihood indicator when setting breakpoints but this may notalways be 100% accurate.
 
-(**) The collection classes which can have any object type as an index (Bag, Set, Table, IdentityTable, Relation) can be opened in a Watch window but it is not currently possible to drill down any further into the objects contained in these collections
+(**) A relation collection can have the same index linked to different collection items. At present Watch drilldown from a relation collection is only possible for one collection item per group of duplicate indexes. This may be addressed in a future release
 
 The ooRexx tracing framework pauses for feedback after executing an instruction, not before. If you want to see the value of a variable just before a particular line which changes that variable you need to check the value before stepping or running to that line. This behaviour also means that instructions which change the control flow of a program (e.g. call) will not pause on that statement unless and until control is returned there e.g. by a return from a called function
 
