@@ -68,8 +68,10 @@ dir["StringThing"] = "String Value"
 subarray = .array~of("Item1", "Item2", "Item3")
 dir["ArrayThing"] = subarray
 SAY 'In the Watch window, double click on "DIR"'
-SAY 'Recursive watch drilldown is possible for some collection types'
+SAY 'Recursive watch drilldown is possible for all collection types'
 SAY 'In the newly added watch window for DIR, double click on "ArrayThing"'
+SAY 'Note: One restriction exists for Relation collections'
+SAY 'Drilldown will only work for one item in a set with duplicate indexes'
 SAY
 SAY 'METHODS and ROUTINES have their own variables. Now a ROUTINE will be called'
 SAY 'Note that with a CALL statement Rexx breaks AFTER the call has completed.'
