@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.13"
+::CONSTANT VERSION "1.33.14"
 
 --====================================================
 ::class RexxDebugger public
@@ -964,7 +964,10 @@ if itemindex \= 0 then do
     else newlist = .List~new
     if itemidentifier~IsA(.String) then itemtoadd = itemidentifier
     else if itemidentifier~IsA(.Array) & isarraywindow then itemtoadd = itemidentifier
-    else itemtoadd = .WeakReference~new(itemidentifier~value)
+    else do
+      itemtoadd = .WeakReference~new(itemidentifier~value)
+      if itemtoadd~value = .nil then itemtoadd = .nil
+    end
     if itemtoadd \= .nil then do
       newlist~append(itemtoadd)
       self~debugwindow~AddWatchWindow(self, newlist)
@@ -972,7 +975,7 @@ if itemindex \= 0 then do
   end
 end
 ------------------------------------------------------
-::method SetListState unguarded
+::method SetListState unguarded 
 ------------------------------------------------------
 expose varsvalid
 use arg enablelist
@@ -1003,11 +1006,15 @@ expose currentselectioninfo varsvalid itemidentifiers itemclasses parentlist isa
 use arg root
 
 variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
-do nextchild over parentlist
-  if nextchild~IsA(.WeakReference) then nextchild = nextchild~value
-  variablescollection = variablescollection[nextchild]
-  if variablescollection~IsA(.WeakReference) then variablescollection = variablescollection~value
-  if variablescollection = .nil then leave
+do nextchild over parentlist while variablescollection \= .Nil
+  if nextchild~IsA(.WeakReference) then do
+    nextchild = nextchild~value
+  end
+  if nextchild = .nil then variablescollection = .Nil 
+  else do
+    variablescollection = variablescollection[nextchild]
+    if variablescollection~IsA(.WeakReference) then variablescollection = variablescollection~value
+  end
 end
 if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
   self~ListClearSelection(self~controls, self~LISTVARS)
@@ -1043,7 +1050,6 @@ else do
     if varname~IsA(.WeakReference)then varname = varname~value
     if \showvariablenames then vardisplayname = ''
     else do 
-
       if varname~isA(.Array) & isarraywindow then vardisplayname = varname~makestring(,",")
       else if varname~isA(.String) then vardisplayname = varname
       else do 
@@ -1100,7 +1106,7 @@ else do
           if matches then indextoselect = i
         end
         else if prevselectedidentifier~IsA(.WeakReference) & itemidentifiers[i]~IsA(.WeakReference) then do
-          if prevselectedidentifier~value = itemidentifiers[i]~value then indextoselect = i
+          if prevselectedidentifier~value = itemidentifiers[i]~value & prevselectedidentifier~value \= .nil then indextoselect = i
         end  
       end
     end  
