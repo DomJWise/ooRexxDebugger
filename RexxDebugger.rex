@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.10"
+::CONSTANT VERSION "1.33.11"
 
 --====================================================
 ::class RexxDebugger public
@@ -899,7 +899,7 @@ return
 expose currentselectioninfo varsvalid parentlist
 use arg parentlist
 
-currentselectioninfo = ""
+currentselectioninfo = .Nil
 varsvalid = .False
 
 
@@ -907,13 +907,11 @@ varsvalid = .False
 ::METHOD VariableSelected
 ------------------------------------------------------
 expose currentselectioninfo itemidentifiers cantrackitems
-
 if cantrackitems then do 
   itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
   if itemindex \= 0 then do
-    selectedidentifierstring = itemidentifiers[itemindex]~makestring
     rowsbefore = itemindex - self~ListGetFirstVisible(self~controls, self~LISTVARS)
-    currentselectioninfo = rowsbefore':'selectedidentifierstring
+    currentselectioninfo = .Array~of(itemidentifiers[itemindex], rowsbefore)
   end  
 end
 
@@ -1037,16 +1035,35 @@ else do
   end
 
   self~ListEndSetHorizonalExtent(self~LISTVARS)
-
-  parse value currentselectioninfo with prevrowsbefore':'prevselectedidentifierstring
-  if currentselectioninfo \= "" then do 
-    indextoselect = 0
-    if prevselectedidentifierstring \= "" then do i = 1 to itemidentifiers~items
-      if itemidentifiers[i]~makestring = prevselectedidentifierstring then do
-        indextoselect = i
-        leave
+  indextoselect = 0
+  if currentselectioninfo \= .Nil then do 
+    prevselectedidentifier = currentselectioninfo[1]
+    prevrowsbefore = currentselectioninfo[2]
+    if prevselectedidentifier \= "" & prevselectedidentifier \=.Nil then do
+      if prevselectedidentifier~IsA(.String) then do
+        do i = 1 to itemidentifiers~items
+          if prevselectedidentifier = itemidentifiers[i] then do
+            indextoselect = i
+            leave
+          end  
+        end
       end
-    end    
+      else if prevselectedidentifier~IsA(.Array) then do
+        do i = 1 to itemidentifiers~items
+          matches = .True
+          do j = 1 to prevselectedidentifier~dimension(1)
+            if  prevselectedidentifier[j] \= itemidentifiers[i][j] then do
+              matches = .False
+              leave
+            end
+          end  
+          if matches then do
+            indextoselect = i
+            leave
+          end  
+        end  
+      end
+    end  
     if indextoselect \= 0 then do
       self~ListSetSelectedIndex(self~controls, self~LISTVARS, indextoselect)
       newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
