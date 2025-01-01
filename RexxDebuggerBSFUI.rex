@@ -512,7 +512,7 @@ use arg debugger, gui, startuphelptext
 arrstack = .nil
 activesourcename = .nil
 loadedsources = .Directory~new
-watchwindows = .Directory~new
+watchwindows = .Set~new
 checkedsources = .List~new
 
 waiting = .false
@@ -682,20 +682,15 @@ if parentlist = .nil then do
   if \rootlist~isA(.List) then rootlist = .list~new
   parentlist = rootlist
 end  
-watchwindowid = ""
-do item over parentlist
-  watchwindowid = watchwindowid||':'||item~makestring
-end  
-if \watchwindows~hasindex(watchwindowid) then do
-
+existingwindow = .WatchHelper~FindWatchWindow(watchwindows, parentlist)
+if existingwindow \=.nil then existingwindow~tofront
+else do 
   childready = .False
   watchdialog = .Watchdialog~new(self, gui, parentwindow, parentlist)
-  watchwindows[watchwindowid] = watchdialog
+  watchwindows~put(watchdialog)
   guard off when childready = .True
   
 end
-watchwindows[watchwindowid]~tofront
-
 self~HereIsResponse("UPDATEVARS")
 
 

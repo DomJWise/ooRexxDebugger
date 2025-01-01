@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.33.11"
+::CONSTANT VERSION "1.33.12"
 
 --====================================================
 ::class RexxDebugger public
@@ -894,6 +894,17 @@ return
 --====================================================
 
 ------------------------------------------------------
+::METHOD FindWatchWindow class unguarded
+------------------------------------------------------
+use arg watchwindows, testparentlist
+existingwindow = .nil
+do window over watchwindows~allitems while existingwindow = .nil
+  if window~HasIdenticalParentList(testparentlist) then existingwindow = window
+end
+
+return existingwindow
+
+------------------------------------------------------
 ::METHOD init
 ------------------------------------------------------
 expose currentselectioninfo varsvalid parentlist
@@ -902,6 +913,28 @@ use arg parentlist
 currentselectioninfo = .Nil
 varsvalid = .False
 
+------------------------------------------------------
+::METHOD HasIdenticalParentList
+------------------------------------------------------
+expose parentlist
+use arg testparentlist
+if parentlist~items \= testparentlist~items then return .False
+myitems = parentlist~allitems
+testitems = testparentlist~allitems
+matches = .True
+do i = 1 to myitems~items while matches = .True
+  if myitems[i]~class \= testitems[i]~class then matches = .False
+  else if myitems[i]~IsA(.String) then do
+    if myitems[i] \= testitems[i] then matches = .False
+  end  
+  else if myitems[i]~IsA(.Array) then 
+  do j = 1 to myitems[i]~dimension(1) while matches = .True
+    if  myitems[i][j] \= testitems[i][j] then matches = .False
+  end
+  else matches = .False
+end  
+
+return matches
 
 ------------------------------------------------------
 ::METHOD VariableSelected
@@ -918,7 +951,7 @@ end
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
-expose itemidentifiers itemclasses cantrackitems parentlist
+expose itemidentifiers itemclasses cantrackitems parentlist isarraywindow
 if cantrackitems then do 
   itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
   if itemindex \= 0 then do
@@ -926,8 +959,13 @@ if cantrackitems then do
     if self~IsExpandable(itemclasses[itemindex]) then do
       if parentlist~items \= 0 then newlist = parentlist~section(0)
       else newlist = .List~new
-      newlist~append(itemidentifier)
-      self~debugwindow~AddWatchWindow(self, newlist)
+      if itemidentifier~IsA(.String) then itemtoadd = itemidentifier
+      else if itemidentifier~IsA(.Array) & isarraywindow then itemtoadd = itemidentifier
+      else itemtoadd = .nil
+      if itemtoadd \= .nil then do 
+        newlist~append(itemtoadd)
+        self~debugwindow~AddWatchWindow(self, newlist)
+      end  
     end
   end
 end
@@ -956,7 +994,7 @@ return dialogTitle
 ------------------------------------------------------
 ::METHOD UpdateWatchWindow unguarded
 ------------------------------------------------------
-expose currentselectioninfo varsvalid itemidentifiers itemclasses cantrackitems parentlist
+expose currentselectioninfo varsvalid itemidentifiers itemclasses cantrackitems parentlist isarraywindow
 use arg root
 
 variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
@@ -971,6 +1009,7 @@ if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
 end
 else do
   varsvalid = .True
+  isarraywindow = variablescollection~IsA(.Array)
   cantrackitems = \(variablescollection~IsA(.Table) | variablescollection~IsA(.IdentityTable) | variablescollection~IsA(.Relation) | variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)

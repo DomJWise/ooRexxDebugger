@@ -194,7 +194,7 @@ use strict arg debugger, startuphelptext
 arrstack = .nil
 activesourcename = .nil
 loadedsources = .Directory~new
-watchwindows = .Directory~new
+watchwindows = .Set~new
 checkedsources = .List~new
 scrollcharpos = 1
 waiting = .false
@@ -428,19 +428,15 @@ if parentlist = .nil then do
   if \rootlist~isA(.List) then rootlist = .list~new
   parentlist = rootlist
 end  
-watchwindowid = ""
-do item over parentlist
-  watchwindowid = watchwindowid||':'||item~makestring
-end  
-if \watchwindows~hasindex(watchwindowid) then do
+existingwindow = .WatchHelper~FindWatchWindow(watchwindows,parentlist)
+if existingwindow \=.nil then self~setforegroundWindow(existingwindow~hwnd)
+else do
   childready = .False
   watchdialog = .Watchdialog~new(self, parentwindow, parentlist)
   watchdialog~popup("SHOWTOP")
-  watchwindows[watchwindowid] = watchdialog
+  watchwindows~put(watchdialog)
   guard off when childready = .True
 end
-else self~setforegroundWindow(watchwindows[watchwindowid]~hwnd)
-
 
 self~HereIsResponse("UPDATEVARS")
 
