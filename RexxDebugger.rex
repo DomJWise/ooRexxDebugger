@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34"
+::CONSTANT VERSION "1.34.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -955,7 +955,8 @@ end
 ------------------------------------------------------
 ::method VariableDoubleClicked
 ------------------------------------------------------
-expose itemidentifiers itemclasses parentlist isarraywindow
+expose itemidentifiers itemclasses parentlist isarraywindow isstringwindow
+if isstringwindow then return
 itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
 if itemindex \= 0 then do
   itemidentifier = itemidentifiers[itemindex]
@@ -1002,7 +1003,7 @@ return dialogTitle
 ------------------------------------------------------
 ::METHOD UpdateWatchWindow unguarded
 ------------------------------------------------------
-expose currentselectioninfo varsvalid itemidentifiers itemclasses parentlist isarraywindow
+expose currentselectioninfo varsvalid itemidentifiers itemclasses parentlist isarraywindow isstringwindow
 use arg root
 
 variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
@@ -1016,13 +1017,41 @@ do nextchild over parentlist while variablescollection \= .Nil
     if variablescollection~IsA(.WeakReference) then variablescollection = variablescollection~value
   end
 end
-if variablescollection = .nil | \variablescollection~IsA(.Collection) then do
+if variablescollection = .nil | \(variablescollection~IsA(.Collection) | variablescollection~IsA(.MutableBuffer) | variablescollection~IsA(.String)) then do
   self~ListClearSelection(self~controls, self~LISTVARS)
   varsvalid = .False
 end
 else do
   varsvalid = .True
+  isstringwindow = variablescollection~IsA(.MutableBuffer) | variablescollection~IsA(.String)
   isarraywindow = variablescollection~IsA(.Array)
+
+  if isstringwindow then do
+    if variablescollection~IsA(.MutableBuffer) then varvalue = variablescollection~string
+    else varvalue = variablescollection
+    self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
+  
+    self~ListDeleteAllItems(self~controls, self~LISTVARS)
+    self~ListBeginSetHorizonalExtent(self~controls, self~LISTVARS)
+    lines = varvalue~makearray(.endofline)
+    do text over lines~allitems
+      do while text~length > self~MAXVALUESTRINGLENGTH + 1
+        nextline = text~substr(1,self~MAXVALUESTRINGLENGTH + 1)||' ...'
+        nextline = nextline~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+        self~ListUpdateMaxHorizonalExtent(nextline)
+        self~ListAddItem(self~controls, self~LISTVARS, nextline)
+        text = text~substr(self~MAXVALUESTRINGLENGTH + 2)
+      end  
+      text = text~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+      self~ListUpdateMaxHorizonalExtent(text)
+      self~ListAddItem(self~controls, self~LISTVARS, text)
+    end
+    self~ListEndSetHorizonalExtent(self~LISTVARS)
+    self~ListSetFirstVisible(self~controls, self~LISTVARS, 1)
+    self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
+    return
+  end  
+
   showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   
@@ -1063,12 +1092,13 @@ else do
           end
           if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
           vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-          if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||'...'
+          if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||' ...'
         end
       end
     end  
 
     if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
+    else if variablescollection[varname]~isA(.MutableBuffer) then varvalue = variablescollection[varname]~string
     else varvalue = variablescollection[varname]~defaultname
     if variablescollection[varname]~isInstanceOf(.Collection) then do
       varvalue = varvalue' ('variablescollection[varname]~items' item'
@@ -1076,10 +1106,13 @@ else do
       varvalue = varvalue||')'
     end  
     if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
-    varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+    varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
     if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
 
-    else if self~IsExpandable(variablescollection[varname]~class) then text = '+'
+    if self~IsExpandable(variablescollection[varname]~class) then do 
+      if variablescollection[varname]~class~IsSubclassOf(.Collection) then text = '+'
+      else text = ' '
+    end
     else text = ' '
     if vardisplayname \= '' then text= text||vardisplayname' = 'varvalue
     else text=text||varvalue
@@ -1118,7 +1151,7 @@ else do
     else if self~ListGetRowCount(self~controls, self~LISTVARS) \= 0 then self~ListSetFirstVisible(self~controls, self~LISTVARS, 1)
   end  
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
- 
+
 end
 
 
@@ -1138,6 +1171,8 @@ if itemclass~IsSubClassOf(.Directory)     | -
    itemclass~IsSubClassOf(.Relation)      | -
    itemclass~IsSubClassOf(.Table)         | -
    itemclass~IsSubClassOf(.IdentityTable) | -
+   itemclass~IsSubClassOf(.String)        | -
+   itemclass~IsSubClassOf(.MutableBuffer) | -
    itemclass~IsSubClassOf(.Array) then return .True
 else return .False
 
