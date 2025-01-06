@@ -1245,10 +1245,21 @@ dialog~Cancel
 ------------------------------------------------------
 if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
-::method mousepressed
-::method mousereleased
 ::method mouseexited
 ::method mouseentered
+
+------------------------------------------------------
+::method mousepressed
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~isPopupTrigger() then slotdir~userdata~ShowWatchListPopupMenu(eventobj)
+
+------------------------------------------------------
+::method mousereleased
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~isPopupTrigger() then slotdir~userdata~ShowWatchListPopupMenu(eventobj)
+
 
 ------------------------------------------------------
 ::method mouseclicked
@@ -1270,8 +1281,11 @@ end
 ::class WatchDialog subclass bsf inherit DialogControlHelper
 --====================================================
  
-::CONSTANT LISTVARS 101
-::CONSTANT PANEVARS 102
+::CONSTANT LISTVARS            101
+::CONSTANT PANEVARS            102
+::CONSTANT LISTCONTEXTMENU     103
+::CONSTANT SHOWGLOBALSMENUITEM 104
+::CONSTANT HIDEGLOBALSMENUITEM 105
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
@@ -1279,6 +1293,7 @@ end
 
 ::ATTRIBUTE controls             private unguarded
 ::ATTRIBUTE debugwindow          private unguarded
+::ATTRIBUTE showglobals          private unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -1288,9 +1303,10 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow dialogtitle gui
+expose debugwindow controls parentwindow dialogtitle gui showglobals
 use arg debugwindow, gui, parentwindow, parentlist
 
+showglobals = .False
 self~init:.WatchHelper(parentlist)
 
 controls = .Directory~new
@@ -1350,6 +1366,21 @@ varsmouselistener = .WatchDialogListVarsMouseListener~new
 varsmouselistenerEH = BsfCreateRexxProxy(varsmouselistener, self, "java.awt.event.MouseListener")
 controls[self~LISTVARS]~addMouseListener(varsmouselistenerEH)
 
+if parentwindow = debugwindow then do
+  watchlistcontextmenu = gui~clsJPopupMenu~new("")
+  SHOWGLOBALSMENUITEM = gui~clsJMenuItem~new("Show global Items")
+  HIDEGLOBALSMENUITEM = gui~clsJMenuItem~new("Hide global items")
+  watchlistcontextmenu~add(SHOWGLOBALSMENUITEM)
+  watchlistcontextmenu~add(HIDEGLOBALSMENUITEM)
+
+  controls[self~LISTCONTEXTMENU] = watchlistcontextmenu
+  controls[self~SHOWGLOBALSMENUITEM] = SHOWGLOBALSMENUITEM
+  controls[self~HIDEGLOBALSMENUITEM] = HIDEGLOBALSMENUITEM
+
+  controls[self~SHOWGLOBALSMENUITEM]~addActionListener(BsfCreateRexxProxy(self, self~SHOWGLOBALSMENUITEM, "java.awt.event.ActionListener"))
+  controls[self~HIDEGLOBALSMENUITEM]~addActionListener(BsfCreateRexxProxy(self, self~HIDEGLOBALSMENUITEM, "java.awt.event.ActionListener"))
+end
+
 parentrect = parentwindow~getbounds
 myrect = self~getbounds
 if parentwindow = debugwindow then self~setlocation(parentrect~x + parentrect~width + 10, parentrect~y)
@@ -1359,13 +1390,36 @@ debugwindow~NotifyChildReady
 
 
 ------------------------------------------------------
+::method actionPerformed unguarded
+------------------------------------------------------
+use arg eventobj, slotdir
+id = slotdir~userdata
+
+if id = self~SHOWGLOBALSMENUITEM then self~ShowGlobalItems
+if id = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
+
+-------------------------------------------------------
+::method ShowWatchListPopupMenu
+-------------------------------------------------------
+expose gui controls showglobals
+use arg eventobj
+
+contextmenu = controls[self~LISTCONTEXTMENU]
+if contextmenu \= .nil then do
+  controls[self~SHOWGLOBALSMENUITEM]~setEnabled(\showglobals)
+  controls[self~HIDEGLOBALSMENUITEM]~setEnabled(showglobals)
+
+  controls[self~LISTCONTEXTMENU]~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
+end
+
+------------------------------------------------------
 ::method Cancel 
 ------------------------------------------------------
 
 expose hfnt debugwindow
 debugwindow~RemoveWatchWindow(self)
 self~dispose
-  
+
 ------------------------------------------------------
 ::ROUTINE IsWindows
 ------------------------------------------------------

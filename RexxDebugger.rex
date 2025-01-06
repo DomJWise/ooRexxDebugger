@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34.1"
+::CONSTANT VERSION "1.34.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -1068,8 +1068,10 @@ else do
     count = itemidentifiers~items
     itemidentifiers~delete(itemidentifiers~index(".ENVIRONMENT"))
     itemidentifiers~delete(itemidentifiers~index(".LOCAL"))
-    itemidentifiers[count-1] = ".ENVIRONMENT"
-    itemidentifiers[count]   = ".LOCAL"
+    if self~showglobals then do
+      itemidentifiers[count-1] = ".ENVIRONMENT"
+      itemidentifiers[count]   = ".LOCAL"
+    end
   end
   if \isarraywindow then do i = 1 to itemidentifiers~items
     if \itemidentifiers[i]~IsA(.String) then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
@@ -1153,6 +1155,20 @@ else do
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
 
 end
+
+------------------------------------------------------
+::method ShowGlobalItems
+------------------------------------------------------
+self~showglobals = .True
+
+self~debugwindow~HereIsResponse("UPDATEVARS")
+
+------------------------------------------------------
+::method HideGlobalItems
+------------------------------------------------------
+self~showglobals = .False
+
+self~debugwindow~HereIsResponse("UPDATEVARS")
 
 
 ------------------------------------------------------

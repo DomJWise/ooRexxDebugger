@@ -32,9 +32,8 @@ CALL SAY 'Loop finished'
 
 /**/CALL SAY 'Enter "SAY 1+2" into the debugger command prompt below (without the quotes) and hit Execute or Next'
 CALL SAY 'Enter "CAPTURE" into the debugger prompt and hit Execute. Trace and SAY output will be moved here'
-SAY 'Try hitting NEXT with "CAPTURE" still in the debugger prompt. Debugger commands can''t be present when using Next'
 SAY 'Enter "SAY 2+3"  into the debugger prompt and hit Execute or Next'
-SAY 'Type "CAPTUREX" into the debugger prompt and hit Execute. Then clear the prompt and hit Next'
+SAY 'Type "CAPTUREX" into the debugger prompt and hit Execute.'
 SAY 'Trace output should no longer appear anywhere, unless there is an error, but SAY output will'
 SAY 'Type "SAY 3+4" into the debugger prompt and hit Execute or Next'
 SAY 'Press the Enter key on the keyboard. With text in the debug command prompt this is the same as hitting Exec'
@@ -43,7 +42,6 @@ SAY 'Play around with the up/down arrow keys to see previous commands'
 NOP
 x = 12
 SAY 'Click the Vars button then hit Next'
-SAY 'Note that .Environment and .Local are collections available to all Rexx programs'
 Y = 13
 SAY 'Enter "y=y+1" in the debugger prompt and hit Next a couple of times, with an eye on the Watch window'
 SAY y
@@ -53,8 +51,7 @@ SAY ''
 stemvar.1 = "Hello"
 stemvar.2 = "World"
 SAY 'In the Watch window, double click on "STEMVAR"'
-SAY 'A + sign at the start of a watch variable means it can be expanded.'
-SAY 'Try this with either .Local or .Environment'
+SAY 'A + sign at the start of a watch variable means it is a collection that can be expanded.'
 SAY 'Click Run if you want here to skip array set up'
 multidimarray = .Array~new(2,2)
 do i = 1 to 2
@@ -72,6 +69,13 @@ SAY 'Recursive watch drilldown is possible for all collection types'
 SAY 'In the newly added watch window for DIR, double click on "ArrayThing"'
 SAY 'Note: One restriction exists for Relation collections'
 SAY 'Drilldown will only work for one item in a set with duplicate indexes'
+SAY
+SAY 'The .Environment and .Local directories can be accessed via a menu action'
+SAY 'In the main watch window, right-click and select the menu option "Show global items"'
+SAY
+SAY 'String variables (including MutableBuffer objects) can be opened in multi-line windows'
+bigstring = 'Multi'.endofline'line'.endofline'string'
+SAY 'Double click on bigstring in the main Watch window to see it expanded in a new window'
 SAY
 SAY 'METHODS and ROUTINES have their own variables. Now a ROUTINE will be called'
 SAY 'Note that with a CALL statement Rexx breaks AFTER the call has completed.'

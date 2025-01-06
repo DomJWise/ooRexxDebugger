@@ -888,13 +888,17 @@ activesourcename=.nil
 ::class WatchDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
  
-::CONSTANT LISTVARS 101
+::CONSTANT LISTVARS            101
+::CONSTANT SHOWGLOBALSMENUITEM 102
+::CONSTANT HIDEGLOBALSMENUITEM 103
+
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 ::CONSTANT MAXNAMESTRINGLENGTH   64
 
 ::ATTRIBUTE controls             private unguarded
 ::ATTRIBUTE debugwindow          private unguarded
+::ATTRIBUTE showglobals          private unguarded
 
  ------------------------------------------------------
 ::method init 
@@ -933,8 +937,10 @@ return 0
 ------------------------------------------------------
 ::method initdialog 
 ------------------------------------------------------
-expose controls debugwindow hfnt  parentwindow 
+expose controls debugwindow hfnt  parentwindow showglobals watchpopupmenu
 
+showglobals = .False
+watchpopupmenu = .nil
 controls[self~LISTVARS] = self~newListBox(self~LISTVARS)
 
 self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
@@ -955,6 +961,14 @@ mysize= self~getrealsize
 if parentwindow = debugwindow then mystartpos = parentpos~~incr(parentsize~width, 0)
 else mystartpos = parentpos~~incr(0, parentsize~height)
 self~moveto(mystartpos)
+
+if parentwindow = debugwindow then do
+  watchpopupmenu = .PopupMenu~new(self~LISTVARS)
+  watchpopupmenu~insertItem(self~SHOWGLOBALSMENUITEM, self~SHOWGLOBALSMENUITEM, "Show global items")
+  watchpopupmenu~insertItem(self~HIDEGLOBALSMENUITEM, self~HIDEGLOBALSMENUITEM, "Hide global items")
+  watchpopupmenu~assignTo(self, .true)
+  watchpopupmenu~connectContextMenu(OnListVarsContext, controls[self~LISTVARS]~hwnd)
+end
 
 self~ensurevisible
 debugwindow~NotifyChildReady
@@ -988,6 +1002,23 @@ end
 ::method OnCopyCommand2 unguarded
 ------------------------------------------------------
 self~OnCopyCommand
+
+------------------------------------------------------
+::method OnListVarsContext
+------------------------------------------------------
+expose watchpopupmenu controls showglobals
+use arg hwnd,x,y
+
+if showglobals then do
+  watchpopupmenu~disable(self~SHOWGLOBALSMENUITEM)
+  watchpopupmenu~enable(self~HIDEGLOBALSMENUITEM)
+end
+else do
+  watchpopupmenu~enable(self~SHOWGLOBALSMENUITEM)
+  watchpopupmenu~disable(self~HIDEGLOBALSMENUITEM)
+end
+watchpopupmenu~show(.Point~new(x,y))
+
 
 --====================================================
 ::class BreakPointSettingsDialog subclass userdialog --inherit ResizingAdmin
