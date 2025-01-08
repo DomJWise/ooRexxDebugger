@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34.2"
+::CONSTANT VERSION "1.34.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -512,7 +512,7 @@ self~SendDebugMessage("")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | HELP | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Buttons with the above labels execute the corresponding command.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Command history for the session can be accessed with the up/down keys.")
-self~SendDebugMessage(self~DebugMsgPrefix||"- The Vars button opens a realtime variables window.")
+self~SendDebugMessage(self~DebugMsgPrefix||"- The Watch button opens a realtime variable watch window.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Double clicking many collection object types in a variables window will expand them in a new window.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Clicking a stack row takes you to the specified source location and file.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Double clicking a source row toggles a breakpoint, but this does not guarantee that the line will be hit.")

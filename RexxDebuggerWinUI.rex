@@ -245,7 +245,7 @@ self~createEdit(self~EDITDEBUGLOG, 3, 181, 240, 100, "HSCROLL VSCROLL MULTILINE"
 self~createPushButton(self~BUTTONNEXT, 246, 181, 30, 15,  ,"&Next", OnNextButton) 
 self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", OnRunButton) 
 self~createPushButton(self~BUTTONEXIT, 246, 215, 30, 15,  ,"E&xit", OnExitButton) 
-self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Vars", OnVarsButton) 
+self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Watch", OnVarsButton) 
 self~createPushButton(self~BUTTONHELP, 246, 249, 30, 15,  ,"&Help", OnHelpButton) 
 self~createPushButton(self~BUTTONOPEN, 246, 266, 30, 15,  ,"&Open", OnOpenButton) 
 self~createEdit(self~EDITCOMMAND, 3, 283, 240, 15, "WANTRETURN")

@@ -41,7 +41,7 @@ SAY 'Clear the text in the debugger prompt and press Enter again. This is the sa
 SAY 'Play around with the up/down arrow keys to see previous commands'
 NOP
 x = 12
-SAY 'Click the Vars button then hit Next'
+SAY 'Click the Watch button then hit Next'
 Y = 13
 SAY 'Enter "y=y+1" in the debugger prompt and hit Next a couple of times, with an eye on the Watch window'
 SAY y
