@@ -645,6 +645,7 @@ if waiting then do
     end
     else commandnum = arrCommands~index(returnstring) + 1
   end    
+  if returnstring~strip~translate = 'RUN' then self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
   self~HereIsResponse(returnstring)
 end
 
