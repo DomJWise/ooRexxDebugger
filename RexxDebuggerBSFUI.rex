@@ -170,6 +170,14 @@ expose debugdialog debugger
 use  arg text, newline = .true
 if debugdialog \= .nil & \debugger~isshutdown then debugdialog~appendtext(text, newline)
 
+------------------------------------------------------
+::method ClearUIConsole unguarded
+------------------------------------------------------
+expose debugdialog debugger
+use  arg text, newline = .true
+if debugdialog \= .nil & \debugger~isshutdown then
+  if .AWTGuiThread~isGuiThread then debugdialog~ClearConsole
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "ClearConsole")~~result~errorCondition, .context)
 
 ------------------------------------------------------
 ::method GetUINextResponse unguarded 
@@ -998,6 +1006,15 @@ if debugconsoleappendbuffer \= '' then do
     controls[self~EDITDEBUGLOG]~append(debugconsoleappendbuffer)
   end
   debugconsoleappendbuffer = ''
+end
+
+------------------------------------------------------
+::Method ClearConsole
+------------------------------------------------------
+expose controls debugger debugconsoleappendbuffer
+if \debugger~isshutdown then do
+  debugconsoleappendbuffer = ''
+  controls[self~EDITDEBUGLOG]~settext('')
 end
 
 ------------------------------------------------------

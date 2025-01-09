@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34.3"
+::CONSTANT VERSION "1.34.4"
 
 --====================================================
 ::class RexxDebugger public
@@ -356,7 +356,7 @@ if translate(response) = 'NEXT' | response = '' then do
   return ''
 end  
 if translate(response)~word(1) = 'NEXT' & response~words > 1 then do
-   if "RUN EXIT HELP CAPTURE CAPTUREX NOCAPTURE"~wordpos(response~word(2)~translate) \= 0 then .debug.channel~status~append("getprogramstatus "||response~DELWORD(1,2))
+   if "RUN EXIT HELP CAPTURE CAPTUREX NOCAPTURE CLS"~wordpos(response~word(2)~translate) \= 0 then .debug.channel~status~append("getprogramstatus "||response~DELWORD(1,2))
    else .debug.channel~status~append("getprogramstatus "||response~DELWORD(1,1))
   return ''
 end  
@@ -382,7 +382,11 @@ if translate(response) = 'HELP' then do
   self~ShowHelpText
   return 'NOP'
 end  
-  
+if translate(response) = 'CLS' then do
+  debuggerui~ClearUIConsole
+  return 'NOP'
+end
+
 if shutdown & response \= '' then response = response||'; trace off; exit'
 
 .debug.channel~status~append("getprogramstatus")
@@ -509,7 +513,7 @@ return manualbreak
 ::method ShowHelptext 
 ------------------------------------------------------
 self~SendDebugMessage("")
-self~SendDebugMessage(self~DebugMsgPrefix||"- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | HELP | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
+self~SendDebugMessage(self~DebugMsgPrefix||"- Commands: <instrs> | NEXT [<instrs>] | RUN | EXIT | CLS | HELP | CAPTURE | CAPTUREX | NOCAPTURE - use the Exec button to run the command.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Buttons with the above labels execute the corresponding command.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- Command history for the session can be accessed with the up/down keys.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- The Watch button opens a realtime variable watch window.")
@@ -520,11 +524,12 @@ self~SendDebugMessage(self~DebugMsgPrefix||"  Some simple hit checks are carried
 self~SendDebugMessage(self~DebugMsgPrefix||"  e.g. if it is empty, a comment, a directive or is END, THEN, ELSE, OTHERWISE, RETURN, EXIT or SIGNAL")
 self~SendDebugMessage(self~DebugMsgPrefix||"  DO statements should be hit unless they mark the start of a loop that has looped once already.")
 self~SendDebugMessage(self~DebugMsgPrefix||"  CALL statements (and what they call) may be hit, depending on what they are calling.")
-self~SendDebugMessage(self~DebugMsgPrefix||"  A * means the self thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
+self~SendDebugMessage(self~DebugMsgPrefix||"  A * means the debugger thinks the code will be hit, a ? means it thinks it likely it won't ever be hit.")
 self~SendDebugMessage(self~DebugMsgPrefix||"  Hint: A line with just NOP can be inserted as an anchor for a breakpoint that will always be hit.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- /**/ at the start of traceable line (including NOP) causes a breakpoint to be automatically set for that line.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- The instruction CALL SAY ... will always send output here.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- So long as SAY is enabled in the target application, other output should appear there.")
+self~SendDebugMessage(self~DebugMsgPrefix||"- CLS will delete all text in the console output window.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- If the application has no output, or you want the output here, you can try the CAPTURE command to capture all output.")
 self~SendDebugMessage(self~DebugMsgPrefix||"  CAPTUREX is similar but will discard (eXclude) all trace output apart from program errors.")
 self~SendDebugMessage(self~DebugMsgPrefix||"- NOCAPTURE switches off any capture that was previously active.")

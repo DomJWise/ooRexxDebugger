@@ -113,6 +113,13 @@ expose debugdialog debugger
 
 if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ResetSourceState
 
+------------------------------------------------------
+::method ClearUIConsole
+------------------------------------------------------
+expose debugdialog debugger
+
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ClearConsole
+
 
 --====================================================
 ::class DebugDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
@@ -636,6 +643,24 @@ if \debugger~isshutdown then do
   end  
   if debugconsolefinalupdatemessage = .nil then debugconsolefinalupdatemessage = self~start("EnsureFinalConsoleUpdates", 180)
 end  
+
+------------------------------------------------------
+::Method ClearConsole unguarded
+------------------------------------------------------
+expose debugger debugconsoleappendbuffer  debugconsolelastupdate debugconsoletextlength controls
+
+if \debugger~isshutdown then do
+  controls[self~EDITDEBUGLOG]~hidefast
+  controls[self~EDITDEBUGLOG]~select(1, debugconsoletextlength + 1)
+  controls[self~EDITDEBUGLOG]~replaceseltext('', .False)
+  controls[self~EDITDEBUGLOG]~showfast
+  controls[self~EDITDEBUGLOG]~ensureCaretVisibility
+  controls[self~EDITDEBUGLOG]~redraw
+
+  debugconsolelastupdate = TIME('F')
+  debugconsoleappendbuffer = ''
+  debugconsoletextlength = 0
+end
 
 ------------------------------------------------------
 ::method EnsureFinalConsoleUpdates unguarded
