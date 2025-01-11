@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34.7"
+::CONSTANT VERSION "1.34.8"
 
 --====================================================
 ::class RexxDebugger public
@@ -1009,154 +1009,175 @@ return dialogTitle
 ------------------------------------------------------
 ::METHOD UpdateWatchWindow unguarded
 ------------------------------------------------------
-expose currentselectioninfo varsvalid itemidentifiers itemclasses parentlist isarraywindow isstringwindow
+expose currentselectioninfo varsvalid itemidentifiers itemclasses parentlist isarraywindow isstringwindow isrootwindow
 use arg root
 
-variablescollection = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
-do nextchild over parentlist while variablescollection \= .Nil
+watchtarget = root~~put(.environment, ".ENVIRONMENT")~~put(.local, ".LOCAL")
+do nextchild over parentlist while watchtarget \= .Nil
   if nextchild~IsA(.WeakReference) then do
     nextchild = nextchild~value
   end
-  if nextchild = .nil then variablescollection = .Nil 
+  if nextchild = .nil then watchtarget = .Nil 
   else do
-    variablescollection = variablescollection[nextchild]
-    if variablescollection~IsA(.WeakReference) then variablescollection = variablescollection~value
+    watchtarget = watchtarget[nextchild]
+    if watchtarget~IsA(.WeakReference) then watchtarget = watchtarget~value
   end
 end
-if variablescollection = .nil | \(variablescollection~IsA(.Collection) | variablescollection~IsA(.MutableBuffer) | variablescollection~IsA(.String)) then do
+if watchtarget = .nil | \(watchtarget~IsA(.Collection) | watchtarget~IsA(.MutableBuffer) | watchtarget~IsA(.String)) then do
   self~ListClearSelection(self~controls, self~LISTVARS)
   varsvalid = .False
 end
 else do
   varsvalid = .True
-  isstringwindow = variablescollection~IsA(.MutableBuffer) | variablescollection~IsA(.String)
-  isarraywindow = variablescollection~IsA(.Array)
+
+  isstringwindow = watchtarget~IsA(.MutableBuffer) | watchtarget~IsA(.String)
+  isarraywindow = watchtarget~IsA(.Array)
+  isrootwindow = (parentlist~items = 0)
 
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .True)
   self~ListDeleteAllItems(self~controls, self~LISTVARS)
   self~ListBeginSetHorizonalExtent(self~controls, self~LISTVARS)
 
-  if isstringwindow then do
-    if variablescollection~IsA(.MutableBuffer) then varvalue = variablescollection~string
-    else varvalue = variablescollection
-    lines = varvalue~makearray(.endofline)
-    do text over lines~allitems
-      do while text~length > self~MAXVALUESTRINGLENGTH + 1
-        nextline = text~substr(1,self~MAXVALUESTRINGLENGTH + 1)||' ...'
-        nextline = nextline~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
-        self~ListUpdateMaxHorizonalExtent(nextline)
-        self~ListAddItem(self~controls, self~LISTVARS, nextline)
-        text = text~substr(self~MAXVALUESTRINGLENGTH + 2)
-      end  
-      text = text~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
-      self~ListUpdateMaxHorizonalExtent(text)
-      self~ListAddItem(self~controls, self~LISTVARS, text)
-    end
-  end  
-  else do
-    showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
+  if isstringwindow then self~PopulateFromString(watchtarget)
+  else self~PopulateFromCollection(watchtarget)
   
-    if variablescollection~isA(.Directory) | -
-         variablescollection~isA(.Properties) | -
-         variablescollection~isA(.Stem) | -
-         variablescollection~isA(.StringTable) -
-    then itemidentifiers = variablescollection~allindexes~sort
-    else itemidentifiers = variablescollection~allindexes
-    if parentlist~items = 0 then do
-      count = itemidentifiers~items
-      itemidentifiers~delete(itemidentifiers~index(".ENVIRONMENT"))
-      itemidentifiers~delete(itemidentifiers~index(".LOCAL"))
-      if self~showglobals then do
-        itemidentifiers[count-1] = ".ENVIRONMENT"
-        itemidentifiers[count]   = ".LOCAL"
-      end
-    end
-    if \isarraywindow then do i = 1 to itemidentifiers~items
-      if \itemidentifiers[i]~IsA(.String) then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
-    end
-    itemclasses = .Array~new
-    do varname over itemidentifiers
-      if varname~IsA(.WeakReference)then varname = varname~value
-      if \showvariablenames then vardisplayname = ''
-      else do 
-        if varname~isA(.Array) & isarraywindow then vardisplayname = varname~makestring(,",")
-        else if varname~isA(.String) then vardisplayname = varname
-        else do 
-          if varname = .Nil then  vardisplayname = ' <Unknown>'
-          else do
-            vardisplayname = varname~defaultname
-            if varname~isInstanceOf(.Collection) then do
-              vardisplayname = vardisplayname' ('varname~items' item'    
-              if varname~items \=1 then vardisplayname=vardisplayname||'s'
-              vardisplayname = vardisplayname||')'
-            end
-          if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
-            vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-            if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||' ...'
-          end
-        end
-      end  
-
-      if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
-      else if variablescollection[varname]~isA(.MutableBuffer) then varvalue = variablescollection[varname]~string
-      else varvalue = variablescollection[varname]~defaultname
-      if variablescollection[varname]~isInstanceOf(.Collection) then do
-        varvalue = varvalue' ('variablescollection[varname]~items' item'
-        if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
-        varvalue = varvalue||')'
-      end  
-      if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
-      varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
-      if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
-
-      if self~IsExpandable(variablescollection[varname]~class) then do   
-        if variablescollection[varname]~class~IsSubclassOf(.Collection) then text = '+'
-        else text = ' '
-      end
-      else text = ' '
-      if vardisplayname \= '' then text= text||vardisplayname' = 'varvalue
-      else text=text||varvalue
-      self~ListUpdateMaxHorizonalExtent(text)
-      self~ListAddItem(self~controls, self~LISTVARS, text)
-      itemclasses~append(variablescollection[varname]~class)
-    end
-  end
-
   self~ListEndSetHorizonalExtent(self~LISTVARS)
-  if currentselectioninfo \= .Nil then do 
-    indextoselect = 0
-    prevrowsbefore = currentselectioninfo[2]
-    if isstringwindow then indextoselect = min(currentselectioninfo[1], self~ListGetRowCount(self~controls, self~LISTVARS))
-    else do
-      prevselectedidentifier = currentselectioninfo[1]
-      if prevselectedidentifier \= "" & prevselectedidentifier \=.Nil then do
-        do i = 1 to itemidentifiers~items while indextoselect = 0
-          if prevselectedidentifier~IsA(.String) & itemidentifiers[i]~IsA(.String) then do
-            if prevselectedidentifier = itemidentifiers[i] then indextoselect = i
-          end
-          else if prevselectedidentifier~IsA(.Array) & itemidentifiers[i]~IsA(.Array) then do
-            matches = .True
-            do j = 1 to prevselectedidentifier~dimension(1) while matches = .True
-              if  prevselectedidentifier[j] \= itemidentifiers[i][j] then matches = .False
-            end
-            if matches then indextoselect = i
-          end
-          else if prevselectedidentifier~IsA(.WeakReference) & itemidentifiers[i]~IsA(.WeakReference) then do
-            if prevselectedidentifier~value = itemidentifiers[i]~value & prevselectedidentifier~value \= .nil then indextoselect = i
-          end  
+
+  if currentselectioninfo \= .Nil then self~NavigateToActiveSelection
+ 
+  self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
+end
+
+------------------------------------------------------
+::method PopulateFromString
+------------------------------------------------------
+use arg stringvariable
+
+if stringvariable~IsA(.MutableBuffer) then varvalue = stringvariable~string
+else varvalue = stringvariable
+lines = varvalue~makearray(.endofline)
+do text over lines~allitems
+  do while text~length > self~MAXVALUESTRINGLENGTH + 1
+    nextline = text~substr(1,self~MAXVALUESTRINGLENGTH + 1)||' ...'
+    nextline = nextline~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+    self~ListUpdateMaxHorizonalExtent(nextline)
+    self~ListAddItem(self~controls, self~LISTVARS, nextline)
+    text = text~substr(self~MAXVALUESTRINGLENGTH + 2)
+  end  
+  text = text~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+  self~ListUpdateMaxHorizonalExtent(text)
+  self~ListAddItem(self~controls, self~LISTVARS, text)
+end
+
+------------------------------------------------------
+::method PopulateFromCollection
+------------------------------------------------------
+expose isarraywindow isrootwindow itemidentifiers itemclasses
+
+use arg variablescollection
+
+showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
+  
+if variablescollection~isA(.Directory) | -
+    variablescollection~isA(.Properties) | -
+    variablescollection~isA(.Stem) | -
+    variablescollection~isA(.StringTable) -
+then itemidentifiers = variablescollection~allindexes~sort
+else itemidentifiers = variablescollection~allindexes
+    
+if isrootwindow then do
+  count = itemidentifiers~items
+  itemidentifiers~delete(itemidentifiers~index(".ENVIRONMENT"))
+  itemidentifiers~delete(itemidentifiers~index(".LOCAL"))
+  if self~showglobals then do
+    itemidentifiers[count-1] = ".ENVIRONMENT"
+    itemidentifiers[count]   = ".LOCAL"
+  end
+end
+if \isarraywindow then do i = 1 to itemidentifiers~items
+  if \itemidentifiers[i]~IsA(.String) then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
+end
+itemclasses = .Array~new
+do varname over itemidentifiers
+  if varname~IsA(.WeakReference)then varname = varname~value
+  if \showvariablenames then vardisplayname = ''
+  else do 
+    if varname~isA(.Array) & isarraywindow then vardisplayname = varname~makestring(,",")
+    else if varname~isA(.String) then vardisplayname = varname
+    else do 
+      if varname = .Nil then  vardisplayname = ' <Unknown>'
+      else do
+        vardisplayname = varname~defaultname
+        if varname~isInstanceOf(.Collection) then do
+          vardisplayname = vardisplayname' ('varname~items' item'    
+          if varname~items \=1 then vardisplayname=vardisplayname||'s'
+          vardisplayname = vardisplayname||')'
         end
+      if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
+        vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+        if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||' ...'
+      end
+    end
+  end  
+
+  if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
+  else if variablescollection[varname]~isA(.MutableBuffer) then varvalue = variablescollection[varname]~string
+  else varvalue = variablescollection[varname]~defaultname
+  if variablescollection[varname]~isInstanceOf(.Collection) then do
+    varvalue = varvalue' ('variablescollection[varname]~items' item'
+    if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
+    varvalue = varvalue||')'
+  end  
+  if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
+  varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+  if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
+
+  if self~IsExpandable(variablescollection[varname]~class) then do   
+    if variablescollection[varname]~class~IsSubclassOf(.Collection) then text = '+'
+    else text = ' '
+  end
+  else text = ' '
+  if vardisplayname \= '' then text= text||vardisplayname' = 'varvalue
+  else text=text||varvalue
+  self~ListUpdateMaxHorizonalExtent(text)
+  self~ListAddItem(self~controls, self~LISTVARS, text)
+  itemclasses~append(variablescollection[varname]~class)
+end
+
+------------------------------------------------------
+::method NavigateToActiveSelection
+------------------------------------------------------
+expose isstringwindow currentselectioninfo itemidentifiers
+
+indextoselect = 0
+prevrowsbefore = currentselectioninfo[2]
+if isstringwindow then indextoselect = min(currentselectioninfo[1], self~ListGetRowCount(self~controls, self~LISTVARS))
+else do
+  prevselectedidentifier = currentselectioninfo[1]
+  if prevselectedidentifier \= "" & prevselectedidentifier \=.Nil then do
+    do i = 1 to itemidentifiers~items while indextoselect = 0
+      if prevselectedidentifier~IsA(.String) & itemidentifiers[i]~IsA(.String) then do
+        if prevselectedidentifier = itemidentifiers[i] then indextoselect = i
+      end
+      else if prevselectedidentifier~IsA(.Array) & itemidentifiers[i]~IsA(.Array) then do
+        matches = .True
+        do j = 1 to prevselectedidentifier~dimension(1) while matches = .True
+          if  prevselectedidentifier[j] \= itemidentifiers[i][j] then matches = .False
+        end
+        if matches then indextoselect = i
+      end
+      else if prevselectedidentifier~IsA(.WeakReference) & itemidentifiers[i]~IsA(.WeakReference) then do
+        if prevselectedidentifier~value = itemidentifiers[i]~value & prevselectedidentifier~value \= .nil then indextoselect = i
       end  
     end
-    if indextoselect \= 0 then do
-      self~ListSetSelectedIndex(self~controls, self~LISTVARS, indextoselect)
-      newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
-      self~ListSetFirstVisible(self~controls, self~LISTVARS, newfirstvisible)
-    end  
-    else if self~ListGetRowCount(self~controls, self~LISTVARS) \= 0 then self~ListSetFirstVisible(self~controls, self~LISTVARS, 1)
   end  
-  self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
-
 end
+if indextoselect \= 0 then do
+  self~ListSetSelectedIndex(self~controls, self~LISTVARS, indextoselect)
+  newfirstvisible = MAX(1,indextoselect - prevrowsbefore)
+  self~ListSetFirstVisible(self~controls, self~LISTVARS, newfirstvisible)
+end  
+else if self~ListGetRowCount(self~controls, self~LISTVARS) \= 0 then self~ListSetFirstVisible(self~controls, self~LISTVARS, 1)
 
 ------------------------------------------------------
 ::method ShowGlobalItems
