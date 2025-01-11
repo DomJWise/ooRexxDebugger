@@ -988,16 +988,39 @@ if parentwindow = debugwindow then mystartpos = parentpos~~incr(parentsize~width
 else mystartpos = parentpos~~incr(0, parentsize~height)
 self~moveto(mystartpos)
 
-if parentwindow = debugwindow then do
-  watchpopupmenu = .PopupMenu~new(self~LISTVARS)
-  watchpopupmenu~insertItem(self~SHOWGLOBALSMENUITEM, self~SHOWGLOBALSMENUITEM, "Show global items")
-  watchpopupmenu~insertItem(self~HIDEGLOBALSMENUITEM, self~HIDEGLOBALSMENUITEM, "Hide global items")
-  watchpopupmenu~assignTo(self, .true)
-  watchpopupmenu~connectContextMenu(OnListVarsContext, controls[self~LISTVARS]~hwnd)
-end
+.PopupMenu~connectContextMenu(self, OnShowContextMenu, controls[self~LISTVARS]~hwnd)
 
 self~ensurevisible
 debugwindow~NotifyChildReady
+
+------------------------------------------------------
+::method OnShowContextMenu
+------------------------------------------------------
+expose controls showglobals parentwindow debugwindow watchopupmenu
+use arg hwnd,x,y
+
+
+popupmenu = .nil
+
+if parentwindow = debugwindow then do
+  popupmenu = .PopupMenu~new
+  popupmenu~insertItem(self~SHOWGLOBALSMENUITEM, self~SHOWGLOBALSMENUITEM, "Show global items")
+  popupmenu~insertItem(self~HIDEGLOBALSMENUITEM, self~HIDEGLOBALSMENUITEM, "Hide global items")
+  
+  if showglobals then popupmenu~disable(self~SHOWGLOBALSMENUITEM)
+  else popupmenu~disable(self~HIDEGLOBALSMENUITEM)
+end
+
+if popupmenu \= .nil then do
+   selecteditem = popupmenu~track(.Point~new(x,y), self)
+   if selecteditem \= 0 then do 
+     if selecteditem = self~SHOWGLOBALSMENUITEM then self~ShowGlobalItems
+     if selecteditem = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
+  end
+  popupmenu~destroy
+end
+
+
 ------------------------------------------------------
 ::method ok  
 ------------------------------------------------------
@@ -1028,22 +1051,6 @@ end
 ::method OnCopyCommand2 unguarded
 ------------------------------------------------------
 self~OnCopyCommand
-
-------------------------------------------------------
-::method OnListVarsContext
-------------------------------------------------------
-expose watchpopupmenu controls showglobals
-use arg hwnd,x,y
-
-if showglobals then do
-  watchpopupmenu~disable(self~SHOWGLOBALSMENUITEM)
-  watchpopupmenu~enable(self~HIDEGLOBALSMENUITEM)
-end
-else do
-  watchpopupmenu~enable(self~SHOWGLOBALSMENUITEM)
-  watchpopupmenu~disable(self~HIDEGLOBALSMENUITEM)
-end
-watchpopupmenu~show(.Point~new(x,y))
 
 
 --====================================================

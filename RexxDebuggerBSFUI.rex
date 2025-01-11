@@ -1301,9 +1301,8 @@ end
  
 ::CONSTANT LISTVARS            101
 ::CONSTANT PANEVARS            102
-::CONSTANT LISTCONTEXTMENU     103
-::CONSTANT SHOWGLOBALSMENUITEM 104
-::CONSTANT HIDEGLOBALSMENUITEM 105
+::CONSTANT SHOWGLOBALSMENUITEM 103
+::CONSTANT HIDEGLOBALSMENUITEM 104
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
@@ -1384,28 +1383,12 @@ varsmouselistener = .WatchDialogListVarsMouseListener~new
 varsmouselistenerEH = BsfCreateRexxProxy(varsmouselistener, self, "java.awt.event.MouseListener")
 controls[self~LISTVARS]~addMouseListener(varsmouselistenerEH)
 
-if parentwindow = debugwindow then do
-  watchlistcontextmenu = gui~clsJPopupMenu~new("")
-  SHOWGLOBALSMENUITEM = gui~clsJMenuItem~new("Show global Items")
-  HIDEGLOBALSMENUITEM = gui~clsJMenuItem~new("Hide global items")
-  watchlistcontextmenu~add(SHOWGLOBALSMENUITEM)
-  watchlistcontextmenu~add(HIDEGLOBALSMENUITEM)
-
-  controls[self~LISTCONTEXTMENU] = watchlistcontextmenu
-  controls[self~SHOWGLOBALSMENUITEM] = SHOWGLOBALSMENUITEM
-  controls[self~HIDEGLOBALSMENUITEM] = HIDEGLOBALSMENUITEM
-
-  controls[self~SHOWGLOBALSMENUITEM]~addActionListener(BsfCreateRexxProxy(self, self~SHOWGLOBALSMENUITEM, "java.awt.event.ActionListener"))
-  controls[self~HIDEGLOBALSMENUITEM]~addActionListener(BsfCreateRexxProxy(self, self~HIDEGLOBALSMENUITEM, "java.awt.event.ActionListener"))
-end
-
 parentrect = parentwindow~getbounds
 myrect = self~getbounds
 if parentwindow = debugwindow then self~setlocation(parentrect~x + parentrect~width + 10, parentrect~y)
 else self~setlocation(parentrect~x, parentrect~y + parentrect~height + 10)
 
 debugwindow~NotifyChildReady
-
 
 ------------------------------------------------------
 ::method actionPerformed unguarded
@@ -1419,16 +1402,24 @@ if id = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
 -------------------------------------------------------
 ::method ShowWatchListPopupMenu
 -------------------------------------------------------
-expose gui controls showglobals
+expose gui showglobals parentwindow debugwindow showglobals
 use arg eventobj
 
-contextmenu = controls[self~LISTCONTEXTMENU]
-if contextmenu \= .nil then do
-  controls[self~SHOWGLOBALSMENUITEM]~setEnabled(\showglobals)
-  controls[self~HIDEGLOBALSMENUITEM]~setEnabled(showglobals)
+watchlistcontextmenu = gui~clsJPopupMenu~new("") 
 
-  controls[self~LISTCONTEXTMENU]~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
+if parentwindow = debugwindow then do
+  showitem = gui~clsJMenuItem~new("Show global Items")
+  showitem~addActionListener(BsfCreateRexxProxy(self, self~SHOWGLOBALSMENUITEM, "java.awt.event.ActionListener"))
+  watchlistcontextmenu~add(showitem)
+
+  hideitem = gui~clsJMenuItem~new("Hide global items")
+  hideitem~addActionListener(BsfCreateRexxProxy(self, self~HIDEGLOBALSMENUITEM, "java.awt.event.ActionListener"))
+  watchlistcontextmenu~add(hideitem)
+
+  showitem~setEnabled(\showglobals)
+  hideitem~setEnabled(showglobals)
 end
+if watchlistcontextmenu~getcomponentcount \= 0 then watchlistcontextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
 
 ------------------------------------------------------
 ::method Cancel 
