@@ -978,8 +978,8 @@ self~minSize = minsize
 hfnt = self~createFontEx("Courier New", 8)
 controls[self~LISTVARS]~setFont(hfnt, .true)
 
-self~connectListBoxEvent(self~LISTVARS, DBLCLK, "VariableDoubleClicked")
-self~connectListBoxEvent(self~LISTVARS, SELCHANGE, "VariableSelected")
+self~connectListBoxEvent(self~LISTVARS, DBLCLK, "WatchRowDoubleClicked")
+self~connectListBoxEvent(self~LISTVARS, SELCHANGE, "WatchRowSelected")
 
 parentsize = parentwindow~getrealsize
 parentpos = parentwindow~getrealpos

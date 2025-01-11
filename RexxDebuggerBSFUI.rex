@@ -1286,12 +1286,12 @@ use arg eventobj, slotdir
 if eventobj~getclickcount == 1 then do
 
   dialog = slotdir~userdata
-  dialog~VariableSelected
+  dialog~WatchRowSelected
 end
 
 if eventobj~getclickcount == 2 then do
   dialog = slotdir~userdata
-  dialog~VariableDoubleClicked
+  dialog~WatchRowDoubleClicked
 end
 
 
