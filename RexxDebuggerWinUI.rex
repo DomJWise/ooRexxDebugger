@@ -914,28 +914,29 @@ activesourcename=.nil
 ::class WatchDialog subclass UserDialog inherit ResizingAdmin DialogControlHelper
 --====================================================
  
-::CONSTANT LISTVARS            101
-::CONSTANT SHOWGLOBALSMENUITEM 102
-::CONSTANT HIDEGLOBALSMENUITEM 103
+::CONSTANT LISTVARS              101
+::CONSTANT SHOWGLOBALSMENUITEM   102
+::CONSTANT HIDEGLOBALSMENUITEM   103
+::CONSTANT CHARDISPLAYMENUITEM   104
+::CONSTANT BYTEDISPLAYMENUITEM   105
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 ::CONSTANT MAXNAMESTRINGLENGTH   64
+::CONSTANT MAXASCIISUPPORTED    255
 
-::ATTRIBUTE controls             private unguarded
-::ATTRIBUTE debugwindow          private unguarded
-::ATTRIBUTE showglobals          private unguarded
+::ATTRIBUTE controls    private get unguarded
+::ATTRIBUTE debugwindow private get unguarded
 
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow 
+expose debugwindow controls parentwindow
 use arg debugwindow, parentwindow, parentlist
 
 self~init:.WatchHelper(parentlist)
 
 controls = .Directory~new
-
 forward class (super) continue array(.nil)
 
 dialogtitle = self~GetDialogTitle
@@ -963,9 +964,8 @@ return 0
 ------------------------------------------------------
 ::method initdialog 
 ------------------------------------------------------
-expose controls debugwindow hfnt  parentwindow showglobals watchpopupmenu
+expose controls debugwindow hfnt  parentwindow watchpopupmenu
 
-showglobals = .False
 watchpopupmenu = .nil
 controls[self~LISTVARS] = self~newListBox(self~LISTVARS)
 
@@ -996,29 +996,37 @@ debugwindow~NotifyChildReady
 ------------------------------------------------------
 ::method OnShowContextMenu
 ------------------------------------------------------
-expose controls showglobals parentwindow debugwindow watchopupmenu
+expose controls parentwindow debugwindow watchopupmenu
 use arg hwnd,x,y
 
 
-popupmenu = .nil
+popupmenu = .PopupMenu~new
 
 if parentwindow = debugwindow then do
-  popupmenu = .PopupMenu~new
   popupmenu~insertItem(self~SHOWGLOBALSMENUITEM, self~SHOWGLOBALSMENUITEM, "Show global items")
   popupmenu~insertItem(self~HIDEGLOBALSMENUITEM, self~HIDEGLOBALSMENUITEM, "Hide global items")
   
-  if showglobals then popupmenu~disable(self~SHOWGLOBALSMENUITEM)
+  if self~showglobals then popupmenu~disable(self~SHOWGLOBALSMENUITEM)
   else popupmenu~disable(self~HIDEGLOBALSMENUITEM)
 end
 
-if popupmenu \= .nil then do
+if self~isstringwindow then do
+  popupmenu~insertItem(self~BYTEDISPLAYMENUITEM, self~BYTEDISPLAYMENUITEM, "Show bytes in hexdecimal")
+  popupmenu~insertItem(self~CHARDISPLAYMENUITEM, self~charDISPLAYMENUITEM, "Show characters")
+  if self~stringwatchshowsbytes then popupmenu~disable(self~BYTEDISPLAYMENUITEM)
+  else popupmenu~disable(self~CHARDISPLAYMENUITEM)
+end  
+
+if popupmenu~getCount > 0 then do
    selecteditem = popupmenu~track(.Point~new(x,y), self)
-   if selecteditem \= 0 then do 
+   if selecteditem \= 0 then do
      if selecteditem = self~SHOWGLOBALSMENUITEM then self~ShowGlobalItems
      if selecteditem = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
+     if selecteditem = self~BYTEDISPLAYMENUITEM then self~DisplayStringBytes
+     if selecteditem = self~CHARDISPLAYMENUITEM then self~DisplayStringCharacters
   end
-  popupmenu~destroy
 end
+popupmenu~destroy
 
 
 ------------------------------------------------------

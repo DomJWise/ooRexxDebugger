@@ -1299,18 +1299,20 @@ end
 ::class WatchDialog subclass bsf inherit DialogControlHelper
 --====================================================
  
-::CONSTANT LISTVARS            101
-::CONSTANT PANEVARS            102
-::CONSTANT SHOWGLOBALSMENUITEM 103
-::CONSTANT HIDEGLOBALSMENUITEM 104
+::CONSTANT LISTVARS             101
+::CONSTANT PANEVARS             102
+::CONSTANT SHOWGLOBALSMENUITEM  103
+::CONSTANT HIDEGLOBALSMENUITEM  104
+::CONSTANT CHARDISPLAYMENUITEM  105
+::CONSTANT BYTEDISPLAYMENUITEM  106
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
 ::CONSTANT MAXNAMESTRINGLENGTH   64
+::CONSTANT MAXASCIISUPPORTED    127
 
-::ATTRIBUTE controls             private unguarded
-::ATTRIBUTE debugwindow          private unguarded
-::ATTRIBUTE showglobals          private unguarded
+::ATTRIBUTE controls    private get unguarded
+::ATTRIBUTE debugwindow private get unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -1320,10 +1322,9 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow dialogtitle gui showglobals
+expose debugwindow controls parentwindow dialogtitle gui
 use arg debugwindow, gui, parentwindow, parentlist
 
-showglobals = .False
 self~init:.WatchHelper(parentlist)
 
 controls = .Directory~new
@@ -1398,11 +1399,13 @@ id = slotdir~userdata
 
 if id = self~SHOWGLOBALSMENUITEM then self~ShowGlobalItems
 if id = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
+if id = self~BYTEDISPLAYMENUITEM then self~DisplayStringBytes
+if id = self~CHARDISPLAYMENUITEM then self~DisplayStringCharacters
 
 -------------------------------------------------------
 ::method ShowWatchListPopupMenu
 -------------------------------------------------------
-expose gui showglobals parentwindow debugwindow showglobals
+expose gui parentwindow debugwindow
 use arg eventobj
 
 watchlistcontextmenu = gui~clsJPopupMenu~new("") 
@@ -1416,9 +1419,23 @@ if parentwindow = debugwindow then do
   hideitem~addActionListener(BsfCreateRexxProxy(self, self~HIDEGLOBALSMENUITEM, "java.awt.event.ActionListener"))
   watchlistcontextmenu~add(hideitem)
 
-  showitem~setEnabled(\showglobals)
-  hideitem~setEnabled(showglobals)
+  showitem~setEnabled(\self~showglobals)
+  hideitem~setEnabled(self~showglobals)
 end
+
+if self~isstringwindow then do
+  bytesitem = gui~clsJMenuItem~new("Show bytes in hexadecimal")
+  bytesitem~addActionListener(BsfCreateRexxProxy(self, self~BYTEDISPLAYMENUITEM, "java.awt.event.ActionListener"))
+  watchlistcontextmenu~add(bytesitem)
+
+  charactersitem = gui~clsJMenuItem~new("Show characters")
+  charactersitem~addActionListener(BsfCreateRexxProxy(self, self~CHARDISPLAYMENUITEM, "java.awt.event.ActionListener"))
+  watchlistcontextmenu~add(charactersitem)
+
+  bytesitem~setEnabled(\self~stringwatchshowsbytes)
+  charactersitem~setEnabled(self~stringwatchshowsbytes)
+end
+
 if watchlistcontextmenu~getcomponentcount \= 0 then watchlistcontextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
 
 ------------------------------------------------------

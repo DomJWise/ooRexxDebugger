@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34.8"
+::CONSTANT VERSION "1.34.9"
 
 --====================================================
 ::class RexxDebugger public
@@ -898,6 +898,11 @@ return
 ::class WatchHelper mixinclass object public
 --====================================================
 
+::ATTRIBUTE isstringwindow        get private unguarded
+::ATTRIBUTE showglobals           get private unguarded
+::ATTRIBUTE stringwatchshowsbytes get private unguarded
+
+
 ------------------------------------------------------
 ::METHOD FindWatchWindow class unguarded
 ------------------------------------------------------
@@ -913,11 +918,13 @@ return existingwindow
 ------------------------------------------------------
 ::METHOD init
 ------------------------------------------------------
-expose currentselectioninfo varsvalid parentlist
+expose currentselectioninfo varsvalid parentlist showglobals stringwatchshowsbytes
 use arg parentlist
 
 currentselectioninfo = .Nil
 varsvalid = .False
+showglobals = .False
+stringwatchshowsbytes = .False
 
 ------------------------------------------------------
 ::METHOD HasIdenticalParentList
@@ -1051,28 +1058,76 @@ end
 ------------------------------------------------------
 ::method PopulateFromString
 ------------------------------------------------------
-use arg stringvariable
+expose stringwatchshowsbytes
+
+use arg stringvariable 
 
 if stringvariable~IsA(.MutableBuffer) then varvalue = stringvariable~string
 else varvalue = stringvariable
-lines = varvalue~makearray(.endofline)
-do text over lines~allitems
-  do while text~length > self~MAXVALUESTRINGLENGTH + 1
-    nextline = text~substr(1,self~MAXVALUESTRINGLENGTH + 1)||' ...'
-    nextline = nextline~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
-    self~ListUpdateMaxHorizonalExtent(nextline)
-    self~ListAddItem(self~controls, self~LISTVARS, nextline)
-    text = text~substr(self~MAXVALUESTRINGLENGTH + 2)
-  end  
-  text = text~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
-  self~ListUpdateMaxHorizonalExtent(text)
-  self~ListAddItem(self~controls, self~LISTVARS, text)
+if \stringwatchshowsbytes then do
+  lines = varvalue~makearray(.endofline)
+  do text over lines~allitems
+    do while text~length > self~MAXVALUESTRINGLENGTH + 1
+      nextline = text~substr(1,self~MAXVALUESTRINGLENGTH + 1)||' ...'
+      nextline = nextline~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+      self~ListUpdateMaxHorizonalExtent(nextline)
+      self~ListAddItem(self~controls, self~LISTVARS, nextline)
+      text = text~substr(self~MAXVALUESTRINGLENGTH + 2)
+    end  
+    text = text~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
+    self~ListUpdateMaxHorizonalExtent(text)
+    self~ListAddItem(self~controls, self~LISTVARS, text)
+   end 
 end
-
+else do
+  blocklength = 10
+  bytepos = 1
+  bytesremaining = varvalue~length
+  if bytesremaining >= blocklength then maxbytesdisplayed = blocklength
+  else maxbytesdisplayed = bytesremaining
+  indexwidth = bytesremaining~length
+  maxasciisupported = self~MAXASCIISUPPORTED
+  self~ListUpdateMaxHorizonalExtent(' '~copies(indexwidth + 1 + maxbytesdisplayed * 3 + 1 + maxbytesdisplayed))
+  do while bytesremaining >= blocklength
+    text = bytepos~right(indexwidth, ' ')||' -'
+    do i = 0 to blocklength - 1
+      text = text||' '||c2x(varvalue~subchar(bytepos + i))
+    end
+    text = text||' '
+    do i = 0 to blocklength - 1
+      char = varvalue~subchar(bytepos + i)
+      charval = c2d(char)
+      if charval < 32 | charval > maxasciisupported then char = '.'
+      text = text||char
+    end
+    self~ListAddItem(self~controls, self~LISTVARS, text)
+    bytesremaining = bytesremaining - blocklength
+    bytepos = bytepos + blocklength
+  end
+  if bytesremaining \= 0 then do 
+    text = bytepos~right(indexwidth, ' ')||' -'
+    do i = 0 to maxbytesdisplayed - 1 
+      if i < bytesremaining then text = text||' '||c2x(varvalue~subchar(bytepos + i))
+      else text=text||'   '
+    end
+    text = text||' '
+    do i = 0 to maxbytesdisplayed - 1
+      if i < bytesremaining then do
+        char = varvalue~subchar(bytepos + i)
+        charval = c2d(char)
+        if charval < 32 | charval > maxasciisupported then char = '.'
+        text = text||char
+      end
+      else text = text||' '    
+    end
+    self~ListAddItem(self~controls, self~LISTVARS, text)
+  
+  end
+end  
 ------------------------------------------------------
 ::method PopulateFromCollection
 ------------------------------------------------------
-expose isarraywindow isrootwindow itemidentifiers itemclasses
+expose isarraywindow isrootwindow itemidentifiers itemclasses showglobals
 
 use arg variablescollection
 
@@ -1089,7 +1144,7 @@ if isrootwindow then do
   count = itemidentifiers~items
   itemidentifiers~delete(itemidentifiers~index(".ENVIRONMENT"))
   itemidentifiers~delete(itemidentifiers~index(".LOCAL"))
-  if self~showglobals then do
+  if showglobals then do
     itemidentifiers[count-1] = ".ENVIRONMENT"
     itemidentifiers[count]   = ".LOCAL"
   end
@@ -1182,14 +1237,36 @@ else if self~ListGetRowCount(self~controls, self~LISTVARS) \= 0 then self~ListSe
 ------------------------------------------------------
 ::method ShowGlobalItems
 ------------------------------------------------------
-self~showglobals = .True
+expose showglobals
+
+showglobals = .True
 
 self~debugwindow~HereIsResponse("UPDATEVARS")
 
 ------------------------------------------------------
 ::method HideGlobalItems
 ------------------------------------------------------
-self~showglobals = .False
+expose showglobals
+
+showglobals = .False
+
+self~debugwindow~HereIsResponse("UPDATEVARS")
+
+------------------------------------------------------
+::method DisplayStringBytes
+------------------------------------------------------
+expose stringwatchshowsbytes
+
+stringwatchshowsbytes = .True
+
+self~debugwindow~HereIsResponse("UPDATEVARS")
+
+------------------------------------------------------
+::method DisplayStringCharacters
+------------------------------------------------------
+expose stringwatchshowsbytes
+
+stringwatchshowsbytes = .False
 
 self~debugwindow~HereIsResponse("UPDATEVARS")
 
