@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.34.9"
+::CONSTANT VERSION "1.34.10"
 
 --====================================================
 ::class RexxDebugger public
@@ -948,7 +948,7 @@ do i = 1 to myitems~items while matches = .True
   else if myitems[i]~IsA(.WeakReference) then do
     if myitems[i]~value = .nil | myitems[i]~value \= testitems[i]~value then matches = .False
   end
-  else matches = .False
+  else if \(myitems[i] = .Nil & testitems[i] = .Nil) then matches = .False
 end  
 
 return matches
@@ -972,17 +972,19 @@ expose itemidentifiers itemclasses parentlist isarraywindow isstringwindow
 if isstringwindow then return
 itemindex = self~ListGetSelectedIndex(self~controls, self~LISTVARS)
 if itemindex \= 0 then do
+  doadd = .True
   itemidentifier = itemidentifiers[itemindex]
   if self~IsExpandable(itemclasses[itemindex]) then do
     if parentlist~items \= 0 then newlist = parentlist~section(0)
     else newlist = .List~new
     if itemidentifier~IsA(.String) then itemtoadd = itemidentifier
     else if itemidentifier~IsA(.Array) & isarraywindow then itemtoadd = itemidentifier
+    else if itemidentifier = .Nil then itemtoadd = itemidentifier
     else do
       itemtoadd = .WeakReference~new(itemidentifier~value)
-      if itemtoadd~value = .nil then itemtoadd = .nil
-    end
-    if itemtoadd \= .nil then do
+      if itemtoadd~value = .nil then doadd = .False
+    end  
+    if doadd then do
       newlist~append(itemtoadd)
       self~debugwindow~AddWatchWindow(self, newlist)
     end
@@ -1006,6 +1008,7 @@ do elementname over parentlist
   if dialogtitle \= '' then dialogtitle = ' @ '||dialogtitle
   if elementname~isA(.Array) then itemtoadd = elementname~makestring(,",")
   else if elementname~IsA(.WeakReference) then itemtoadd = elementname~value~defaultname
+  else if elementname = .nil then itemtoadd = .Nil~string
   else itemtoadd = elementname
   dialogtitle = itemtoadd||dialogtitle
 end
@@ -1149,17 +1152,21 @@ if isrootwindow then do
   end
 end
 if \isarraywindow then do i = 1 to itemidentifiers~items
-  if \itemidentifiers[i]~IsA(.String) then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
+  if \itemidentifiers[i]~IsA(.String) & itemidentifiers[i] \= .nil then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
 end
 itemclasses = .Array~new
 do varname over itemidentifiers
-  if varname~IsA(.WeakReference)then varname = varname~value
+  isweakreference = varname~IsA(.WeakReference)
+  if isweakreference then varname = varname~value
   if \showvariablenames then vardisplayname = ''
   else do 
     if varname~isA(.Array) & isarraywindow then vardisplayname = varname~makestring(,",")
     else if varname~isA(.String) then vardisplayname = varname
     else do 
-      if varname = .Nil then  vardisplayname = ' <Unknown>'
+      if varname = .Nil then do
+        if  \isweakreference then vardisplayname = .nil~string
+        else vardisplayname  = '[Unknown]'
+      end  
       else do
         vardisplayname = varname~defaultname
         if varname~isInstanceOf(.Collection) then do
@@ -1173,8 +1180,8 @@ do varname over itemidentifiers
       end
     end
   end  
-
-  if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
+if variablescollection[varname] = .Nil then varvalue = .Nil~string
+  else if variablescollection[varname]~isA(.string) then varvalue = variablescollection[varname]
   else if variablescollection[varname]~isA(.MutableBuffer) then varvalue = variablescollection[varname]~string
   else varvalue = variablescollection[varname]~defaultname
   if variablescollection[varname]~isInstanceOf(.Collection) then do
