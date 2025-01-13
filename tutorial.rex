@@ -3,8 +3,8 @@ CALL SAY 'The options at the end ensure debugging starts at the top and that eve
 CALL SAY 'The debugger pauses AFTER executing the line it has stopped on'
 CALL SAY 'Note that CALL SAY will show up in the debugger but by default SAY goes to your application'
 SAY 'i.e. This text should appear in your command prompt window (more on this later!)'
-CALL SAY 'Double click on line 11 to add a breakpoint then click on the highlighted row '||.endofline - 
-'in the stack window to get back to the current line.'
+CALL SAY 'Double click on line 11 to add a breakpoint then click on the highlighted row in the stack'||.endofline - 
+'view to get back to the current line.'
 CALL SAY 'Hit Next once, then Run'
 NOP 
 NOP
@@ -14,7 +14,7 @@ NOP
 NOP
 NOP
 /**/ SAY 'An empty comment at the start of a traceable line will cause the debugger to insert a breakpoint'
-CALL SAY 'Double clicking on the following line  will insert a ? breakpoint marker because the line isn''t traceable' 
+CALL SAY 'Double clicking on the following line will insert a ? breakpoint marker because the line isn''t traceable' 
 /* comment or intruction  Rexx tracing wont stop at */
 CALL SAY 'Double click on any breakpoint line above to remove the breakpoint'
 NOP
@@ -31,6 +31,7 @@ end
 CALL SAY 'Loop finished'
 
 /**/CALL SAY 'Enter "SAY 1+2" into the debugger command prompt below (without the quotes) and hit Execute or Next'
+CALL SAY 'The result should appear in your console window'
 CALL SAY 'Enter "CAPTURE" into the debugger prompt and hit Execute. Trace and SAY output will be moved here'
 SAY 'Enter "SAY 2+3"  into the debugger prompt and hit Execute or Next'
 SAY 'Type "CAPTUREX" into the debugger prompt and hit Execute.'
@@ -48,18 +49,27 @@ SAY y
 SAY y
 SAY 'Note that with Next your Rexx is executed AFTER the next statement has run'
 SAY ''
+z = 'Here is'.endofline'a multiple'.endofline'line string'
+SAY 'String variables can be opened in a separate window for multi-line or byte view'
+SAY 'Double click on Z to show it in a multi-line view, the default'
+SAY 'The bytes which make up the string can be individually viewed as well'
+SAY 'Right click in the Z watch window and select "Show bytes in hexadecimal"'
+SAY 'This view will show ten bytes per line, with the hexadecimal of each followed by the characters'
+SAY 'The start of each line shows the index of the start of that block in the string'
+SAY
 stemvar.1 = "Hello"
 stemvar.2 = "World"
-SAY 'In the Watch window, double click on "STEMVAR"'
 SAY 'A + sign at the start of a watch variable means it is a collection that can be expanded.'
-SAY 'Click Run if you want here to skip array set up'
+SAY 'In the Watch window, double click on STEMVAR to see its components'
+SAY 'Arrays are collections so can be expanded, including multi-dimensional arrays'
+SAY 'Click Run if you want to skip array set up'
 multidimarray = .Array~new(2,2)
 do i = 1 to 2
   do j = 1 to 2
     multidimarray[i,j] = (i-1)*2+j
   end  
 end
-/**/SAY ' In the Watch window, double click on "MULTIDIMARRAY"'
+/**/SAY ' In the Watch window, double click on MULTIDIMARRAY'
 dir = .Directory~new
 dir["StringThing"] = "String Value"
 subarray = .array~of("Item1", "Item2", "Item3")
@@ -70,13 +80,9 @@ SAY 'In the newly added watch window for DIR, double click on "ArrayThing"'
 SAY 'Note: One restriction exists for Relation collections'
 SAY 'Drilldown will only work for one item in a set with duplicate indexes'
 SAY
-SAY 'The .Environment and .Local directories can be accessed via a menu action'
+SAY 'The global .Environment and .Local directories can be accessed via a menu action'
 SAY 'In the main watch window, right-click and select the menu option "Show global items"'
-SAY
-SAY 'String variables (including MutableBuffer objects) can be opened in multi-line windows'
-bigstring = 'Multi'.endofline'line'.endofline'string'
-SAY 'Double click on bigstring in the main Watch window to see it expanded in a new window'
-SAY
+SAY 'The two directory objects will be added at the bottom of the list of variables'
 SAY 'METHODS and ROUTINES have their own variables. Now a ROUTINE will be called'
 SAY 'Note that with a CALL statement Rexx breaks AFTER the call has completed.'
 CALL TestRoutine
@@ -86,8 +92,8 @@ SAY 'At the end of the program:'
 SAY ' When programs launched from rexxdebugger end there is an Open button you can use to start another debug session'
 SAY ' In other scenarios there is no Open button and while the debugger can''t tell when the program has finished the open windows will stay grey'
 SAY ''
-SAY 'That''s all for this tutorial'
 SAY 'For more information hit the Help button'
+SAY 'That''s all for this tutorial'
 
 exit
 
