@@ -169,33 +169,36 @@ If you have run a debug session using rexxdebugger to completion, the Open butto
 Closing the rexxdebugger window and launching a new one for the next debug session will ensure that you are using a new Rexx interpreter each time and will avoid these issue.
 
 
-Showing object detail in Watch windows - the makedebuggerstring method
+Showing object detail in Watch windows - the makeDebuggerString method
 ----------------------------------------------------------------------
 
 Apart from string and collection classes most object types show only the class name in Watch windows. This means that if you have a variable called pt holding an instance of a user-defined Point class you would just see something like the following:
 
 pt = a Point
 
-This does not give you any indication as to what is in the object including any public attributes that may have been defined, and while you can use the command console to print out these public attributes this can be cumbersome, especially when there is a large number of attributes or multiple instances of the object to monitor
+This does not give you any indication as to what is in the object, and while you can use the command console to call methods which return object information for dispaly this can be cumbersome.
 
-To facilitate greater visibilty into user-defined classes a special method can be defined for the class to format and return a string for inclusion in Watch windows. This string can be made up of text and any combination of simple object variables. Defining this method for a Point class with object variables x and y (i.e. the co-ordinates of the point) would enable these co-ordinates to be shown in the Watch windows for each instance of this class
+To facilitate greater visibilty into user-defined classes when debugging a special method can be defined for the class to format and return a descriptive string for each object. The value returned is included alongside the object description in any Watch windows. 
 
-The method to be defined is: makedebuggerstring
+Defining this method for the Point class mentioned above with object variables x and y (the co-ordinates of the point) would enable these co-ordinates to be shown in the Watch windows for each instance of this class
+
+The method to be defined is: makeDebuggerString
 
 This method must be unguarded, as must any method it calls. Failing to meet this requirement will likely cause the debugger to hang.
 
-Please note that interactive tracing of the method is only possible when your code calls it and not when it is called by the debugger. Additionally if it throws an error when called by the debugger future behaviour may be unpredicatable and a debugger restart may be required
+Please note that interactive tracing of the method is only possible when your code calls it and not when it is called by the debugger. If the method throws an error when called by the debugger the name returned will be \*ERROR\* and information about the error will be added to the console log
 
 A simple Point class below shows how this can be used
 
 ```
-
 ::class Point
 
--- Existing init method
 ::method init
 expose x y
 use arg x,y
+
+::atribute  x get
+::attribute y get
 
 ::method makedebuggerstring unguarded     -- must be unguarded
 expose x y
@@ -205,7 +208,7 @@ return 'x='||x||',y='y
 
 ```
 
-In the Watch window the return value will be appended to the display line in square brackets so for a Point at (0,0) called 'origin' you would see:
+In a Watch window the return value will be appended to the display line in square brackets so for a Point at (0,0) called 'origin' you would see:
 
 origin = a Point [x=0,y=0]
 

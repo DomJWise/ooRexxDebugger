@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.35.1"
+::CONSTANT VERSION "1.35.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -1184,7 +1184,7 @@ do varname over itemidentifiers
           if varname~items \=1 then vardisplayname=vardisplayname||'s'
           vardisplayname = vardisplayname||')'
         end
-      if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['varname~makedebuggerstring']'
+      if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['self~GetObjectDebuggerString(varname)']'
         vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
         if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||' ...'
       end
@@ -1199,7 +1199,7 @@ if variablescollection[varname] = .Nil then varvalue = .Nil~string
     if variablescollection[varname]~items \=1 then varvalue=varvalue||'s'
     varvalue = varvalue||')'
   end  
-  if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['variablescollection[varname]~makedebuggerstring']'
+  if variablescollection[varname]~hasmethod("makedebuggerstring") then varvalue = varvalue||' ['self~GetObjectDebuggerString(variablescollection[varname])']'
   varvalue = varvalue~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')~changestr(d2c(0), '<NUL>')
   if varvalue~length > self~MAXVALUESTRINGLENGTH then varvalue = varvalue~left(self~MAXVALUESTRINGLENGTH)||'...'
 
@@ -1214,6 +1214,28 @@ if variablescollection[varname] = .Nil then varvalue = .Nil~string
   self~ListAddItem(self~controls, self~LISTVARS, text)
   itemclasses~append(variablescollection[varname]~class)
 end
+
+------------------------------------------------------
+::method GetObjectDebuggerString unguarded
+------------------------------------------------------
+use arg object
+
+signal on any name BadCall
+return object~makedebuggerstring
+
+BadCall:
+debugger = self~debugger
+debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error calling makeDebuggerString for 'object~defaultname':')   
+cond = .context~condition
+do lineidx = 0 to cond~Traceback~items -1
+  if cond~Traceback[lineidx]~pos('return object~makedebuggerstring') \= 0 then leave
+  debugger~SendDebugMessage(debugger~DebugMsgPrefix||cond~Traceback[lineidx])
+end    
+if .context~package \= cond~package then debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error 'cond~RC' running 'cond~package~name' line 'cond~Position': 'cond~ErrorText)   
+else debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error 'cond~RC': 'cond~ErrorText)   
+debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error 'cond~code': 'cond~message)
+debugger~SendDebugMessage('')
+return "*Error*"
 
 ------------------------------------------------------
 ::method NavigateToActiveSelection

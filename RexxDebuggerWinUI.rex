@@ -430,7 +430,7 @@ else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(
 ------------------------------------------------------
 ::METHOD AddWatchWindow
 ------------------------------------------------------
-expose watchwindows  childready rootlist
+expose watchwindows  childready rootlist debugger
 use arg  parentwindow, parentlist = .nil
 if parentlist = .nil then do
   if \rootlist~isA(.List) then rootlist = .list~new
@@ -440,7 +440,7 @@ existingwindow = .WatchHelper~FindWatchWindow(watchwindows,parentlist)
 if existingwindow \=.nil then self~setforegroundWindow(existingwindow~hwnd)
 else do
   childready = .False
-  watchdialog = .Watchdialog~new(self, parentwindow, parentlist)
+  watchdialog = .Watchdialog~new(self, parentwindow, parentlist, debugger)
   watchdialog~popup("SHOWTOP")
   watchwindows~put(watchdialog)
   guard off when childready = .True
@@ -927,12 +927,13 @@ activesourcename=.nil
 
 ::ATTRIBUTE controls    private get unguarded
 ::ATTRIBUTE debugwindow private get unguarded
+::ATTRIBUTE debugger    private get unguarded
 
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow
-use arg debugwindow, parentwindow, parentlist
+expose debugwindow controls parentwindow debugger
+use arg debugwindow, parentwindow, parentlist, debugger
 
 self~init:.WatchHelper(parentlist)
 

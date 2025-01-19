@@ -685,7 +685,7 @@ else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(
 ------------------------------------------------------
 ::METHOD AddWatchWindow unguarded
 ------------------------------------------------------
-expose watchwindows  childready rootlist gui
+expose watchwindows  childready rootlist gui debugger
 use arg  parentwindow, parentlist = .nil
 if parentlist = .nil then do
   if \rootlist~isA(.List) then rootlist = .list~new
@@ -695,7 +695,7 @@ existingwindow = .WatchHelper~FindWatchWindow(watchwindows, parentlist)
 if existingwindow \=.nil then existingwindow~tofront
 else do 
   childready = .False
-  watchdialog = .Watchdialog~new(self, gui, parentwindow, parentlist)
+  watchdialog = .Watchdialog~new(self, gui, parentwindow, parentlist, debugger)
   watchwindows~put(watchdialog)
   guard off when childready = .True
   
@@ -1313,6 +1313,7 @@ end
 
 ::ATTRIBUTE controls    private get unguarded
 ::ATTRIBUTE debugwindow private get unguarded
+::ATTRIBUTE debugger    private get unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -1322,8 +1323,8 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
  ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugwindow controls parentwindow dialogtitle gui
-use arg debugwindow, gui, parentwindow, parentlist
+expose debugwindow controls parentwindow dialogtitle gui debugger
+use arg debugwindow, gui, parentwindow, parentlist, debugger
 
 self~init:.WatchHelper(parentlist)
 
