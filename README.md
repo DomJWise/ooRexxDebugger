@@ -182,19 +182,11 @@ To facilitate greater visibilty into user-defined classes a special method can b
 
 The method to be defined is: makedebuggerstring
 
-The following requirements must be met to use this method. Failing to meet these requirements will likely cause the debugger to hang and this is the main reason the debugger doesn't just check for a more standard makestring method and use it if it exists 
+This method must be unguarded, as must any method it calls. Failing to meet this requirement will likely cause the debugger to hang.
 
-(1) The method must be unguarded and must call no guarded methods including any attribute get methods it needs
+Please note that interactive tracing of the method is only possible when your code calls it and not when it is called by the debugger. Additionally if it throws an error when called by the debugger future behaviour may be unpredicatable and a debugger restart may be required
 
-(2) The method must not be configured for tracing, nor must it call any method that has tracing
-
-For rule (2), when the class is defined in a secondary source file that does not have global tracing active this may not require any action other than adding the method to the class and accessing the required object variables via an expose instruction. However, when global tracing is active e.g. for classes in the main source file being debugged the following syntax is needed for the debugger to safely call the method:
-
-- The first instruction in the method must be CALL TRACE('O') to deactivate tracing. This requirement means that expose (which must, when used, be the first instruction) cannot be used to access object variables so :-
-
-- Any object variables needed in the method must be accessed using attribute get methods created with bare (no code) ::attribute directives so they can be accessed in the method using e.g. self~x. To adhere to rule (1) the attribute get methods must themselves be unguarded
-
-This is not too difficult to code and a simple Point class below illustrates how to follow this pattern
+A simple Point class below shows how this can be used
 
 ```
 
@@ -205,13 +197,11 @@ This is not too difficult to code and a simple Point class below illustrates how
 expose x y
 use arg x,y
 
--- Attributes - Expose any object variables needed in the makedebuggerstring method - must be unguarded and contain no code
-::attribute x get unguarded
-::attribute y get unguarded
-
 ::method makedebuggerstring unguarded     -- must be unguarded
-CALL TRACE('O')                           -- must be the very first instruction
-return 'x='||self~x||',y='self~y          -- build the return string from the exposed attributes
+expose x y
+return 'x='||x||',y='y
+
+... other methods
 
 ```
 
