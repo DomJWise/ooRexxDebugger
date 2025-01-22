@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.35.2"
+::CONSTANT VERSION "1.35.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -1188,7 +1188,8 @@ do while identifiersupplier~available
   end
   else do
     varname = identifiersupplier~item
-    thisval = variablescollection[varname]
+    if varname~IsA(.WeakReference) then thisval = variablescollection[varname~value]
+    else thisval = variablescollection[varname]
   end  
   isweakreference = varname~IsA(.WeakReference)
   if isweakreference then varname = varname~value
