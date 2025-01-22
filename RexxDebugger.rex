@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.35.3"
+::CONSTANT VERSION "1.35.3.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -1169,52 +1169,41 @@ if isrootwindow then do
 end
 if  variablescollection~isA(.Relation) then do
   itemrefs = .Array~new
-  collectionsupplier = variablescollection~supplier
+  relationsupplier = variablescollection~supplier
 end
 else do
   itemrefs = .Nil
-  collectionsupplier = .Nil
+  relationsupplier = .Nil
 end  
-if \isarraywindow then do i = 1 to itemidentifiers~items
-  if \itemidentifiers[i]~IsA(.String) & itemidentifiers[i] \= .nil then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
-end
 itemclasses = .Array~new
 identifiersupplier = itemidentifiers~supplier
 do while identifiersupplier~available
-  if collectionsupplier \= .nil then do
-    varname = collectionsupplier~index
-    thisval = collectionsupplier~item
-    collectionsupplier~next
+  if relationsupplier \= .nil then do
+    varname = relationsupplier~index
+    thisval = relationsupplier~item
+    relationsupplier~next
   end
   else do
     varname = identifiersupplier~item
-    if varname~IsA(.WeakReference) then thisval = variablescollection[varname~value]
-    else thisval = variablescollection[varname]
+    thisval = variablescollection[varname]
   end  
-  isweakreference = varname~IsA(.WeakReference)
-  if isweakreference then varname = varname~value
   if \showvariablenames then vardisplayname = ''
   else do 
     if varname~isA(.Array) & isarraywindow then vardisplayname = varname~makestring(,",")
     else if varname~isA(.String) then vardisplayname = varname
-    else do 
-      if varname = .Nil then do
-        if  \isweakreference then vardisplayname = .nil~string
-        else vardisplayname  = '[Unknown]'
-      end  
-      else do
-        vardisplayname = varname~defaultname
-        if varname~isInstanceOf(.Collection) then do
-          vardisplayname = vardisplayname' ('varname~items' item'    
-          if varname~items \=1 then vardisplayname=vardisplayname||'s'
-          vardisplayname = vardisplayname||')'
-        end
-      if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['self~GetObjectDebuggerString(varname)']'
-        vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
-        if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||' ...'
+    else if varname = .Nil then vardisplayname = .nil~string
+    else do
+      vardisplayname = varname~defaultname
+      if varname~isInstanceOf(.Collection) then do
+        vardisplayname = vardisplayname' ('varname~items' item'    
+        if varname~items \=1 then vardisplayname=vardisplayname||'s'
+        vardisplayname = vardisplayname||')'
       end
+      if varname~hasmethod("makedebuggerstring") then vardisplayname = vardisplayname||' ['self~GetObjectDebuggerString(varname)']'
+      vardisplayname = vardisplayname~changestr(.endofline, '<EOL>')~changestr(d2c(13), '<CR>')~changestr(d2c(10), '<LF>')
+      if vardisplayname~length > self~MAXNAMESTRINGLENGTH then vardisplayname = vardisplayname~left(self~MAXNAMESTRINGLENGTH)||' ...'
     end
-  end  
+  end 
   if itemrefs \=.nil then do
     if thisval = .Nil then itemref = .Nil
     else if thisval~isA(.string) then itemref = thisval
@@ -1245,6 +1234,10 @@ do while identifiersupplier~available
   self~ListAddItem(self~controls, self~LISTVARS, text)
   itemclasses~append(thisval~class)
   identifiersupplier~next
+end
+
+if \isarraywindow then do i = 1 to itemidentifiers~items
+  if \itemidentifiers[i]~IsA(.String) & itemidentifiers[i] \= .nil then itemidentifiers[i] = .WeakReference~new(itemidentifiers[i])
 end
 
 ------------------------------------------------------
