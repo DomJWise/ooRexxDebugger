@@ -915,10 +915,11 @@ activesourcename=.nil
 --====================================================
  
 ::CONSTANT LISTVARS              101
-::CONSTANT SHOWGLOBALSMENUITEM   102
-::CONSTANT HIDEGLOBALSMENUITEM   103
-::CONSTANT CHARDISPLAYMENUITEM   104
-::CONSTANT BYTEDISPLAYMENUITEM   105
+::CONSTANT STATICCLASS           102
+::CONSTANT SHOWGLOBALSMENUITEM   103
+::CONSTANT HIDEGLOBALSMENUITEM   104
+::CONSTANT CHARDISPLAYMENUITEM   105
+::CONSTANT BYTEDISPLAYMENUITEM   106
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
@@ -942,14 +943,15 @@ forward class (super) continue array(.nil)
 
 dialogtitle = self~GetDialogTitle
 
-self~create(0, 0, 180, 73, dialogtitle, "THICKFRAME")
+self~create(0, 0, 180, 81, dialogtitle, "THICKFRAME")
 
 ------------------------------------------------------
 ::method defineDialog 
 ------------------------------------------------------
 expose variablescollection
 style = "HSCROLL VSCROLL NOTIFY"
-self~createListBox(self~LISTVARS, 2, 2, 176, 72, style)
+self~createStaticText(self~STATICCLASS, 3, 1, 175, 9, "CENTER", "")
+self~createListBox(self~LISTVARS, 2, 11, 176, 72, style)
 
 ------------------------------------------------------
 ::method defineSizing 
@@ -959,6 +961,10 @@ self~controlLeft(self~LISTVARS, 'STATIONARY', 'LEFT')
 self~controlRight(self~LISTVARS, 'STATIONARY', 'RIGHT') 
 self~controlTop(self~LISTVARS, 'STATIONARY', 'TOP') 
 self~controlBottom(self~LISTVARS, 'STATIONARY', 'BOTTOM') 
+self~controlLeft(self~STATICCLASS, 'STATIONARY', 'LEFT') 
+self~controlRight(self~STATICCLASS, 'STATIONARY', 'RIGHT') 
+self~controlTop(self~STATICCLASS, 'STATIONARY', 'TOP') 
+self~controlBottom(self~STATICCLASS, 'STATIONARY', 'TOP') 
 
 return 0
 
@@ -969,11 +975,12 @@ expose controls debugwindow hfnt  parentwindow watchpopupmenu
 
 watchpopupmenu = .nil
 controls[self~LISTVARS] = self~newListBox(self~LISTVARS)
+controls[self~STATICCLASS] = self~newstatic(self~STATICCLASS)
 
 self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
 self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
 
-minsize = .Size~new(trunc(self~pixelCX / 1.75), trunc(self~pixelCY /1.3))
+minsize = .Size~new(trunc(self~pixelCX / 1.75), trunc(self~pixelCY /1.2))
 self~minSize = minsize
 
 hfnt = self~createFontEx("Courier New", 8)
@@ -981,6 +988,9 @@ controls[self~LISTVARS]~setFont(hfnt, .true)
 
 self~connectListBoxEvent(self~LISTVARS, DBLCLK, "WatchRowDoubleClicked")
 self~connectListBoxEvent(self~LISTVARS, SELCHANGE, "WatchRowSelected")
+
+controls[self~STATICCLASS]~setFont(hfnt, .true)
+self~DisableControl(self~STATICCLASS)
 
 parentsize = parentwindow~getrealsize
 parentpos = parentwindow~getrealpos
@@ -1400,6 +1410,14 @@ use arg controls, controlid, enable
 
 if enable then self~EnableControl(controlid)
 else self~DisableControl(controlid)
+
+------------------------------------------------------
+::method ControlSetText
+------------------------------------------------------
+use arg controls, controlid, text
+
+controls[controlid]~setText(text)
+
 
 ------------------------------------------------------
 ::method ControlDeferRedraw

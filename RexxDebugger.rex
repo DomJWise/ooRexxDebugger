@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.35.4"
+::CONSTANT VERSION "1.35.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -1046,7 +1046,7 @@ if watchtarget = .nil | \(watchtarget~IsA(.Collection) | watchtarget~IsA(.Mutabl
 end
 else do
   varsvalid = .True
-
+  if parentlist~items \= 0 then self~ControlSetText(self~controls, self~STATICCLASS,watchtarget~defaultname)
   isstringwindow = watchtarget~IsA(.MutableBuffer) | watchtarget~IsA(.String)
   isarraywindow = watchtarget~IsA(.Array)
   isrootwindow = (parentlist~items = 0)

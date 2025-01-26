@@ -61,6 +61,7 @@ SOFTWARE.
 ::attribute clsKeyEvent            public unguarded
 ::attribute clsListSelectionModel  public unguarded
 ::attribute clsTimer               public unguarded
+::attribute clsSwingConstants      public unguarded
 ::attribute clsWindowConstants     public unguarded
 ::attribute clsKeyStroke           public unguarded
 ::attribute clsInputEvent          public unguarded
@@ -109,6 +110,7 @@ self~clsTimer              = bsf.importclass("javax.swing.Timer")
 self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
 self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
 self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
+self~clsSwingConstants     = bsf.loadclass("javax.swing.SwingConstants") 
 self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
@@ -1301,10 +1303,11 @@ end
  
 ::CONSTANT LISTVARS             101
 ::CONSTANT PANEVARS             102
-::CONSTANT SHOWGLOBALSMENUITEM  103
-::CONSTANT HIDEGLOBALSMENUITEM  104
-::CONSTANT CHARDISPLAYMENUITEM  105
-::CONSTANT BYTEDISPLAYMENUITEM  106
+::CONSTANT STATICCLASS          103
+::CONSTANT SHOWGLOBALSMENUITEM  104
+::CONSTANT HIDEGLOBALSMENUITEM  105
+::CONSTANT CHARDISPLAYMENUITEM  106
+::CONSTANT BYTEDISPLAYMENUITEM  107
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
@@ -1346,8 +1349,8 @@ expose controls debugwindow hfnt  parentwindow dialogtitle gui
 
 self~init:super('javax.swing.JFrame',.array~of(dialogtitle))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(300, 180)
-self~setMinimumSize(gui~clsDimension~new(220,130))
+self~setSize(300, 190)
+self~setMinimumSize(gui~clsDimension~new(220,148))
 self~setLayout(gui~clsBorderLayout~new(5,5))
 self~setLocationRelativeTo(.nil)
 
@@ -1358,8 +1361,8 @@ windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.Acti
 self~addWindowListener(windowlistenerEH)
 
 panelmain = gui~clsJPanel~new
-panelmain~setBorder(gui~clsEmptyBorder~new(5,5,5,5))
-panelmain~setLayout(gui~clsBorderLayout~new(5,5))
+panelmain~setBorder(gui~clsEmptyBorder~new(3,5,5,5))
+panelmain~setLayout(gui~clsBorderLayout~new(0,0))
 
 listvarsmodel = gui~clsDefaultListModel~new
 listvars = gui~clsJList~new(listvarsmodel)
@@ -1369,6 +1372,12 @@ listvars~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
 listvars~setFixedCellHeight(14)
 
+labelclass = gui~clsJLabel~new("", gui~clsSwingConstants~CENTER)
+labelclass~setPreferredSize(gui~clsDimension~new(0,13))
+if gui~fontFixed \= '' then labelclass~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
+labelclass~setenabled(.False)
+panelmain~add(labelclass, gui~clsBorderLayout~NORTH)
+
 listvarspane = gui~clsJScrollPane~new
 listvarspane~setPreferredSize(gui~clsDimension~new(300,180))
 listvarspane~setViewportView(listvars)
@@ -1376,8 +1385,9 @@ listvarspane~setViewportView(listvars)
 panelmain~add(listvarspane, gui~clsBorderLayout~CENTER)
 self~add(panelmain)
 
-controls[self~LISTVARS] = listvars
-controls[self~PANEVARS] = listvarspane
+controls[self~LISTVARS]    = listvars
+controls[self~PANEVARS]    = listvarspane
+controls[self~STATICCLASS] = labelclass
 
 self~ControlsSetPaneLink(self~LISTVARS, self~PANEVARS)
 
@@ -1950,6 +1960,14 @@ controls[listid]~getmodel~set(itemindex - 1, listtext)
 use arg controls, controlid, enable
 
 controls[controlid]~setEnabled(enable)
+
+------------------------------------------------------
+::method ControlSetText
+------------------------------------------------------
+use arg controls, controlid, text
+
+controls[controlid]~setText(text)
+
 
 ------------------------------------------------------
 ::method ControlDeferRedraw

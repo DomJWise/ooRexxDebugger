@@ -176,7 +176,7 @@ Apart from string and collection classes most object types show only the class n
 
 pt = a Point
 
-This does not give you any indication as to what is in the object, and while you can use the command console to call methods which return object information for dispaly this can be cumbersome.
+This does not give you any indication as to what is in the object, and while you can use the command console to call methods which return object information for display this can be cumbersome.
 
 To facilitate greater visibilty into user-defined classes when debugging a special method can be defined for the class to format and return a descriptive string for each object. The value returned is included alongside the object description in any Watch windows. 
 
