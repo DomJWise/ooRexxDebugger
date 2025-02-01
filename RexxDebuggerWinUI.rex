@@ -208,7 +208,7 @@ waiting = .false
 controls = .Directory~new
 
 forward class (super) continue array(.nil)
-self~create(6, 15, 280, 302, debugger~GetCaption ||" (Native UI)", "THICKFRAME, CENTER, MAXIMIZEBOX,MINIMIZEBOX")
+self~create(6, 15, 280, 302, debugger~GetCaption, "THICKFRAME, CENTER, MAXIMIZEBOX,MINIMIZEBOX")
 self~connectResize("onResize")
 
 arrcommands = .Array~new
