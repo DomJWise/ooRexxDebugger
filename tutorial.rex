@@ -77,8 +77,6 @@ dir["ArrayThing"] = subarray
 SAY 'In the Watch window, double click on "DIR"'
 SAY 'Recursive watch drilldown is possible for all collection types'
 SAY 'In the newly added watch window for DIR, double click on "ArrayThing"'
-SAY 'Note: One restriction exists for Relation collections'
-SAY 'Drilldown will only work for one item in a set with duplicate indexes'
 SAY
 SAY 'The global .Environment and .Local directories can be accessed via a menu action'
 SAY 'In the main watch window, right-click and select the menu option "Show global items"'
