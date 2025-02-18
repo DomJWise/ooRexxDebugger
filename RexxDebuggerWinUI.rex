@@ -595,7 +595,7 @@ if self~getFocus = self~getControlHandle(self~LISTSOURCE) then do
   index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
   if index > 0  then do
     text = self~ListGetItem(controls, self~LISTSOURCE, index)
-    if \debugger~canopensource then parse value text with lineno text
+    if \debugger~canopensource then parse value text with 2 lineno text
     clipboard = .WindowsClipboard~new
     clipboard~copy(text)
   end
