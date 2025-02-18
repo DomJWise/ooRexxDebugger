@@ -154,8 +154,45 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   
     rexxjh.sh <program> <arguments>
   
-  Note that when a debug session launched this way on MacOS reaches the end of the program or aborts due to an unhandled error the debugger window will disappear. Possible ways of avoiding this will be investigated for future releases.
- 
+  Note that when a debug session launched this way on MacOS reaches the end of the program or aborts due to an unhandled error the debugger window will disappear unless the utility functions described in the following section are added to the program
+
+### Utility functions for embedded / direct launch debugging
+--------------------------------------------------------
+
+When debugging embedded code or using direct launch there are two utility functions that can be used to provide more control over how the program terminates, making the behaviour similar to that when debugging from rexxdebugger. These can be especially useful on MacOS to prevent the debugger closing immediately at program exit or if a runtime error occurs
+
+RexxDebuggerHandleExit can be called at the very end of the program or immediately before any statement (e.g. exit or return) that would cause it to exit. When called it reports that the program has ended then waits for the debugger window to be closed
+
+```
+x = 1 
+say x
+
+CALL RexxDebuggerHandleExit
+exit
+
+::REQUIRES RexxDebugger.rex
+::OPTIONS ?R
+```
+
+RexxDebuggerHandleError can be called from a syntax or other signal handler and needs to be passed the .context special symbol as an argument. It will report the error and abnormal program termination then wait for the debugger window to be closed
+
+
+```
+signal on syntax
+
+x = 1 
+y = x /0
+
+exit
+
+syntax:
+call RexxDebuggerHandleError(.context)
+exit
+
+::REQUIRES RexxDebugger.rex
+::OPTIONS TRACE ?R
+```
+
 Control of program / trace output and possible limitations
 ----------------------------------------------------------
 

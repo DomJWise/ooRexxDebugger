@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.36"
+::CONSTANT VERSION "1.36.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -854,6 +854,52 @@ if .rexxdebugger.debugger~isA(.RexxDebugger) then do
   if .rexxdebugger.debugger~isshutdown then return
   else .rexxdebugger.debugger~SendDebugMessage(text)
 end
+
+------------------------------------------------------
+::ROUTINE RexxDebuggerHandleExit public
+------------------------------------------------------
+if .rexxdebugger.debugger~isA(.RexxDebugger) then do
+  debugger = .rexxdebugger.debugger
+  if \.rexxdebugger.debugger~isshutdown then do
+    debuggerui = debugger~debuggerui
+    debugger~canopensource = .true
+
+    debugger~debuggerui~AppendUIConsoleText("")
+    debugger~debuggerui~AppendUIConsoleText(debugger~DebugMsgPrefix||"Debug session ended")
+    debugger~debuggerui~UpdateUIControlStates
+
+    .local~rexxdebugger.debugger~WaitForUIToEnd
+  end  
+end
+
+------------------------------------------------------
+::ROUTINE RexxDebuggerHandleError public
+------------------------------------------------------
+use arg context
+if .rexxdebugger.debugger~isA(.RexxDebugger) then do
+  debugger = .rexxdebugger.debugger
+  if \.rexxdebugger.debugger~isshutdown then do
+    debuggerui = debugger~debuggerui
+
+    debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Runtime error:')   
+    cond = context~condition
+    do lineidx = 0 to cond~Traceback~items -1
+      debugger~SendDebugMessage(debugger~DebugMsgPrefix||cond~Traceback[lineidx])
+    end    
+    debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error 'cond~RC' running 'cond~package~name' line 'cond~Position': 'cond~ErrorText)   
+    debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error 'cond~code': 'cond~message)
+    debugger~SendDebugMessage("")  
+    debugger~SendDebugMessage(debugger~DebugMsgPrefix||"Debug session was aborted")
+  
+
+    debugger~canopensource = .true
+    debugger~debuggerui~UpdateUIControlStates
+
+    .local~rexxdebugger.debugger~WaitForUIToEnd
+  end  
+end
+
+
 ------------------------------------------------------
 ::ROUTINE GetPackageConstant
 ------------------------------------------------------

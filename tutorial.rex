@@ -93,6 +93,7 @@ SAY ''
 SAY 'For more information hit the Help button'
 SAY 'That''s all for this tutorial'
 
+call RexxDebuggerHandleExit
 exit
 
 ::ROUTINE TestRoutine
