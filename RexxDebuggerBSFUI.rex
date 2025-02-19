@@ -12,7 +12,7 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
-
+ 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -68,6 +68,8 @@ SOFTWARE.
 ::attribute clsJComponent          public unguarded
 ::attribute clsRectangle           public unguarded
 
+::attribute clsListSourceTransferHandler unguarded
+
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -112,6 +114,8 @@ self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
 self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
 self~clsSwingConstants     = bsf.loadclass("javax.swing.SwingConstants") 
 self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
+
+self~clsListSourceTransferHandler=bsf.compile("listsourcetransferhandler", .resources~listsourcetransferhandler.java, "Java")
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -751,6 +755,8 @@ panelmain~add(textfieldsourcename, gui~clsBorderLayout~NORTH)
 
 listsourcemodel = gui~clsDefaultListModel~new
 listsource = gui~clsJList~new(listsourcemodel)
+listsource~settransferhandler(gui~clslistsourcetransferhandler~new)
+
 
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
@@ -2011,6 +2017,59 @@ use arg controls, buttonid
 
 return controls[buttonid]~getText
 
+::RESOURCE listsourcetransferhandler.java
+import javax.swing.TransferHandler;
+import javax.swing.plaf.UIResource;
+import javax.swing.JComponent;
+import java.awt.datatransfer.Transferable;
+import javax.swing.JList;
+import java.awt.datatransfer.StringSelection;
+import javax.swing.DefaultListModel;
+import java.lang.StringBuilder;
+
+public class listsourcetransferhandler extends TransferHandler  implements UIResource
+{
+  
+protected Transferable createTransferable(JComponent c) {
+   
+  if (c instanceof JList) {
+    JList list = (JList) c;
+    int index = list.getSelectedIndex();
+
+    if (index == -1 ) {
+      return null;
+      
+  }
+    DefaultListModel model = (DefaultListModel)list.getModel();
+    StringBuilder sb = new StringBuilder((String)model.get(index));
+
+    sb.deleteCharAt(0);
+    while (sb.charAt(0) == ' ')
+      {
+        sb.deleteCharAt(0);
+      }
+    String strNumbers = new String("0123456789");
+    while (strNumbers.indexOf(sb.charAt(0)) != -1)
+      {
+        sb.deleteCharAt(0);
+      }
+    sb.deleteCharAt(0);
+      
+    return new StringSelection(sb.toString());
+    
+    }
+  
+  return null;
+  }
+
+  public int getSourceActions(JComponent c) {
+            return COPY;
+        }
+
+}
+
+
+::END
 
 ::REQUIRES BSF.CLS      -- get the Java support
 
