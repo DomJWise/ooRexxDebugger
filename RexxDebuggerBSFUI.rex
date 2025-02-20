@@ -68,7 +68,7 @@ SOFTWARE.
 ::attribute clsJComponent          public unguarded
 ::attribute clsRectangle           public unguarded
 
-::attribute clsListSourceTransferHandler unguarded
+::attribute clsDebuggerUIListTransferhandler unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -115,7 +115,9 @@ self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
 self~clsSwingConstants     = bsf.loadclass("javax.swing.SwingConstants") 
 self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
 
-self~clsListSourceTransferHandler=bsf.compile("listsourcetransferhandler", .resources~listsourcetransferhandler.java, "Java")
+signal on syntax name javacompileerror
+self~clsDebuggerUIListTransferhandler=bsf.compile("debuggeruilisttransferhandler", .resources~debuggeruilisttransferhandler.java, "Java")
+signal off syntax
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -132,6 +134,15 @@ debugdialog = .nil
 
 if .AWTGuiThread~isGuiThread then self~InitSafe
 else success = self~DidUICallSucceed(.AwtGuiThread~runLater(self, "InitSafe")~~result~errorCondition, .context)
+
+return
+
+javacompileerror:
+
+cond=condition('object')  /* get all condition information     */
+say ppJavaExceptionChain(cond)~makearray(d2c(10))~makestring  /* show Java exception chain   */
+say
+raise propagate 
 
 ------------------------------------------------------
 ::method InitSafe unguarded
@@ -444,6 +455,22 @@ dialog = slotdir~userdata
 if event~getKeycode = vkup then dialog~OnPrevCommand
 if event~getKeycode = vkdown then dialog~OnNextCommand
 
+
+--====================================================
+::class ListSourceClipboardTextHandler
+--====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method TransferText
+------------------------------------------------------
+use arg cliptext
+parse value cliptext with 2 lineno retval
+return retval
+
 --====================================================
 ::class DebugDialog subclass bsf inherit DialogControlHelper
 --====================================================
@@ -755,7 +782,7 @@ panelmain~add(textfieldsourcename, gui~clsBorderLayout~NORTH)
 
 listsourcemodel = gui~clsDefaultListModel~new
 listsource = gui~clsJList~new(listsourcemodel)
-listsource~settransferhandler(gui~clslistsourcetransferhandler~new)
+listsource~settransferhandler(gui~clsdebuggeruilisttransferhandler~new(.ListSourceClipboardTextHandler~new))
 
 
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
@@ -2017,7 +2044,8 @@ use arg controls, buttonid
 
 return controls[buttonid]~getText
 
-::RESOURCE listsourcetransferhandler.java
+::RESOURCE debuggeruilisttransferhandler.java
+
 import javax.swing.TransferHandler;
 import javax.swing.plaf.UIResource;
 import javax.swing.JComponent;
@@ -2026,12 +2054,22 @@ import javax.swing.JList;
 import java.awt.datatransfer.StringSelection;
 import javax.swing.DefaultListModel;
 import java.lang.StringBuilder;
+import org.rexxla.bsf.engines.rexx.RexxProxy;
+import org.rexxla.bsf.engines.rexx.RexxAndJava;
 
-public class listsourcetransferhandler extends TransferHandler  implements UIResource
+public class debuggeruilisttransferhandler extends TransferHandler  implements UIResource
 {
-  
+private RexxProxy rexxTransferHandler;
+
+public debuggeruilisttransferhandler(RexxProxy objTransferHandler)
+{
+  rexxTransferHandler = objTransferHandler;
+}  
+
 protected Transferable createTransferable(JComponent c) {
-   
+    Object retdata = new Object();      /* Compile errors without variable initialization here */
+    String retstring = new String("");  /* Compile errors without variable initialization here*/
+
   if (c instanceof JList) {
     JList list = (JList) c;
     int index = list.getSelectedIndex();
@@ -2041,21 +2079,16 @@ protected Transferable createTransferable(JComponent c) {
       
   }
     DefaultListModel model = (DefaultListModel)list.getModel();
-    StringBuilder sb = new StringBuilder((String)model.get(index));
-
-    sb.deleteCharAt(0);
-    while (sb.charAt(0) == ' ')
-      {
-        sb.deleteCharAt(0);
-      }
-    String strNumbers = new String("0123456789");
-    while (strNumbers.indexOf(sb.charAt(0)) != -1)
-      {
-        sb.deleteCharAt(0);
-      }
-    sb.deleteCharAt(0);
-      
-    return new StringSelection(sb.toString());
+    String data = (String)model.get(index);
+      try 
+        {
+        retdata = rexxTransferHandler.sendMessage1((RexxAndJava)null, new java.lang.String("TransferText"), data); 
+        retstring = (String)retdata;
+        }
+      catch (org.apache.bsf.BSFException e)
+        {
+        }
+    return new StringSelection(retstring);
     
     }
   
@@ -2067,8 +2100,6 @@ protected Transferable createTransferable(JComponent c) {
         }
 
 }
-
-
 ::END
 
 ::REQUIRES BSF.CLS      -- get the Java support
