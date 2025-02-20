@@ -472,6 +472,21 @@ parse value cliptext with 2 lineno retval
 return retval
 
 --====================================================
+::class ListStackClipboardTextHandler
+--====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method TransferText
+------------------------------------------------------
+use arg cliptext
+parse value cliptext with lineno stuff retval
+return retval
+
+--====================================================
 ::class DebugDialog subclass bsf inherit DialogControlHelper
 --====================================================
 
@@ -784,7 +799,6 @@ listsourcemodel = gui~clsDefaultListModel~new
 listsource = gui~clsJList~new(listsourcemodel)
 listsource~settransferhandler(gui~clsdebuggeruilisttransferhandler~new(.ListSourceClipboardTextHandler~new))
 
-
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
@@ -802,11 +816,13 @@ panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER)
 
 liststackmodel =  gui~clsDefaultListModel~new
 liststack = gui~clsJlist~new(liststackmodel)
+liststack~settransferhandler(gui~clsdebuggeruilisttransferhandler~new(.ListStackClipboardTextHandler~new))
 
 liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 liststack~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12))
 liststack~setFixedCellHeight(14)
+
 
 liststackpane = gui~clsJScrollPane~new
 liststackpane~setPreferredSize(gui~clsDimension~new(440,50))
