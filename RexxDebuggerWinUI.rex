@@ -138,6 +138,8 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ClearConsole
 ::constant EDITCOMMAND        110
 ::constant BUTTONEXEC         111
 ::constant BPSETTINGSMENUITEM 112
+::constant SOURCECOPYMENUITEM 114
+::constant STACKCOPYMENUITEM  115
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -464,7 +466,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose u controls buttonpushed debugger hfnt startuphelptext sourcepopupmenu
+expose u controls buttonpushed debugger hfnt startuphelptext sourcepopupmenu stackpopupmenu
 
 controls[self~EDITSOURCENAME] = self~newEdit(.DebugDialog~EDITSOURCENAME)
 self~setTabStop(self~EDITSOURCENAME, .False)
@@ -485,11 +487,21 @@ controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
 sourcepopupmenu~insertItem(self~BPSETTINGSMENUITEM, self~BPSETTINGSMENUITEM, "Breakpoint Settings")
-sourcepopupmenu~assignTo(self, .true)
+sourcepopupmenu~insertSeparator(self~BPSETTINGSMENUITEM, 1)
+sourcepopupmenu~insertItem(1, self~SOURCECOPYMENUITEM, "Copy")
+sourcepopupmenu~assignTo(self)
 sourcepopupmenu~connectContextMenu(onListSourceContext, controls[self~LISTSOURCE]~hwnd) 
+sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "BreakpointSettings")
+sourcepopupmenu~connectCommandEvent(self~SOURCECOPYMENUITEM, "OnCopySource")
 
-self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
-self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
+stackpopupmenu = .PopupMenu~new(self~LISTSTACK)
+stackpopupmenu~insertItem(self~STACKCOPYMENUITEM, self~STACKCOPYMENUITEM, "Copy")
+stackpopupmenu~assignTo(self)
+stackpopupmenu~connectContextMenu(onListStackContext, controls[self~LISTSTACK]~hwnd) 
+sourcepopupmenu~connectCommandEvent(self~STACKCOPYMENUITEM, "OnCopyStack")
+
+self~connectkeypress(OnCopyKeyCommand, .VK~C, "CONTROL")
+self~connectkeypress(OnCopyKeyCommand2, .VK~INSERT, "CONTROL")
 
 if \.local~rexxdebugger.commandlineisrexxdebugger = .True then do
   self~hidecontrol(self~BUTTONOPEN)
@@ -567,6 +579,20 @@ if enable then sourcepopupmenu~enable(self~BPSETTINGSMENUITEM)
 else  sourcepopupmenu~disable(self~BPSETTINGSMENUITEM)
 sourcepopupmenu~show(.Point~new(x,y))
 
+------------------------------------------------------
+::method OnListStackContext
+------------------------------------------------------
+expose stackpopupmenu controls 
+use arg hwnd,x,y
+listbox = controls[self~LISTSTACK]
+
+if x == -1, y == -1 then do
+  rect = listbox~windowRect
+  x = rect~right - .SM~cxVScroll + 15
+  y = rect~bottom - 15
+end
+stackpopupmenu~show(.Point~new(x,y))
+
 --------------------------------------------
 ::method BreakPointSettings 
 --------------------------------------------
@@ -587,33 +613,40 @@ end
 
 self~start("SetForeground")
 
---------------------------------------------
-::method OnCopyCommand unguarded
+------------------------------------------------------
+::method OnCopyStack unguarded
 ------------------------------------------------------
 expose controls debugger
-if self~getFocus = self~getControlHandle(self~LISTSOURCE) then do
-  index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
-  if index > 0  then do
-    text = self~ListGetItem(controls, self~LISTSOURCE, index)
-    if \debugger~canopensource then parse value text with 2 lineno text
-    clipboard = .WindowsClipboard~new
-    clipboard~copy(text)
-  end
-end
-else if self~getFocus = self~getControlHandle(self~LISTSTACK) then do
-  index = self~ListGetSelectedIndex(controls, self~LISTSTACK)
-  if index > 0  then do
-    text = self~ListGetItem(controls, self~LISTSTACK, index)
-    parse value text with lineno stuff text
-    clipboard = .WindowsClipboard~new
-    clipboard~copy(text)
-  end
+index = self~ListGetSelectedIndex(controls, self~LISTSTACK)
+if index > 0  then do
+  text = self~ListGetItem(controls, self~LISTSTACK, index)
+  parse value text with lineno stuff text
+  clipboard = .WindowsClipboard~new
+  clipboard~copy(text)
 end
 
 ------------------------------------------------------
-::method OnCopyCommand2 unguarded
+::method OnCopySource unguarded
 ------------------------------------------------------
-self~OnCopyCommand
+expose controls debugger
+index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+if index > 0  then do
+  text = self~ListGetItem(controls, self~LISTSOURCE, index)
+  if \debugger~canopensource then parse value text with 2 lineno text
+  clipboard = .WindowsClipboard~new
+  clipboard~copy(text~strip)
+end
+
+------------------------------------------------------
+::method OnCopyKeyCommand unguarded
+------------------------------------------------------
+if self~getFocus = self~getControlHandle(self~LISTSOURCE) then self~OnCopySource
+else if self~getFocus = self~getControlHandle(self~LISTSTACK) then self~OnCopyStack
+
+------------------------------------------------------
+::method OnCopyKeyCommand2 unguarded
+------------------------------------------------------
+self~OnCopyKeyCommand
 
 ------------------------------------------------------
 ::method EditCommandChar 
