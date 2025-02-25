@@ -56,19 +56,24 @@ SOFTWARE.
 ::attribute clsJPopupMenu          public unguarded
 ::attribute clsJRadioButton        public unguarded
 ::attribute clsJScrollPane         public unguarded
-::attribute clsJTextField          public unguarded
 ::attribute clsJTextArea           public unguarded
-::attribute clsKeyEvent            public unguarded
-::attribute clsListSelectionModel  public unguarded
-::attribute clsTimer               public unguarded
-::attribute clsSwingConstants      public unguarded
-::attribute clsWindowConstants     public unguarded
+::attribute clsJTextField          public unguarded
 ::attribute clsKeyStroke           public unguarded
+::attribute clsKeyEvent            public unguarded
+
+::attribute clsStringSelection     public unguarded
+::attribute clsTimer               public unguarded
+::attribute clsTransferHandler     public unguarded
+
 ::attribute clsInputEvent          public unguarded
 ::attribute clsJComponent          public unguarded
+::attribute clsListSelectionModel  public unguarded
+::attribute clsSwingConstants      public unguarded
+::attribute clsWindowConstants     public unguarded
+
 ::attribute clsRectangle           public unguarded
 
-::attribute clsDebuggerUIListTransferhandler unguarded
+::attribute clsBSFProxyTransferHandler public unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -107,7 +112,9 @@ self~clsJTextField         = bsf.importclass("javax.swing.JTextField")
 self~clsKeyEvent           = bsf.importclass("java.awt.event.KeyEvent")
 self~clsKeyStroke          = bsf.importclass("javax.swing.KeyStroke")
 self~clsRectangle          = bsf.importclass("java.awt.Rectangle")
+self~clsStringSelection    = bsf.importclass("java.awt.datatransfer.StringSelection") 
 self~clsTimer              = bsf.importclass("javax.swing.Timer")
+self~clsTransferHandler    = bsf.importclass("javax.swing.TransferHandler") 
 
 self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
 self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
@@ -115,9 +122,7 @@ self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
 self~clsSwingConstants     = bsf.loadclass("javax.swing.SwingConstants") 
 self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
 
-signal on syntax name javacompileerror
-self~clsDebuggerUIListTransferhandler=bsf.compile("debuggeruilisttransferhandler", .resources~debuggeruilisttransferhandler.java, "Java")
-signal off syntax
+self~clsBSFProxyTransferHandler = bsf.CreateProxyClass("javax.swing.TransferHandler", ,"getSourceActions", "createTransferable")
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -455,24 +460,8 @@ dialog = slotdir~userdata
 if event~getKeycode = vkup then dialog~OnPrevCommand
 if event~getKeycode = vkdown then dialog~OnNextCommand
 
-
 --====================================================
-::class ListSourceClipboardTextHandler
---====================================================
-------------------------------------------------------
-::method activate class
-------------------------------------------------------
-if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
-
-------------------------------------------------------
-::method TransferText
-------------------------------------------------------
-use arg cliptext
-parse value cliptext with 2 lineno retval
-return retval
-
---====================================================
-::class ListStackClipboardTextHandler
+::class ListTransferHandler
 --====================================================
 ------------------------------------------------------
 ::method activate class
@@ -480,11 +469,66 @@ return retval
 if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
 ------------------------------------------------------
-::method TransferText
+::method getSourceActions
 ------------------------------------------------------
-use arg cliptext
-parse value cliptext with lineno stuff retval
-return retval
+use arg  ignore, slotdir
+
+gui = slotdir~userdata
+
+return bsf.getstaticvalue(gui~clsTransferHandler, "COPY")
+
+------------------------------------------------------
+::method createTransferable
+------------------------------------------------------
+use arg list, slotdir
+
+gui = slotdir~userdata
+
+text = ''
+index = list~getselectedindex
+if index \= -1 then do
+  listtext = list~getmodel~get(index)
+  text = self~GetClipboardText(listtext)
+end
+
+return gui~clsStringSelection~new(text)
+
+------------------------------------------------------
+::method GetClipboardText 
+------------------------------------------------------
+use arg listtext
+return listtext
+
+--====================================================
+::class ListSourceTransferHandler subclass ListTransferHandler
+--====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method GetClipboardText
+------------------------------------------------------
+use arg listtext
+parse value listtext with 2 linenumber text
+return text
+
+
+--====================================================
+::class ListStackTransferHandler subclass ListTransferHandler
+--====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method GetClipboardText
+------------------------------------------------------
+use arg listtext
+parse value listtext with lineno stuff text
+return text~strip
 
 --====================================================
 ::class DebugDialog subclass bsf inherit DialogControlHelper
@@ -797,7 +841,7 @@ panelmain~add(textfieldsourcename, gui~clsBorderLayout~NORTH)
 
 listsourcemodel = gui~clsDefaultListModel~new
 listsource = gui~clsJList~new(listsourcemodel)
-listsource~settransferhandler(gui~clsdebuggeruilisttransferhandler~new(.ListSourceClipboardTextHandler~new))
+listsource~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListSourceTransferHandler~new, gui)))
 
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
@@ -816,7 +860,7 @@ panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER)
 
 liststackmodel =  gui~clsDefaultListModel~new
 liststack = gui~clsJlist~new(liststackmodel)
-liststack~settransferhandler(gui~clsdebuggeruilisttransferhandler~new(.ListStackClipboardTextHandler~new))
+liststack~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListStackTransferHandler~new, gui)))
 
 liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 liststack~setLayoutOrientation(gui~clsJlist~VERTICAL)
@@ -2060,63 +2104,6 @@ use arg controls, buttonid
 
 return controls[buttonid]~getText
 
-::RESOURCE debuggeruilisttransferhandler.java
-
-import javax.swing.TransferHandler;
-import javax.swing.plaf.UIResource;
-import javax.swing.JComponent;
-import java.awt.datatransfer.Transferable;
-import javax.swing.JList;
-import java.awt.datatransfer.StringSelection;
-import javax.swing.DefaultListModel;
-import java.lang.StringBuilder;
-import org.rexxla.bsf.engines.rexx.RexxProxy;
-import org.rexxla.bsf.engines.rexx.RexxAndJava;
-
-public class debuggeruilisttransferhandler extends TransferHandler  implements UIResource
-{
-private RexxProxy rexxTransferHandler;
-
-public debuggeruilisttransferhandler(RexxProxy objTransferHandler)
-{
-  rexxTransferHandler = objTransferHandler;
-}  
-
-protected Transferable createTransferable(JComponent c) {
-    Object retdata = new Object();      /* Compile errors without variable initialization here */
-    String retstring = new String("");  /* Compile errors without variable initialization here*/
-
-  if (c instanceof JList) {
-    JList list = (JList) c;
-    int index = list.getSelectedIndex();
-
-    if (index == -1 ) {
-      return null;
-      
-  }
-    DefaultListModel model = (DefaultListModel)list.getModel();
-    String data = (String)model.get(index);
-      try 
-        {
-        retdata = rexxTransferHandler.sendMessage1((RexxAndJava)null, new java.lang.String("TransferText"), data); 
-        retstring = (String)retdata;
-        }
-      catch (org.apache.bsf.BSFException e)
-        {
-        }
-    return new StringSelection(retstring);
-    
-    }
-  
-  return null;
-  }
-
-  public int getSourceActions(JComponent c) {
-            return COPY;
-        }
-
-}
-::END
 
 ::REQUIRES BSF.CLS      -- get the Java support
 
