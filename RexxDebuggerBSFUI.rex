@@ -1405,6 +1405,21 @@ if eventobj~getclickcount == 2 then do
   dialog~WatchRowDoubleClicked
 end
 
+--====================================================
+::class ListVarsTransferHandler subclass ListTransferHandler
+--====================================================
+------------------------------------------------------
+::method activate class
+------------------------------------------------------
+if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
+
+------------------------------------------------------
+::method GetClipboardText
+------------------------------------------------------
+use arg listtext
+parse value listtext with 2 text
+return text
+
 
  --====================================================
 ::class WatchDialog subclass bsf inherit DialogControlHelper
@@ -1480,6 +1495,7 @@ listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listvars~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
 listvars~setFixedCellHeight(14)
+listvars~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListVarsTransferHandler~new, gui)))
 
 labelclass = gui~clsJLabel~new("", gui~clsSwingConstants~CENTER)
 labelclass~setPreferredSize(gui~clsDimension~new(0,13))
