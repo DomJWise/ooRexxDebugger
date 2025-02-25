@@ -1232,19 +1232,35 @@ if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~ex
     self~UpdateControlStates
   end  
 
-self~SetSourceListSelectedRow
- 
+  self~SetSourceListSelectedRow
+
 end
+
+context = .nil
+if arrstack[activateindex]~hasmethod("context") then do 
+  context = arrstack[activateindex]~context
+  signal on syntax name InvalidContext
+  root = context~variables
+  signal off syntax
+  self~UpdateWatchWindows(root, .False)
+end    
+
+InvalidContext:
+return
+
 
 ------------------------------------------------------
 ::method UpdateWatchWindows  unguarded
 ------------------------------------------------------
-expose varsroot watchwindows 
-use arg varsroot
+expose varsroot watchwindows controls
+use arg varsroot, setstacktotop = .true
 
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
+if setstacktotop then self~ListSetSelectedIndex(controls, self~LISTSTACK, 1)
+
+
 ------------------------------------------------------
 ::method StackFrameChanged 
 ------------------------------------------------------

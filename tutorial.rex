@@ -97,10 +97,10 @@ call RexxDebuggerHandleExit
 exit
 
 ::ROUTINE TestRoutine
-SAY 'I have my own variables and invalid watch windows will have turned grey (until return)'
+SAY 'This routine has its own variables and invalid watch windows will have turned grey'
 x = 5
 y = 49
-SAY 'You can see where this was called from by selecting a row in the stack view'
+say .array~of('You can see where this was called from by selecting a row in the stack view','Watch windows will update to reflect the selected stack entry')~section(1, 1 + .context~stackframes[1]~hasmethod("context"))~makestring
 NOP
 return
 

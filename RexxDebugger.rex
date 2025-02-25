@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.36.6"
+::CONSTANT VERSION "1.36.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -1110,7 +1110,7 @@ else do
  
   self~ControlDeferRedraw(self~controls, self~LISTVARS, .False)
 end
-
+self~SetListState(.True)
 ------------------------------------------------------
 ::method PopulateFromString
 ------------------------------------------------------
