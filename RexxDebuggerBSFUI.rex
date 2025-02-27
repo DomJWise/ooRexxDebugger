@@ -75,6 +75,8 @@ SOFTWARE.
 
 ::attribute clsBSFProxyTransferHandler public unguarded
 
+::attribute clipboard              public unguarded
+
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -123,6 +125,8 @@ self~clsSwingConstants     = bsf.loadclass("javax.swing.SwingConstants")
 self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants") 
 
 self~clsBSFProxyTransferHandler = bsf.CreateProxyClass("javax.swing.TransferHandler", ,"getSourceActions", "createTransferable")
+
+self~clipboard = bsf.loadClass("java.awt.Toolkit")~getDefaultToolkit~getSystemClipboard
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -385,10 +389,21 @@ dialog~Cancel
 ------------------------------------------------------
 if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
-::method mousepressed
-::method mousereleased
 ::method mouseexited
 ::method mouseentered
+
+------------------------------------------------------
+::method mousepressed
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~isPopupTrigger() then slotdir~userdata~ShowStackPopupMenu(eventobj)
+
+------------------------------------------------------
+::method mousereleased
+------------------------------------------------------
+use arg eventobj, slotdir
+if eventobj~isPopupTrigger() then slotdir~userdata~ShowStackPopupMenu(eventobj)
+
 
 ------------------------------------------------------
 ::method mouseclicked
@@ -549,6 +564,10 @@ return text~strip
 ::constant PANESOURCE     112
 ::constant SOURCEMENU     113
 ::constant BPSETTINGS     114
+::constant SOURCECOPY     115
+::constant STACKMENU      116
+::constant STACKCOPY      117
+
 
 ------------------------------------------------------
 ::method activate class
@@ -753,6 +772,26 @@ breakpointsettingsdialog = .BreakPointSettingsDialog~new(self, gui, breakpointco
 if breakpointsettingsdialog~okselected then debugger~SetBreakPointTest(activesourcename, linenum, breakpointsettingsdialog~breakpointcondition)
 
 ------------------------------------------------------
+::method OnSourceCopy
+------------------------------------------------------
+expose controls gui
+
+seltext = self~ListGetItem(controls, self~LISTSOURCE, self~ListGetSelectedIndex(controls,self~LISTSOURCE))
+cliptext = .ListSourceTransferHandler~new~GetClipboardText(seltext)
+gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
+
+------------------------------------------------------
+::method OnStackCopy
+------------------------------------------------------
+expose controls gui
+
+seltext = self~ListGetItem(controls, self~LISTSTACK, self~ListGetSelectedIndex(controls,self~LISTSTACK))
+cliptext = .ListStackTransferHandler~new~GetClipboardText(seltext)
+gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
+
+
+
+------------------------------------------------------
 ::method OnPrevCommand 
 ------------------------------------------------------
 expose arrCommands commandnum controls
@@ -849,7 +888,10 @@ if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gu
 listsource~setFixedCellHeight(14)
 
 sourcecontextmenu = gui~clsJPopupMenu~new("")
+sourcecopymenuitem = gui~clsJMenuItem~new("Copy")
 breakpointsettingsmenuitem = gui~clsJMenuItem~new("Breakpoint Settings")
+sourcecontextmenu~add(sourcecopymenuitem)
+sourcecontextmenu~addSeparator
 sourcecontextmenu~add(breakpointsettingsmenuitem)
 
 listsourcepane = gui~clsJScrollPane~new
@@ -867,6 +909,9 @@ liststack~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12))
 liststack~setFixedCellHeight(14)
 
+stackcontextmenu = gui~clsJPopupMenu~new("")
+stackcopymenuitem = gui~clsJMenuItem~new("Copy")
+stackcontextmenu~add(stackcopymenuitem)
 
 liststackpane = gui~clsJScrollPane~new
 liststackpane~setPreferredSize(gui~clsDimension~new(440,50))
@@ -960,6 +1005,9 @@ controls[self~BUTTONEXEC] = buttonexec
 controls[self~PANESOURCE] = listsourcepane
 controls[self~SOURCEMENU] = sourcecontextmenu
 controls[self~BPSETTINGS] = breakpointsettingsmenuitem
+controls[self~SOURCECOPY] = sourcecopymenuitem
+controls[self~STACKMENU ] = stackcontextmenu
+controls[self~STACKCOPY ] = stackcopymenuitem
 
 self~ControlsSetPaneLink(self~LISTSOURCE, self~PANESOURCE)
 
@@ -975,6 +1023,8 @@ controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BUTTONVARS]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONVARS, "java.awt.event.ActionListener"))
 controls[self~BUTTONOPEN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOPEN, "java.awt.event.ActionListener"))
 controls[self~BPSETTINGS]~addActionListener(BsfCreateRexxProxy(self, self~BPSETTINGS, "java.awt.event.ActionListener"))
+controls[self~SOURCECOPY]~addActionListener(BsfCreateRexxProxy(self, self~SOURCECOPY, "java.awt.event.ActionListener"))
+controls[self~STACKCOPY ]~addActionListener(BsfCreateRexxProxy(self, self~STACKCOPY,  "java.awt.event.ActionListener"))
 
 
 stackmouselistener = .DebugDialogListStackMouseListener~new
@@ -1058,6 +1108,8 @@ if id = self~BUTTONEXEC then self~OnExecButton
 if id = self~BUTTONVARS then self~OnVarsButton
 if id = self~BUTTONOPEN then self~OnOpenButton
 if id = self~BPSETTINGS then self~OnBreakpointSettings
+if id = self~SOURCECOPY then self~OnSourceCopy
+if id = self~STACKCOPY  then self~OnStackCopy
 
 ------------------------------------------------------
 ::method SetConsoleUpdateTimer 
@@ -1343,6 +1395,16 @@ end
 breakpointsettingsmenuitem~setEnabled(enable)
 
 contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
+
+-------------------------------------------------------
+::method ShowStackPopupMenu
+-------------------------------------------------------
+expose gui controls
+use arg eventobj
+
+contextmenu = controls[self~STACKMENU]
+contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
+
 
 --====================================================
 ::class WatchDialogWindowListener public
