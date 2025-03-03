@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.36.8.2"
+::CONSTANT VERSION "1.36.9"
 
 --====================================================
 ::class RexxDebugger public
@@ -954,7 +954,7 @@ return
 ::class WatchHelper mixinclass object public
 --====================================================
 
-::ATTRIBUTE isstringwindow        get private unguarded
+::ATTRIBUTE isstringwindow        get public  unguarded
 ::ATTRIBUTE showglobals           get private unguarded
 ::ATTRIBUTE stringwatchshowsbytes get private unguarded
 

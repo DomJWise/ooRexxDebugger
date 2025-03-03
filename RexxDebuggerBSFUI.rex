@@ -1476,10 +1476,17 @@ end
 if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
 
 ------------------------------------------------------
+::method init
+------------------------------------------------------
+expose watchdialog
+use arg watchdialog
+
+------------------------------------------------------
 ::method GetClipboardText
 ------------------------------------------------------
-use arg listtext
-parse value listtext with 2 text
+expose watchdialog
+use arg text
+if \watchdialog~isstringwindow then text = text~substr(2)
 return text
 
 
@@ -1494,6 +1501,7 @@ return text
 ::CONSTANT HIDEGLOBALSMENUITEM  105
 ::CONSTANT CHARDISPLAYMENUITEM  106
 ::CONSTANT BYTEDISPLAYMENUITEM  107
+::CONSTANT COPYMENUITEM         108
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
@@ -1557,7 +1565,7 @@ listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listvars~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
 listvars~setFixedCellHeight(14)
-listvars~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListVarsTransferHandler~new, gui)))
+listvars~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListVarsTransferHandler~new(self), gui)))
 
 labelclass = gui~clsJLabel~new("", gui~clsSwingConstants~CENTER)
 labelclass~setPreferredSize(gui~clsDimension~new(0,13))
@@ -1599,16 +1607,23 @@ if id = self~SHOWGLOBALSMENUITEM then self~ShowGlobalItems
 if id = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
 if id = self~BYTEDISPLAYMENUITEM then self~DisplayStringBytes
 if id = self~CHARDISPLAYMENUITEM then self~DisplayStringCharacters
+if id = self~COPYMENUITEM        then self~CopySelectedItem
 
 -------------------------------------------------------
 ::method ShowWatchListPopupMenu
 -------------------------------------------------------
-expose gui parentwindow debugwindow
+expose gui parentwindow debugwindow controls
 use arg eventobj
 
 watchlistcontextmenu = gui~clsJPopupMenu~new("") 
 
+copyitem = gui~clsJMenuItem~new("Copy")
+copyitem~addActionListener(BsfCreateRexxProxy(self, self~COPYMENUITEM, "java.awt.event.ActionListener"))
+watchlistcontextmenu~add(copyitem)
+if self~ListGetSelectedIndex(controls, self~LISTVARS) = 0 then copyitem~setEnabled(.False)
+
 if parentwindow = debugwindow then do
+  watchlistcontextmenu~addSeparator
   showitem = gui~clsJMenuItem~new("Show global Items")
   showitem~addActionListener(BsfCreateRexxProxy(self, self~SHOWGLOBALSMENUITEM, "java.awt.event.ActionListener"))
   watchlistcontextmenu~add(showitem)
@@ -1622,6 +1637,7 @@ if parentwindow = debugwindow then do
 end
 
 if self~isstringwindow then do
+  watchlistcontextmenu~addSeparator
   bytesitem = gui~clsJMenuItem~new("Show bytes in hexadecimal")
   bytesitem~addActionListener(BsfCreateRexxProxy(self, self~BYTEDISPLAYMENUITEM, "java.awt.event.ActionListener"))
   watchlistcontextmenu~add(bytesitem)
@@ -1643,6 +1659,15 @@ if watchlistcontextmenu~getcomponentcount \= 0 then watchlistcontextmenu~show(ev
 expose hfnt debugwindow
 debugwindow~RemoveWatchWindow(self)
 self~dispose
+
+------------------------------------------------------
+::method CopySelectedItem
+------------------------------------------------------
+expose controls gui
+
+seltext = self~ListGetItem(controls, self~LISTVARS, self~ListGetSelectedIndex(controls,self~LISTVARS))
+cliptext = .ListVarsTransferHandler~new(self)~GetClipboardText(seltext)
+gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
 
 ------------------------------------------------------
 ::ROUTINE IsWindows

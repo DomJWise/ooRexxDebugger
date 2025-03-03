@@ -140,6 +140,7 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ClearConsole
 ::constant BPSETTINGSMENUITEM 112
 ::constant SOURCECOPYMENUITEM 114
 ::constant STACKCOPYMENUITEM  115
+::constant MENUSEPARATOR1       1
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -487,8 +488,8 @@ controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
 sourcepopupmenu~insertItem(self~BPSETTINGSMENUITEM, self~BPSETTINGSMENUITEM, "Breakpoint Settings")
-sourcepopupmenu~insertSeparator(self~BPSETTINGSMENUITEM, 1)
-sourcepopupmenu~insertItem(1, self~SOURCECOPYMENUITEM, "Copy")
+sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCECOPYMENUITEM, "Copy")
 sourcepopupmenu~assignTo(self)
 sourcepopupmenu~connectContextMenu(onListSourceContext, controls[self~LISTSOURCE]~hwnd) 
 sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "BreakpointSettings")
@@ -966,6 +967,8 @@ activesourcename=.nil
 ::CONSTANT HIDEGLOBALSMENUITEM   104
 ::CONSTANT CHARDISPLAYMENUITEM   105
 ::CONSTANT BYTEDISPLAYMENUITEM   106
+::CONSTANT COPYMENUITEM          107
+::CONSTANT MENUSEPARATOR1          1
 
 ::CONSTANT ROOTCOLLECTIONNAME ":Root"
 ::CONSTANT MAXVALUESTRINGLENGTH 255
@@ -1074,6 +1077,10 @@ if self~isstringwindow then do
   else popupmenu~disable(self~CHARDISPLAYMENUITEM)
 end  
 
+if popupmenu~getCount > 0 then popupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
+popupmenu~insertItem(self~MENUSEPARATOR1, self~COPYMENUITEM, "Copy")
+if self~ListGetSelectedIndex(controls, self~LISTVARS) = 0 then popupmenu~disable(self~COPYMENUITEM)
+
 if popupmenu~getCount > 0 then do
    selecteditem = popupmenu~track(.Point~new(x,y), self)
    if selecteditem \= 0 then do
@@ -1081,6 +1088,7 @@ if popupmenu~getCount > 0 then do
      if selecteditem = self~HIDEGLOBALSMENUITEM then self~HideGlobalItems
      if selecteditem = self~BYTEDISPLAYMENUITEM then self~DisplayStringBytes
      if selecteditem = self~CHARDISPLAYMENUITEM then self~DisplayStringCharacters
+     if selecteditem = self~COPYMENUITEM        then self~OnCopyCommand
   end
 end
 popupmenu~destroy
@@ -1106,7 +1114,8 @@ expose controls
 if self~getFocus = self~getControlHandle(self~LISTVARS) then do
   index = self~ListGetSelectedIndex(controls, self~LISTVARS)
   if index > 0  then do
-    text = self~ListGetItem(controls, self~LISTVARS, index)~substr(2)
+    text = self~ListGetItem(controls, self~LISTVARS, index)
+    if \self~isstringwindow then text = text~substr(2)
     clipboard = .WindowsClipboard~new
     clipboard~copy(text)
   end
