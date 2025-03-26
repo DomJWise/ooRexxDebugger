@@ -32,11 +32,11 @@ Prerequisites
 For Windows using the native interface ooRexx 4.2 or later must be installed.
 
 For any platform using the Java interface the following are needed:
-  - ooRexx 5.0 (recommended) or later (*)
+  - ooRexx 5.0 or later (*)
   - Any Java JRE/JDK with Swing and AWT support
   - bsf4oorexx version 641 or 850
 
-(*) The debugger can be used with the ooRexx 5.1 beta release but at time of writing there are some stability issues with tracing in this version which may result in hangs or crashes when using the debugger.
+(*) ooRexx 5.1 is under development at time of writing. Build 12948 or later should be used with the debugger
 
 Deployment of the files in this package
 ---------------------------------------
