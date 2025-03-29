@@ -70,6 +70,8 @@ By default the debugger will use the preferred interface for the current platfor
     /NOCAPTURE - Send all program and trace output to the console window that launched the debugger
     /SHOWTRACE - Include trace output in the debugger console pane along with the program output
 
+The /MODE:x option, where x is one of the trace modes A,C,E,F,I,L,N,O or R, can be used to change the default trace mode applied to all code blocks in the main program or switch it off if only selected blocks need to be debugged. The debugger adds ::OPTIONS TRACE ?x to the end of the program to activate the selected mode. The default is A which corresponds to ::OPTIONS TRACE ?A.  Unless option R,A or I is used, any code block requiring single step or breakpoint will need to include a suitable TRACE clause e.g TRACE ?A at the start of the block. 
+
 Specifying a program to debug
 -----------------------------
 
@@ -99,7 +101,7 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   
   (1) There are global TRACE options but debugger window placement and start point of debugging don't matter
 
-  At the end of the code along with the TRACE option (::OPTIONS TRACE ?R is recommended) add:
+  At the end of the code along with the TRACE option (::OPTIONS TRACE ?A is recommended) add:
 
     ::REQUIRES "RexxDebugger.rex"
 
@@ -112,11 +114,11 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   Before the first line of code to debug add:
   
     CALL RexxDebugger [parentwindowname, offsetdirection-LRUD]  
-    TRACE ?R
+    TRACE ?A
 
-  With this option the debugger will launch during the CALL statement and break after the TRACE ?R statement
+  With this option the debugger will launch during the CALL statement and break after the TRACE ?A statement
   
-  (3) There are global TRACE options (::OPTIONS TRACE ?R is recommended) and debugger window placement and/or start point of debugging matter (*)
+  (3) There are global TRACE options (::OPTIONS TRACE ?A is recommended) and debugger window placement and/or start point of debugging matter (*)
 
   Before the first line to debug add:
 
@@ -171,7 +173,7 @@ CALL RexxDebuggerHandleExit
 exit
 
 ::REQUIRES RexxDebugger.rex
-::OPTIONS ?R
+::OPTIONS ?A
 ```
 
 RexxDebuggerHandleError can be called from a syntax or other signal handler and needs to be passed the .context special symbol as an argument. It will report the error and abnormal program termination then wait for the debugger window to be closed
@@ -190,7 +192,7 @@ call RexxDebuggerHandleError(.context)
 exit
 
 ::REQUIRES RexxDebugger.rex
-::OPTIONS TRACE ?R
+::OPTIONS TRACE ?A
 ```
 
 Control of program / trace output and possible limitations

@@ -33,14 +33,14 @@ if .local~rexxdebugger.debuggerinit \= .nil then  return
 if .local~rexxdebugger.startuphelptext = .nil then do 
   .local~rexxdebugger.startuphelptext = .list~of( -
   "Command line usage:", - 
-  "Rexxdebugger [/nocapture | /showtrace] [/javaui] <program> <argstring>", - 
-  "Rexxdebugger [/nocapture | /showtrace] [/javaui] CALL <program> [<arg1>] [..<argn>]", - 
+  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/mode:A|C|E|F|I|L|N|O|R] <program> <argstring>", - 
+  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/mode:A|C|E|F|I|L|N|O|R] CALL <program> [<arg1>] [..<argn>]", - 
   "", - 
   "To launch from Rexx source include the following line:", - 
   "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
   "", - 
   "Below this add the following to start debugging:", -
-  "TRACE ?R ", - 
+  "TRACE ?A ", - 
   "", -
   "Source code will be shown when debugging is started.", -
   "To select a program to debug now, click the Open button.", -
@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.37"
+::CONSTANT VERSION "1.38"
 
 --====================================================
 ::class RexxDebugger public
@@ -575,7 +575,7 @@ else do
   strm~close
   if arrSource~items = 0 then arrSource = .array~of('')
   if arrSource[1]~strip~left(2) = '#!' then arrSource[1] = arrSource[1]~insert('-- /*REXX.DEBUGGER.COMMENTOUT*/ ')
-  arrSource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?R')
+  arrSource~~append('')~append('/*REXX.DEBUGGER.INJECT*/ ::OPTIONS TRACE ?'.local~rexxdebugger.tracemode)
 
   if \firsttime then do
     debuggerui~AppendUIConsoleText("")
@@ -925,8 +925,14 @@ return retval
 use arg debuggerargstring
 if .local~rexxdebugger.commandlineisrexxdebugger then do 
   .local~rexxdebugger.captureoption = ''
+  .local~rexxdebugger.tracemode = 'A'
   forcejava = .false
-  do while  "/SHOWTRACE /NOCAPTURE /JAVAUI"~wordpos(debuggerargstring~translate~word(1)) \= 0
+  permittedflags = "/SHOWTRACE /NOCAPTURE /JAVAUI"
+  traceoptions = 'ACEFILNOR'
+  do i = 1 to traceoptions~length
+    permittedflags = permittedflags||' /MODE:'traceoptions~substr(i,1)
+  end
+  do while permittedflags~wordpos(debuggerargstring~translate~word(1)) \= 0
     nextflag = debuggerargstring~translate~word(1)
     parse value debuggerargstring with . debuggerargstring
     if "/SHOWTRACE /NOCAPTURE"~wordpos(nextflag) \= 0 then do
@@ -935,6 +941,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
     else if nextflag = "/JAVAUI" then do 
       forcejava = .True
     end
+    else if nextflag~pos('/MODE:') = 1 then .local~rexxdebugger.tracemode = nextflag~right(1)
   end
   if debuggerargstring~translate~word(1) = "CALL" then do 
     parse value debuggerargstring with . debuggerargstring
