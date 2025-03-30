@@ -132,13 +132,10 @@ graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
 arr = bsf.wrap(jarrfontfamilies)
 
-self~fontFixed = ''
-do i = 1 to arr~items
-  if arr[i]~pos("Courier") = 1 then do
-    self~fontFixed = arr[i]
-    leave
-  end
-end 
+
+self~fontFixed = GetInstalledFontName("Courier", arr)
+if self~fontFixed = '' then self~fontFixed = GetInstalledFontName("Monospaced", arr)
+
 debugdialog = .nil
 
 if .AWTGuiThread~isGuiThread then self~InitSafe
@@ -152,6 +149,17 @@ cond=condition('object')  /* get all condition information     */
 say ppJavaExceptionChain(cond)~makearray(d2c(10))~makestring  /* show Java exception chain   */
 say
 raise propagate 
+
+::ROUTINE GetInstalledFontName
+use arg family, familylist
+fontFixed = ''
+do i = 1 to familylist~items
+  if familylist[i]~translate~pos(family~translate) = 1 then do
+    fontFixed = familylist[i]
+    leave
+  end
+end 
+return fontfixed
 
 ------------------------------------------------------
 ::method InitSafe unguarded
