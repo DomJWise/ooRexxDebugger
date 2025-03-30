@@ -1918,10 +1918,11 @@ self~setLayout(.Nil)
 self~getrootPane~setPreferredSize(gui~clsDimension~new(405,170))
 
 labelrexxfile = gui~clsJLabel~new("Rexx program:")
-labelrexxfile~setbounds(5, 10, 95, 25)
+labelwidth = labelrexxfile~getFontMetrics(labelrexxfile~getFont)~stringwidth(labelrexxfile~gettext)
+labelrexxfile~setbounds(5, 10, labelwidth, 25)
 
 textfieldrexxfile = gui~clsJTextField~new
-textfieldrexxfile~setbounds(100, 10, 235, 25)
+textfieldrexxfile~setbounds(labelwidth + 10, 10, 325 - labelwidth, 25)
 
 buttonfind = gui~clsJButton~new("Find")
 buttonfind~setMnemonic(gui~clsKeyEvent~VK_F)
