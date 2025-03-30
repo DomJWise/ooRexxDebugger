@@ -893,7 +893,8 @@ listsource~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxPr
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
-listsource~setFixedCellHeight(14)
+listsource~setFixedCellHeight(listsource~getFontMetrics(listsource~getFont)~getheight)
+
 
 sourcecontextmenu = gui~clsJPopupMenu~new("")
 sourcecopymenuitem = gui~clsJMenuItem~new("Copy")
@@ -915,7 +916,8 @@ liststack~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxPro
 liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 liststack~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12))
-liststack~setFixedCellHeight(14)
+liststack~setFixedCellHeight(liststack~getFontMetrics(liststack~getFont)~getheight)
+
 
 stackcontextmenu = gui~clsJPopupMenu~new("")
 stackcopymenuitem = gui~clsJMenuItem~new("Copy")
@@ -1584,7 +1586,8 @@ listvars = gui~clsJList~new(listvarsmodel)
 listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listvars~setLayoutOrientation(gui~clsJlist~VERTICAL)
 if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
-listvars~setFixedCellHeight(14)
+listvars~setFixedCellHeight(listvars~getFontMetrics(listvars~getFont)~getheight)
+
 listvars~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListVarsTransferHandler~new(self), gui)))
 
 labelclass = gui~clsJLabel~new("", gui~clsSwingConstants~CENTER)
