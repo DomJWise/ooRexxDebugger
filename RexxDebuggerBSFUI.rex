@@ -929,8 +929,6 @@ panellevel1lowercontrols~add(liststackpane,gui~clsBorderLayout~NORTH)
 
 	
 panelllevel2forbuttons  = gui~clsjPanel~new
-panelllevel2forbuttons~setPreferredSize(gui~clsDimension~new(50, 0))
-panelllevel2forbuttons~setLayout(.nil)
 
 buttonnext = gui~clsJButton~new("Next")
 buttonnext~setMnemonic(gui~clsKeyEvent~VK_N)
@@ -975,6 +973,20 @@ buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
 buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
 buttonexec~setBounds(0,162, 50,22)
 panelllevel2forbuttons~add(buttonexec)
+
+arrButtons = .Array~Of(buttonexec, buttonopen, buttonhelp, buttonvars, buttonexit, buttonrun, buttonnext)
+buttonfontmetrics = buttonexec~getFontMetrics(buttonexec~getFont)
+width = 0
+do button over arrButtons
+  width = max(width, buttonfontmetrics~stringwidth(button~gettext))
+ end
+width = width + 8
+do button over arrButtons
+  buttonbounds = button~getBounds
+  button~setBounds(buttonbounds~x, buttonbounds~y, width, buttonbounds~height)
+end
+panelllevel2forbuttons~setPreferredSize(gui~clsDimension~new(width, 0))
+panelllevel2forbuttons~setLayout(.nil)
 
 panellevel1lowercontrols~add(panelllevel2forbuttons,gui~clsBorderLayout~EAST)
 
