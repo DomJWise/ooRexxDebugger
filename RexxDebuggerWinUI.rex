@@ -96,7 +96,7 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateControlStat
 expose debugdialog debugger
 use arg varsroot
 
-if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindows(varsroot)
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateWatchWindows(varsroot, .True)
 
 ------------------------------------------------------
 ::method SetUISourceListInfoText 
@@ -239,8 +239,9 @@ return returnstring
 ------------------------------------------------------
 ::method HereIsResponse unguarded
 ------------------------------------------------------
-expose waiting response
+expose waiting response varsroot
 use arg response
+varsroot = .Nil
 waiting = .False
 
 ------------------------------------------------------
@@ -449,7 +450,7 @@ else do
   guard off when childready = .True
 end
 
-self~HereIsResponse("UPDATEVARS")
+self~UpdateWatchWindows
 
 ------------------------------------------------------
 ::METHOD NotifyChildReady unguarded
@@ -875,7 +876,7 @@ if arrstack[activateindex]~hasmethod("context") then do
   signal on syntax name InvalidContext
   root = context~variables
   signal off syntax
-  self~UpdateWatchWindows(root, .False)
+  self~UpdateWatchWindows(root)
 end    
 
 InvalidContext:
@@ -887,7 +888,8 @@ return
 ::method UpdateWatchWindows 
 ------------------------------------------------------
 expose varsroot watchwindows controls
-use arg varsroot, setstacktotop = .true
+use arg newroot = .Nil, setstacktotop = .False
+if newroot \= .Nil then varsroot = newroot
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
@@ -1503,5 +1505,14 @@ return controls[buttonid]~getText~changeStr("&", "")
 
 ::requires oodialog.cls
 ::requires winsystm.cls
+
+------------------------------------------------------
+::ROUTINE GetThreadID public
+------------------------------------------------------
+if .context~hasmethod("Thread") then threadid = .context~Thread
+else threadid = SysQueryProcess('TID')
+
+return threadid
+
 
 --::options trace R

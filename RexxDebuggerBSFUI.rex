@@ -273,8 +273,8 @@ expose debugdialog debugger
 use arg varsroot
 
 if debugdialog \= .nil  & \debugger~isshutdown then do
-  if .AWTGuiThread~isGuiThread then debugdialog~UpdateWatchWindows(varsroot)
-  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows", "I", varsroot)~~result~errorCondition, .context)
+  if .AWTGuiThread~isGuiThread then debugdialog~UpdateWatchWindows(varsroot, .True)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateWatchWindows", "I", varsroot, .True)~~result~errorCondition, .context)
 end
 
 
@@ -663,9 +663,9 @@ use arg waiting
 ------------------------------------------------------
 ::method HereIsResponse unguarded
 ------------------------------------------------------
-expose gui waiting
+expose gui waiting varsroot
 use arg response
-
+varsroot = .nil
 waiting = .False
 self~UpdateControlStates
 
@@ -839,7 +839,7 @@ else do
   guard off when childready = .True
   
 end
-self~HereIsResponse("UPDATEVARS")
+self~UpdateWatchWindows
 
 
 ------------------------------------------------------
@@ -1316,7 +1316,7 @@ if arrstack[activateindex]~hasmethod("context") then do
   signal on syntax name InvalidContext
   root = context~variables
   signal off syntax
-  self~UpdateWatchWindows(root, .False)
+  self~UpdateWatchWindows(root)
 end    
 
 InvalidContext:
@@ -1327,8 +1327,8 @@ return
 ::method UpdateWatchWindows  unguarded
 ------------------------------------------------------
 expose varsroot watchwindows controls
-use arg varsroot, setstacktotop = .true
-
+use arg newroot = .Nil, setstacktotop = .False
+if newroot \=.nil then varsroot = newroot
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
 end  
@@ -1717,6 +1717,15 @@ do with index methodname item method over classobj~methods
     end    
   end  
 end  
+
+------------------------------------------------------
+::ROUTINE GetThreadID public
+------------------------------------------------------
+numeric digits 21
+if .context~hasmethod("Thread") then threadid = .context~Thread
+else threadid = BsfGetTid()~D2X 
+return threadid
+
 
 --====================================================
 ::class BreakpointSettingsDialogEscKeyListener public
