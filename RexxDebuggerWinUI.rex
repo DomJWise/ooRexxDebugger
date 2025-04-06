@@ -1295,7 +1295,7 @@ self~maxSize = maxsize
 parentsize = self~ownerdialog~getrealsize
 parentpos = self~ownerdialog~getrealpos
 mysize= self~getrealsize
-mystartpos = parentpos~~incr((parentsize~width - mysize~width) / 2, (parentsize~height - mysize~height) / 2)
+mystartpos = parentpos~~incr(((parentsize~width - mysize~width) / 2)~floor, ((parentsize~height - mysize~height) / 2)~floor)
 self~moveto(mystartpos)
 
 controls[self~EDITREXXFILE] = self~NewEdit(self~EDITREXXFILE)
