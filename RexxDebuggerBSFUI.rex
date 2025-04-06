@@ -84,6 +84,15 @@ self~define("AppendUIConsoleText", .Method~new("", self~method("AppendUIConsoleT
 self~define("DidUICallSucceed", .Method~new("", self~method("DidUICallSucceed")~source)~~setUnguarded)
 
 ------------------------------------------------------
+::method BuildGetThreadIDRoutine class
+------------------------------------------------------
+if .context~hasmethod("Thread") then code = "return .context~Thread"
+else if IsWindows() then code = "return SysQueryProcessRoutine('TID')"
+else code = "numeric digits 21; return BsfGetTid()~D2X"
+
+return .Routine~new("",code)
+
+------------------------------------------------------
 ::method init
 ------------------------------------------------------
 expose debugdialog debugger
@@ -1719,13 +1728,8 @@ do with index methodname item method over classobj~methods
 end  
 
 ------------------------------------------------------
-::ROUTINE GetThreadID public
+::ROUTINE  "SysQueryProcessRoutine"  EXTERNAL "LIBRARY rexxutil SysQueryProcess"
 ------------------------------------------------------
-numeric digits 21
-if .context~hasmethod("Thread") then threadid = .context~Thread
-else threadid = BsfGetTid()~D2X 
-return threadid
-
 
 --====================================================
 ::class BreakpointSettingsDialogEscKeyListener public

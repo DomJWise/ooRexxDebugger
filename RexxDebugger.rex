@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.39.1"
+::CONSTANT VERSION "1.39.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -130,7 +130,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine traceinterceptdisabled uithreadid
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine traceinterceptdisabled uithreadid getthreadidroutine
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -148,17 +148,26 @@ uifinished = .True
 runroutine = .nil
 traceinterceptdisabled = .False
 uithreadid = 0
+getthreadidroutine = .Nil
 
 .local~debug.channels = .Directory~new
 
 uiloaded = self~findandloadui()
 
-if uiloaded then ignore = .debuginput~destination(self)
-
+if uiloaded then do
+  getthreadidroutine = .DebuggerUI~BuildGetThreadIdRoutine
+  ignore = .debuginput~destination(self)
+end
 if .local~rexxdebugger.deferlaunch \= .true then do
   .local~rexxdebugger.deferlaunch = .false
   self~launch(windowname, offsetdirection)
 end
+
+------------------------------------------------------
+::method GetThreadId unguarded
+------------------------------------------------------
+expose getthreadidroutine
+return getthreadidroutine~call
 
 ------------------------------------------------------
 ::method findandloadui 
@@ -324,8 +333,8 @@ if outputhandler \= .nil then outputhandler~SetCapture(.False)
 ------------------------------------------------------
 ::method LINEIN unguarded
 ------------------------------------------------------
-expose uithreadid
-tid = GetThreadID()
+expose uithreadid getthreadidroutine
+tid = getthreadidroutine~call
 
 if tid = uithreadid then return ''
 else do
@@ -341,16 +350,18 @@ lastexecfulltime = TIME('F')
 if shutdown then return 'trace off; exit' 
 if launched = .false | traceinterceptdisabled then return ''
 else do
-  if \.debug.channels~hasindex(threadid) then do
-    .debug.channels[threadid] = .Directory~new
-    .debug.channels[threadid]~status=.MutableBuffer~new("getprogramstatus", 256)
-    .debug.channels[threadid]~frames=.Nil
-    .debug.channels[threadid]~variables=.Nil
-    .debug.channels[threadid]~breakpointtestresult = .False
+  debugchannel = .debug.channels[threadid]
+  if debugchannel = .nil then do
+    debugchannel = .Directory~new
+    debugchannel~status=.MutableBuffer~new("getprogramstatus", 256)
+    debugchannel~frames=.Nil
+    debugchannel~variables=.Nil
+    debugchannel~breakpointtestresult = .False
+    .debug.channels[threadid] = debugchannel
   end
- response =self~GetAutoResponse(threadid)
+ response =self~GetAutoResponse(debugchannel, threadid)
 end 
-if response \= "" | .debug.channels[threadid]~status~string = "breakpointcheckgetlocation" then return response 
+if response \= "" | debugchannel~status~string = "breakpointcheckgetlocation" then return response 
 
 response =  debuggerui~GetUINextResponse
 
@@ -362,21 +373,21 @@ if translate(response) = 'EXIT' then do
    
    end
 if translate(response) = 'RUN' then do
-  .debug.channels[threadid]~status~append("breakpointcheckgetlocation")
+  debugchannel~status~append("breakpointcheckgetlocation")
   return ''
 end  
-if word(translate(response), 1) = 'TRACE' then .debug.channels[threadid]~status~append("getprogramstatus")
+if word(translate(response), 1) = 'TRACE' then debugchannel~status~append("getprogramstatus")
 if translate(response) = 'NEXT' | response = '' then do
-  .debug.channels[threadid]~status~append("getprogramstatus")
+  debugchannel~status~append("getprogramstatus")
   return ''
 end  
 if translate(response)~word(1) = 'NEXT' & response~words > 1 then do
-   if "RUN EXIT HELP CAPTURE CAPTUREX NOCAPTURE CLS"~wordpos(response~word(2)~translate) \= 0 then .debug.channels[threadid]~status~append("getprogramstatus "||response~DELWORD(1,2))
-   else .debug.channels[threadid]~status~append("getprogramstatus "||response~DELWORD(1,1))
+   if "RUN EXIT HELP CAPTURE CAPTUREX NOCAPTURE CLS"~wordpos(response~word(2)~translate) \= 0 then debugchannel~status~append("getprogramstatus "||response~DELWORD(1,2))
+   else debugchannel~status~append("getprogramstatus "||response~DELWORD(1,1))
   return ''
 end  
 if translate(response) = 'UPDATEVARS' then do
-  .debug.channels[threadid]~status~append("getvars")
+  debugchannel~status~append("getvars")
   return 'NOP'
 end  
 if translate(response) = 'CAPTURE' | translate(response) = 'CAPTUREX' then do 
@@ -404,7 +415,7 @@ end
 
 if shutdown & response \= '' then response = response||'; trace off; exit'
 
-.debug.channels[threadid]~status~append("getprogramstatus")
+debugchannel~status~append("getprogramstatus")
 
 return response
 
@@ -412,14 +423,14 @@ return response
 ::method GetAutoResponse unguarded
 ------------------------------------------------------
 expose debuggerui tracedprograms manualbreak breakpoints runroutine traceinterceptdisabled
-use arg threadid
+use arg debugchannel, threadid
 
-status = .debug.channels[threadid]~status~string
+status = debugchannel~status~string
 
-.debug.channels[threadid]~status~delete(1)
+debugchannel~status~delete(1)
 
 if status="breakpointcheckgetlocation" then do
-  return '_rexdeebugeer_tmp = .debug.channels['threadid']~status~append("breakpointchecklocationis ".context~package~name">".context~line);  drop _rexdeebugeer_tmp'
+  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~status~append("breakpointchecklocationis ".context~package~name">".context~line);  drop _rexdeebugeer_tmp'
   end
 else if status~pos("breakpointchecklocationis") = 1 then do
   parse value status with ignore codelocation -- Is this a breakpoint ?
@@ -428,95 +439,95 @@ else if status~pos("breakpointchecklocationis") = 1 then do
     if test = '' | manualbreak then do
       if manualbreak then CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
       manualbreak = .False
-      .debug.channels[threadid]~status~append("getprogramstatus")
+      debugchannel~status~append("getprogramstatus")
       return 'NOP'
     end  
     else do
-      .debug.channels[threadid]~status~append("breakpointprocesstestresult")
-      .debug.channels[threadid]~breakpointtestresult = .True
-      .debug.channels[threadid]~remove('RESULT')
-      return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels[threadid]~result = result; .debug.channels['threadid']~breakpointtestresult = ('||test||'); if .debug.channels['threadid']~hasindex(''RESULT'') then result =.debug.channels['threadid']~result; else DROP RESULT'
+      debugchannel~status~append("breakpointprocesstestresult")
+      debugchannel~breakpointtestresult = .True
+      debugchannel~remove('RESULT')
+      return 'if Symbol(''RESULT'') = ''VAR'' THEN debugchannel~result = result; .debug.channels["'threadid'"]~breakpointtestresult = ('||test||'); if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
       end
   end
   else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
     tracedprograms~put(codelocation~makearray('>')[1])
-    .debug.channels[threadid]~status~append("getprogramstatus")
+    debugchannel~status~append("getprogramstatus")
     return 'NOP'
   end
   else if manualbreak then do -- Was a break issued from the dialog? 
     CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
     manualbreak = .false
-    .debug.channels[threadid]~status~append("getprogramstatus")
+    debugchannel~status~append("getprogramstatus")
     return 'NOP'
   end
   else do       
-    .debug.channels[threadid]~status~append("breakpointcheckgetlocation")
+    debugchannel~status~append("breakpointcheckgetlocation")
     return ''
   end  
 end  
 else if status~pos("breakpointprocesstestresult") = 1 then do
-  testresult = .debug.channels[threadid]~breakpointtestresult
-  .debug.channels[threadid]~breakpointtestresult = .False
+  testresult = debugchannel~breakpointtestresult
+  debugchannel~breakpointtestresult = .False
   if testresult = .True then do
      debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Breakpoint condition is satisfied")
-    .debug.channels[threadid]~status~append("getprogramstatus")
+    debugchannel~status~append("getprogramstatus")
     return 'NOP'
   end  
   else do
-    .debug.channels[threadid]~status~append("breakpointcheckgetlocation")
+    debugchannel~status~append("breakpointcheckgetlocation")
     return ''
   end
 end
 else if status~word(1)="getprogramstatus" then do
   instructions = status~delword(1,1)~strip
   if instructions \= '' then do 
-    .debug.channels[threadid]~frames= .nil
-    .debug.channels[threadid]~variables= .nil
-    .debug.channels[threadid]~status~append("getprogramstatus")
-    .debug.channels[threadid]~remove('RESULT')
-     return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels['threadid']~result = result ;'instructions'; if .debug.channels['threadid']~hasindex(''RESULT'') then result =.debug.channels['threadid']~result; else DROP RESULT'
+    debugchannel~frames= .nil
+    debugchannel~variables= .nil
+    debugchannel~status~append("getprogramstatus")
+    debugchannel~remove('RESULT')
+     return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels["'threadid'"]~result = result ;'instructions'; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
   end
   else do  
-    .debug.channels[threadid]~frames= .nil
-    .debug.channels[threadid]~variables= .nil
-    .debug.channels[threadid]~status~append("programstatusupdated")
-    .debug.channels[threadid]~remove('RESULT')
-    return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels['threadid']~result = result ; .debug.channels['threadid']~frames = .context~StackFrames~section(2); .debug.channels['threadid']~variables=.context~variables;  if .debug.channels['threadid']~hasindex(''RESULT'') then result =.debug.channels['threadid']~result; else DROP RESULT'
+    debugchannel~frames= .nil
+    debugchannel~variables= .nil
+    debugchannel~status~append("programstatusupdated")
+    debugchannel~remove('RESULT')
+    return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels["'threadid'"]~result = result ; .debug.channels["'threadid'"]~frames = .context~StackFrames~section(2); .debug.channels["'threadid'"]~variables=.context~variables;  if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
   end  
 end      
 else if status="programstatusupdated" then do
-  if .debug.channels[threadid]~frames \=.nil then do
-    frames = .debug.channels[threadid]~frames
-    if runroutine \= .nil & frames~lastitem~executable~package~name = .context~package~name then frames = frames~section(1, frames~items-3)
+  if debugchannel~frames \=.nil then do
+    frames = debugchannel~frames
+    if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name then frames = frames~section(1, frames~items-3)
     tracedprograms~put(frames~firstitem~executable~package~name)
     debuggerui~UpdateUICodeView(frames, 1)
   end
-  if .debug.channels[threadid]~variables \=.nil then do
+  if debugchannel~variables \=.nil then do
     traceinterceptdisabled = .True
-    debuggerui~UpdateUIWatchWindows(.debug.channels[threadid]~variables)
+    debuggerui~UpdateUIWatchWindows(debugchannel~variables)
     traceinterceptdisabled = .False
   end  
-  .debug.channels[threadid]~frames= .nil
-  .debug.channels[threadid]~variables= .nil
-  .debug.channels[threadid]~status~append("")
+  debugchannel~frames= .nil
+  debugchannel~variables= .nil
+  debugchannel~status~append("")
   return ''
 end
 else if status="getvars" then do
-  .debug.channels[threadid]~frames= .nil
-  .debug.channels[threadid]~variables= .nil
-  .debug.channels[threadid]~status~append("gotvars")
-  .debug.channels[threadid]~remove('RESULT')
-  return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels['threadid']~result = result;.debug.channels['threadid']~variables=.context~variables; if .debug.channels['threadid']~hasindex(''RESULT'') then result =.debug.channels['threadid']~result; else DROP RESULT'
+  debugchannel~frames= .nil
+  debugchannel~variables= .nil
+  debugchannel~status~append("gotvars")
+  debugchannel~remove('RESULT')
+  return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels["'threadid'"]~result = result;.debug.channels["'threadid'"]~variables=.context~variables; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
 end     
 else if status="gotvars" then do
-  if .debug.channels[threadid]~variables \=.nil then do
+  if debugchannel~variables \=.nil then do
     traceinterceptdisabled = .True
-    debuggerui~UpdateUIWatchWindows(.debug.channels[threadid]~variables)
+    debuggerui~UpdateUIWatchWindows(debugchannel~variables)
     traceinterceptdisabled = .False
   end
-  .debug.channels[threadid]~frames= .nil
-  .debug.channels[threadid]~variables= .nil
-  .debug.channels[threadid]~status~append("")
+  debugchannel~frames= .nil
+  debugchannel~variables= .nil
+  debugchannel~status~append("")
   return 'NOP'
 end
 return ''
@@ -1206,8 +1217,7 @@ end
 expose isarraywindow isrootwindow itemidentifiers showglobals
 
 use arg variablescollection
-self~debugger~uithreadid = GetThreadID()
-
+self~debugger~uithreadid = self~debugger~GetThreadID
 showvariablenames = \(variablescollection~IsA(.Set) | variablescollection~IsA(.Bag))
   
 if variablescollection~isA(.Directory) | -

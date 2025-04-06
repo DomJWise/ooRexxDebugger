@@ -32,6 +32,14 @@ SOFTWARE.
 self~define("AppendUIConsoleText", .Method~new("", self~method("AppendUIConsoleText")~source)~~setUnguarded)
 
 ------------------------------------------------------
+::method BuildGetThreadIDRoutine class
+------------------------------------------------------
+if .context~hasmethod("Thread") then code  = "return .context~Thread"
+else code = "return SysQueryProcessRoutine('TID')"
+
+return .Routine~new("", code)
+
+------------------------------------------------------
 ::method init
 ------------------------------------------------------
 expose debugdialog debugger
@@ -1502,17 +1510,12 @@ use arg controls, buttonid
 
 return controls[buttonid]~getText~changeStr("&", "")
 
+------------------------------------------------------
+::ROUTINE  "SysQueryProcessRoutine"  EXTERNAL "LIBRARY rexxutil SysQueryProcess"
+------------------------------------------------------
+
 
 ::requires oodialog.cls
 ::requires winsystm.cls
-
-------------------------------------------------------
-::ROUTINE GetThreadID public
-------------------------------------------------------
-if .context~hasmethod("Thread") then threadid = .context~Thread
-else threadid = SysQueryProcess('TID')
-
-return threadid
-
 
 --::options trace R
