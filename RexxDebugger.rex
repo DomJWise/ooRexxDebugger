@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.39.3"
+::CONSTANT VERSION "1.39.4"
 
 --====================================================
 ::class RexxDebugger public
@@ -446,7 +446,7 @@ else if status~pos("breakpointchecklocationis") = 1 then do
       debugchannel~status~append("breakpointprocesstestresult")
       debugchannel~breakpointtestresult = .True
       debugchannel~remove('RESULT')
-      return 'if Symbol(''RESULT'') = ''VAR'' THEN debugchannel~result = result; .debug.channels["'threadid'"]~breakpointtestresult = ('||test||'); if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
+      return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; .debug.channels["'threadid'"]~breakpointtestresult = ('||test||'); if .debug.channels["'threadid'"]~hasindex(''RESULT'') then RESULT =.debug.channels["'threadid'"]~result; else DROP RESULT'
       end
   end
   else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
@@ -485,14 +485,14 @@ else if status~word(1)="getprogramstatus" then do
     debugchannel~variables= .nil
     debugchannel~status~append("getprogramstatus")
     debugchannel~remove('RESULT')
-     return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels["'threadid'"]~result = result ;'instructions'; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
+     return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; 'instructions'; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then RESULT =.debug.channels["'threadid'"]~result; else DROP RESULT'
   end
   else do  
     debugchannel~frames= .nil
     debugchannel~variables= .nil
     debugchannel~status~append("programstatusupdated")
     debugchannel~remove('RESULT')
-    return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels["'threadid'"]~result = result ; .debug.channels["'threadid'"]~frames = .context~StackFrames~section(2); .debug.channels["'threadid'"]~variables=.context~variables;  if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
+    return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; .debug.channels["'threadid'"]~frames = .context~StackFrames~section(2); .debug.channels["'threadid'"]~variables=.context~variables;  if .debug.channels["'threadid'"]~hasindex(''RESULT'') then RESULT =.debug.channels["'threadid'"]~result; else DROP RESULT'
   end  
 end      
 else if status="programstatusupdated" then do
@@ -517,7 +517,7 @@ else if status="getvars" then do
   debugchannel~variables= .nil
   debugchannel~status~append("gotvars")
   debugchannel~remove('RESULT')
-  return 'if Symbol(''RESULT'') = ''VAR'' THEN .debug.channels["'threadid'"]~result = result;.debug.channels["'threadid'"]~variables=.context~variables; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
+  return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; .debug.channels["'threadid'"]~variables=.context~variables; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then result =.debug.channels["'threadid'"]~result; else DROP RESULT'
 end     
 else if status="gotvars" then do
   if debugchannel~variables \=.nil then do
