@@ -95,7 +95,7 @@ return .Routine~new("",code)
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugdialog debugger
+expose debugdialog debugger 
 use arg debugger,watchhelperclass
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
@@ -173,7 +173,10 @@ return fontfixed
 ------------------------------------------------------
 ::method InitSafe unguarded
 ------------------------------------------------------
-expose  debugdialog debugger
+expose  debugdialog debugger uithreadbasepriority uithreadmaxpriority
+
+uithreadbasepriority = self~GetJavaThreadPriority
+uithreadmaxpriority = bsf.getStaticValue("java.lang.Thread", "MAX_PRIORITY")
 
 /* Create and build the "main" window" */
 debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
@@ -342,6 +345,29 @@ if cond \= .nil then do
   say 
 end  
 return success
+
+-------------------------------------------------------
+::method GetJavaThreadPriority unguarded
+-------------------------------------------------------
+return .bsf4rexx~thread.class~currentthread~getpriority
+
+-------------------------------------------------------
+::method SetJavaThreadPriority
+-------------------------------------------------------
+use arg newpriority
+if  self~GetJavaThreadPriority \= newpriority then .bsf4rexx~thread.class~currentthread~setpriority(newpriority)
+
+-------------------------------------------------------
+::method SetMaximumJavaThreadPriority
+-------------------------------------------------------
+expose  uithreadmaxpriority
+self~setJavaThreadPriority(uithreadmaxpriority) 
+
+-------------------------------------------------------
+::method RestoreBaseJavaThreadPriority
+-------------------------------------------------------
+expose  uithreadbasepriority
+self~setJavaThreadPriority(uithreadbasepriority) 
 
 --====================================================
 ::class DebugDialogConsoleUpdateTimerListener public
@@ -622,7 +648,8 @@ end
 ------------------------------------------------------
 ::method UpdateControlStates unguarded
 ------------------------------------------------------
-expose waiting controls watchwindows debugger activesourcename
+expose waiting controls watchwindows debugger activesourcename gui
+
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
   if control = self~LISTSOURCE | control = self~LISTSTACK then self~ControlEnable(controls, control, waiting | debugger~canopensource | (activesourcename = .nil))
   else self~ControlEnable(controls, control, waiting)
@@ -698,8 +725,9 @@ end
 ------------------------------------------------------
 ::method OnRunButton
 ------------------------------------------------------
-expose waiting debugger controls
+expose waiting debugger controls gui
 if waiting then do
+  gui~SetMaximumJavaThreadPriority
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
 
   self~HereIsResponse('RUN')
@@ -708,8 +736,10 @@ else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
   self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
   self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
+  gui~RestoreBaseJavaThreadPriority
 end
 else do
+  gui~SetMaximumJavaThreadPriority
   debugger~SetManualBreak(.False)
   self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint removed. Program will run normally.')
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
@@ -1335,8 +1365,11 @@ return
 ------------------------------------------------------
 ::method UpdateWatchWindows  unguarded
 ------------------------------------------------------
-expose varsroot watchwindows controls
+expose varsroot watchwindows controls gui
 use arg newroot = .Nil, setstacktotop = .False
+
+gui~RestoreBaseJavaThreadPriority
+
 if newroot \=.nil then varsroot = newroot
 do watchwindow over watchwindows~allitems
   watchwindow~UpdateWatchWindow(varsroot)
