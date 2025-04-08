@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.39.5"
+::CONSTANT VERSION "1.39.6"
 
 --====================================================
 ::class RexxDebugger public
@@ -130,7 +130,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine traceinterceptdisabled uithreadid getthreadidroutine
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -146,7 +146,6 @@ canopensource = .False
 lastexecfulltime = 0
 uifinished = .True
 runroutine = .nil
-traceinterceptdisabled = .False
 uithreadid = 0
 getthreadidroutine = .Nil
 
@@ -344,11 +343,11 @@ end
 ------------------------------------------------------
 ::method ReplyWithTraceCommand  unguarded
 ------------------------------------------------------
-expose debuggerui shutdown launched canopensource lastexecfulltime traceinterceptdisabled
+expose debuggerui shutdown launched canopensource lastexecfulltime
 use arg threadid
 lastexecfulltime = TIME('F')
 if shutdown then return 'trace off; exit' 
-if launched = .false | traceinterceptdisabled then return ''
+if \launched then return ''
 else do
   debugchannel = .debug.channels[threadid]
   if debugchannel = .nil then do
@@ -422,7 +421,7 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse unguarded
 ------------------------------------------------------
-expose debuggerui tracedprograms manualbreak breakpoints runroutine traceinterceptdisabled
+expose debuggerui tracedprograms manualbreak breakpoints runroutine 
 use arg debugchannel, threadid
 
 status = debugchannel~status~string
@@ -430,6 +429,30 @@ status = debugchannel~status~string
 debugchannel~status~delete(1)
 
 if status="breakpointcheckgetlocation" then do
+  if .context~stackframes[1]~hasmethod("context") then do
+    ---Fast track is possible in 5.1, for simple breakpoint checks at least
+    context = .context~stackframes[5]~context
+    codelocation=context~package~name'>'context~line 
+    if \breakpoints~hasindex(codelocation) & \manualbreak & tracedprograms~hasitem(codelocation~makearray('>')[1]) then do
+      debugchannel~status~append("breakpointcheckgetlocation")
+      return ''
+    end  
+    dobreak = .False
+    if manualbreak then do
+      dobreak = .True
+      CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
+      manualbreak = .False
+    end
+    else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then dobreak = .True
+    if breakpoints[codelocation] = '' | dobreak then do
+      frames = .context~stackframes~section(5)
+      if runroutine \= .nil & frames~lastitem~executable~package~name = .context~package~name then frames = frames~section(1, frames~items-3)
+      tracedprograms~put(codelocation~makearray('>')[1])
+      debuggerui~UpdateUICodeView(frames, 1)
+      debuggerui~UpdateUIWatchWindows(context~variables~~remove('RESULT'))
+      return ''
+    end  
+  end
   return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~status~append("breakpointchecklocationis ".context~package~name">".context~line);  drop _rexdeebugeer_tmp'
   end
 else if status~pos("breakpointchecklocationis") = 1 then do
@@ -503,9 +526,7 @@ else if status="programstatusupdated" then do
     debuggerui~UpdateUICodeView(frames, 1)
   end
   if debugchannel~variables \=.nil then do
-    traceinterceptdisabled = .True
     debuggerui~UpdateUIWatchWindows(debugchannel~variables)
-    traceinterceptdisabled = .False
   end  
   debugchannel~frames= .nil
   debugchannel~variables= .nil
@@ -521,9 +542,7 @@ else if status="getvars" then do
 end     
 else if status="gotvars" then do
   if debugchannel~variables \=.nil then do
-    traceinterceptdisabled = .True
     debuggerui~UpdateUIWatchWindows(debugchannel~variables)
-    traceinterceptdisabled = .False
   end
   debugchannel~frames= .nil
   debugchannel~variables= .nil
@@ -580,12 +599,11 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine traceinterceptiondisabled
+expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine 
 
 use arg rexxfile,argstring,multipleargs = .False, firsttime = .False
 
 shutdown = .False
-traceinterceptiondisabled = .False
 breakpoints~empty
 tracedprograms~empty
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
