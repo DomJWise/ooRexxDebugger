@@ -49,7 +49,7 @@ To use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) 
 
    On Windows when both modules are available the native interface module will be preferred but this can be overridden if needed. See usage instructions below for further details
 
-On Linux and MacOS the following launcher script should be copied into the path or local directory and set as executable:
+On Linux and MacOS the files should all be placed in the same directory (local or in the path) along with the following launcher script, which will need to be set as executable:
 
    - rexxdebugger 
 
