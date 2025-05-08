@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.40"
+::CONSTANT VERSION "1.40.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -521,7 +521,7 @@ end
 else if status="programstatusupdated" then do
   if debugchannel~frames \=.nil then do
     frames = debugchannel~frames
-    if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name then frames = frames~section(1, frames~items-3)
+    if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~package~name then frames = frames~section(1, frames~items-3)
     tracedprograms~put(frames~firstitem~executable~package~name)
     debuggerui~UpdateUICodeView(frames, 1)
   end
