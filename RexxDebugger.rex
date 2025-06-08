@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.40.1"
+::CONSTANT VERSION "1.40.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -975,6 +975,10 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   do i = 1 to traceoptions~length
     permittedflags = permittedflags||' /TRACEMODE:'traceoptions~substr(i,1)||' /TRACEMODE:?'traceoptions~substr(i,1)
   end
+  fontsizes = .array~of(8,9,10,11,12,13,14,15,16)
+  do i over fontsizes~allindexes
+    permittedflags = permittedflags||' /FONTSIZE:'fontsizes[i]
+  end
   do while permittedflags~wordpos(debuggerargstring~translate~word(1)) \= 0
     nextflag = debuggerargstring~translate~word(1)
     parse value debuggerargstring with . debuggerargstring
@@ -985,6 +989,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
       forcejava = .True
     end
     else if nextflag~pos('/TRACEMODE:') = 1 then .local~rexxdebugger.tracemode=nextflag~makearray(':')[2]
+    else if nextflag~pos('/FONTSIZE:') = 1 then .local~rexxdebugger.uifontsize=nextflag~makearray(':')[2]
   end
   if debuggerargstring~translate~word(1) = "CALL" then do 
     parse value debuggerargstring with . debuggerargstring

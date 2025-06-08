@@ -44,6 +44,7 @@ return .Routine~new("", code)
 ------------------------------------------------------
 expose debugdialog debugger
 use arg debugger,watchhelperclass
+if .local~rexxdebugger.uifontsize \= .nil then .Application~defaultfont(,.local~rexxdebugger.uifontsize)
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
@@ -258,8 +259,8 @@ waiting = .False
 expose u 
 
 self~createEdit(self~EDITSOURCENAME, 3, 2, 273, 12, "READONLY")
-self~createListBox(self~LISTSOURCE, 3, 16, 273, 135, "HSCROLL VSCROLL NOTIFY")
-self~createListBox(self~LISTSTACK, 3, 150, 273, 43, "VSCROLL AUTOVSCROLL NOTIFY")
+self~createListBox(self~LISTSOURCE, 3, 16, 273, 132, "HSCROLL VSCROLL PARTIAL NOTIFY")
+self~createListBox(self~LISTSTACK, 3, 150, 273,29, "VSCROLL AUTOVSCROLL PARTIAL NOTIFY")
 self~createEdit(self~EDITDEBUGLOG, 3, 181, 240, 100, "HSCROLL VSCROLL MULTILINE")
 self~createPushButton(self~BUTTONNEXT, 246, 181, 30, 15,  ,"&Next", OnNextButton) 
 self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", OnRunButton) 
@@ -521,7 +522,7 @@ buttonpushed = .False
 minsize = .Size~new(self~pixelCX, self~pixelCY)
 self~minSize = minsize
 
-hfnt = self~createFontEx("Courier New", 8)
+hfnt = self~createFontEx("Courier New", self~fontsize)
 controls[self~LISTSOURCE]~setFont(hfnt, .true)
 controls[self~LISTSTACK]~setFont(hfnt, .true)
 
@@ -1008,9 +1009,9 @@ self~create(0, 0, 180, 81, dialogtitle, "THICKFRAME")
 ::method defineDialog 
 ------------------------------------------------------
 expose variablescollection
-style = "HSCROLL VSCROLL NOTIFY"
+style = "HSCROLL VSCROLL NOTIFY PARTIAL"
 self~createStaticText(self~STATICCLASS, 3, 1, 175, 9, "CENTER", "")
-self~createListBox(self~LISTVARS, 2, 11, 176, 72, style)
+self~createListBox(self~LISTVARS, 2, 11, 176, 68, style)
 
 ------------------------------------------------------
 ::method defineSizing 
@@ -1042,7 +1043,7 @@ self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
 minsize = .Size~new(trunc(self~pixelCX / 1.75), trunc(self~pixelCY /1.2))
 self~minSize = minsize
 
-hfnt = self~createFontEx("Courier New", 8)
+hfnt = self~createFontEx("Courier New", self~fontsize)
 controls[self~LISTVARS]~setFont(hfnt, .true)
 
 self~connectListBoxEvent(self~LISTVARS, DBLCLK, "WatchRowDoubleClicked")
