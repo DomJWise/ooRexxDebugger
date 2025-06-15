@@ -26,6 +26,8 @@ SOFTWARE.
 ::class DebuggerUI public
 --====================================================
 
+::attribute fontsize get unguarded
+
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -42,14 +44,18 @@ return .Routine~new("", code)
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose debugdialog debugger
+expose debugdialog debugger fontsize
+
+
 use arg debugger,watchhelperclass
-if .local~rexxdebugger.uifontsize \= .nil then .Application~defaultfont(,.local~rexxdebugger.uifontsize)
+
+if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then fontsize = .local~rexxdebugger.uifontsize
+else fontsize = 8
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
 
-debugdialog = .DebugDialog~new(debugger, .rexxdebugger.startuphelptext)
+debugdialog = .DebugDialog~new(debugger, self, .rexxdebugger.startuphelptext)
 
 ------------------------------------------------------
 ::method RunUI
@@ -207,8 +213,8 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage scrollcharpos
-use strict arg debugger, startuphelptext
+expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage scrollcharpos gui
+use strict arg debugger, gui, startuphelptext
 
 arrstack = .nil
 activesourcename = .nil
@@ -220,6 +226,9 @@ waiting = .false
 controls = .Directory~new
 
 forward class (super) continue array(.nil)
+
+self~fontsize = gui~fontsize
+
 self~create(6, 15, 280, 302, debugger~GetCaption, "THICKFRAME, CENTER, MAXIMIZEBOX,MINIMIZEBOX")
 self~connectResize("onResize")
 
@@ -374,9 +383,9 @@ end
 -----------------------------------------------------
 ::method OnOpenButton unguarded
 ------------------------------------------------------
-expose debugger controls
+expose debugger controls gui
 
-newsessionDialog = .NewSessionDialog~new
+newsessionDialog = .NewSessionDialog~new(gui)
 newsessionDialog~ownerDialog = self
 self~disable
 dlgres = newsessiondialog~Execute
@@ -443,7 +452,7 @@ else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(
 ------------------------------------------------------
 ::METHOD AddWatchWindow
 ------------------------------------------------------
-expose watchwindows  childready rootlist debugger
+expose watchwindows  childready rootlist debugger gui
 use arg  parentwindow, parentlist = .nil
 if parentlist = .nil then do
   if \rootlist~isA(.List) then rootlist = .list~new
@@ -453,7 +462,7 @@ existingwindow = .WatchHelper~FindWatchWindow(watchwindows,parentlist)
 if existingwindow \=.nil then self~setforegroundWindow(existingwindow~hwnd)
 else do
   childready = .False
-  watchdialog = .Watchdialog~new(self, parentwindow, parentlist, debugger)
+  watchdialog = .Watchdialog~new(self, gui, parentwindow, parentlist, debugger)
   watchdialog~popup("SHOWTOP")
   watchwindows~put(watchdialog)
   guard off when childready = .True
@@ -994,12 +1003,14 @@ activesourcename=.nil
 ::method init 
 ------------------------------------------------------
 expose debugwindow controls parentwindow debugger
-use arg debugwindow, parentwindow, parentlist, debugger
+use arg debugwindow, gui, parentwindow, parentlist, debugger
 
 self~init:.WatchHelper(parentlist)
 
 controls = .Directory~new
 forward class (super) continue array(.nil)
+
+self~fontsize = gui~fontsize
 
 dialogtitle = self~GetDialogTitle
 
@@ -1227,9 +1238,11 @@ self~Ok:super
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose controls
+expose controls gui
+use arg gui
 controls = .Directory~new
 forward class (super) continue 
+self~fontsize = gui~fontsize
 self~create(1,1, 260, 100, "New Debug Session", "THICKFRAME, CENTER")
 
 
