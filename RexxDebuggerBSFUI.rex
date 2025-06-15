@@ -38,6 +38,7 @@ SOFTWARE.
 ::attribute awaitingmaindialogresponse  public unguarded
 ::attribute debugdialogresponse         public unguarded
 ::attribute fontFixed                   public unguarded
+::attribute fontsize                    public unguarded
 
 ::attribute clsBorderLayout        public unguarded
 ::attribute clsBorderFactory       public unguarded
@@ -100,6 +101,9 @@ use arg debugger,watchhelperclass
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
+
+if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then self~fontsize = .local~rexxdebugger.uifontsize
+else self~fontsize = 12
 
 self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")
 self~clsBorderFactory      = bsf.importclass("javax.swing.BorderFactory")
@@ -905,10 +909,7 @@ title = debugger~GetCaption
 if IsWindows() then title = title || " (Java UI)"
 self~init:super('javax.swing.JFrame',.array~of(title))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(440, 525)
-self~setMinimumSize(gui~clsDimension~new(440,540))
 self~setLayout(gui~clsBorderLayout~new(5,5))
-self~setLocationRelativeTo(.nil)
 
 self~ControlsInitPaneMap
 
@@ -918,11 +919,10 @@ panelmain~setLayout(gui~clsBorderLayout~new(5,5))
 
 panellevel1lowercontrols = gui~clsJPanel~new
 panellevel1lowercontrols~setLayout(gui~clsBorderLayout~new(3,3))
-panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0,240))
 panelmain~add(panellevel1lowercontrols,gui~clsBorderLayout~SOUTH)
 
 textfieldsourcename = gui~clsJTextField~new
-textfieldsourcename~setPreferredSize(gui~clsDimension~new(0,25))
+textfieldsourcename~setFont(textfieldsourcename~getfont~derivefont(textfieldsourcename~getfont~getstyle, gui~fontsize))
 panelmain~add(textfieldsourcename, gui~clsBorderLayout~NORTH)
 
 listsourcemodel = gui~clsDefaultListModel~new
@@ -931,9 +931,12 @@ listsource~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxPr
 
 listsource~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listsource~setLayoutOrientation(gui~clsJlist~VERTICAL)
-if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
-listsource~setFixedCellHeight(listsource~getFontMetrics(listsource~getFont)~getheight)
+if gui~fontFixed \= '' then listsource~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, gui~fontsize))
+listrowheight = listsource~getFontMetrics(listsource~getFont)~getheight
+listsource~setFixedCellHeight(listrowheight)
+listsourcepreferredheight = (listrowheight *15.3)~floor
 
+dialogwidth = listsource~getfontmetrics(listsource~getfont)~charwidth('X') * 60
 
 sourcecontextmenu = gui~clsJPopupMenu~new("")
 sourcecopymenuitem = gui~clsJMenuItem~new("Copy")
@@ -943,7 +946,7 @@ sourcecontextmenu~addSeparator
 sourcecontextmenu~add(breakpointsettingsmenuitem)
 
 listsourcepane = gui~clsJScrollPane~new
-listsourcepane~setPreferredSize(gui~clsDimension~new(440,65))
+listsourcepane~setPreferredSize(gui~clsDimension~new(dialogwidth,listsourcepreferredheight))
 listsourcepane~setViewportView(listsource)
 
 panelmain~add(listsourcepane, gui~clsBorderLayout~CENTER)
@@ -954,16 +957,16 @@ liststack~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxPro
 
 liststack~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 liststack~setLayoutOrientation(gui~clsJlist~VERTICAL)
-if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, 12))
+if gui~fontFixed \= '' then liststack~setFont(gui~clsFont~new(gui~fontFixed, gui~clsfont~BOLD, gui~fontsize))
 liststack~setFixedCellHeight(liststack~getFontMetrics(liststack~getFont)~getheight)
-
+liststackpreferredheight = (listrowheight * 3.5)~floor
 
 stackcontextmenu = gui~clsJPopupMenu~new("")
 stackcopymenuitem = gui~clsJMenuItem~new("Copy")
 stackcontextmenu~add(stackcopymenuitem)
 
 liststackpane = gui~clsJScrollPane~new
-liststackpane~setPreferredSize(gui~clsDimension~new(440,50))
+liststackpane~setPreferredSize(gui~clsDimension~new(dialogwidth,liststackpreferredheight))
 liststackpane~setViewportView(liststack)
 
 panellevel1lowercontrols~add(liststackpane,gui~clsBorderLayout~NORTH)
@@ -974,37 +977,53 @@ panelllevel2forbuttons  = gui~clsjPanel~new
 buttonnext = gui~clsJButton~new("Next")
 buttonnext~setMnemonic(gui~clsKeyEvent~VK_N)
 buttonnext~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonnext~setBounds(0,0, 50,22)
+buttonnext~setFont(buttonnext~getfont~derivefont(buttonnext~getfont~getstyle, gui~fontsize))
+
+buttonstyle = buttonnext~getfont~getstyle
+buttonfont = buttonnext~getfont
+buttonheight = (buttonnext~getfontmetrics(buttonfont)~getheight * 1.5)~floor
+buttonverticalspacing = (buttonheight * 1.1)~floor
+
+textfieldsourcename~setPreferredSize(gui~clsDimension~new(0,buttonheight))
+panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0, buttonverticalspacing * 7 + liststackpreferredheight + 2))
+
+buttonnext~setBounds(0,0, 50,buttonheight)
 panelllevel2forbuttons~add(buttonnext)
 
 buttonrun = gui~clsJButton~new("Run")
 buttonrun~setMnemonic(gui~clsKeyEvent~VK_R)
 buttonrun~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonrun~setBounds(0,27, 50,22)
+buttonrun~setBounds(0,buttonverticalspacing, 50,buttonheight)
+buttonrun~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
 panelllevel2forbuttons~add(buttonrun)
 
 buttonexit = gui~clsJButton~new("Exit")
 buttonexit~setMnemonic(gui~clsKeyEvent~VK_X)
 buttonexit~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonexit~setBounds(0,54, 50,22)
+buttonexit~setBounds(0,buttonverticalspacing * 2, 50,buttonheight)
+buttonexit~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
 panelllevel2forbuttons~add(buttonexit)
 
 buttonvars = gui~clsJButton~new("Watch")
 buttonvars~setMnemonic(gui~clsKeyEvent~VK_W)
 buttonvars~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonvars~setBounds(0,81, 50,22)
+buttonvars~setBounds(0,buttonverticalspacing * 3, 50,buttonheight)
+buttonvars~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
 panelllevel2forbuttons~add(buttonvars)
 
 buttonhelp = gui~clsJButton~new("Help")
 buttonhelp~setMnemonic(gui~clsKeyEvent~VK_H)
 buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonhelp~setBounds(0,108, 50,22)
+buttonhelp~setBounds(0,buttonverticalspacing * 4, 50,buttonheight)
+buttonhelp~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
 panelllevel2forbuttons~add(buttonhelp)
 
 buttonopen = gui~clsJButton~new("Open")
 buttonopen~setMnemonic(gui~clsKeyEvent~VK_O)
 buttonopen~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonopen~setBounds(0,135, 50,22)
+buttonopen~setBounds(0,buttonverticalspacing * 5, 50,buttonheight)
+buttonopen~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
+
 panelllevel2forbuttons~add(buttonopen)
 if .local~rexxdebugger.commandlineisrexxdebugger \= .True then do
   buttonopen~setVisible(.False)
@@ -1012,7 +1031,9 @@ end
 buttonexec = gui~clsJButton~new("Exec")
 buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
 buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonexec~setBounds(0,162, 50,22)
+buttonexec~setBounds(0,buttonverticalspacing * 6, 50, buttonheight)
+buttonexec~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
+
 panelllevel2forbuttons~add(buttonexec)
 
 arrButtons = .Array~Of(buttonexec, buttonopen, buttonhelp, buttonvars, buttonexit, buttonrun, buttonnext)
@@ -1036,18 +1057,24 @@ panellevel2entryfields~setLayout(gui~clsBorderLayout~new(3,3))
 
 textareaconsoleoutput = gui~clsJTextArea~new
 textconsoleoutputpane = gui~clsJScrollPane~new
+textareaconsoleoutput~setFont(textareaconsoleoutput~getfont~derivefont(textareaconsoleoutput~getfont~getstyle, gui~fontsize))
 textconsoleoutputpane~setViewportView(textareaconsoleoutput)
 
 panellevel2entryfields~add(textconsoleoutputpane,gui~clsBorderLayout~CENTER)
 
 textfieldcommand = gui~clsJTextField~new
-textfieldcommand~setPreferredSize(gui~clsDimension~new(0,25))
+textfieldcommand~setPreferredSize(gui~clsDimension~new(0,buttonheight))
+textfieldcommand~setFont(textfieldcommand~getfont~derivefont(textfieldcommand~getfont~getstyle, gui~fontsize))
 
 panellevel2entryfields~add(textfieldcommand,gui~clsBorderLayout~SOUTH)
 
 panellevel1lowercontrols~add(panellevel2entryfields)
 
 self~add(panelmain)
+
+self~pack
+self~setminimumsize(gui~clsDimension~new(self~getsize~width, self~getsize~height))
+self~setLocationRelativeTo(.nil)
 
 controls[self~EDITSOURCENAME] = textfieldsourcename
 controls[self~EDITSOURCENAME]~seteditable(.False)
@@ -2296,5 +2323,5 @@ return controls[buttonid]~getText
 
 ::REQUIRES BSF.CLS      -- get the Java support
 
-::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
+--::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
 --::options TRACE R

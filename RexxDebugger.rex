@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.40.6"
+::CONSTANT VERSION "1.40.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -975,7 +975,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   do i = 1 to traceoptions~length
     permittedflags = permittedflags||' /TRACEMODE:'traceoptions~substr(i,1)||' /TRACEMODE:?'traceoptions~substr(i,1)
   end
-  fontsizes = .array~of(8,9,10,11,12,13,14,15,16)
+  fontsizes = .array~of(8,9,10,11,12,13,14,15,16,17,18,19,20,21,22)
   do i over fontsizes~allindexes
     permittedflags = permittedflags||' /FONTSIZE:'fontsizes[i]
   end
