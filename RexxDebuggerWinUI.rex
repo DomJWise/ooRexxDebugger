@@ -616,8 +616,8 @@ stackpopupmenu~show(.Point~new(x,y))
 --------------------------------------------
 ::method BreakPointSettings 
 --------------------------------------------
-expose activesourcename controls debugger
-debugsettingsdialog = .BreakPointSettingsDialog~new
+expose activesourcename controls debugger gui
+debugsettingsdialog = .BreakPointSettingsDialog~new(gui)
 
 linenum = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 debugsettingsdialog~breakpointcondition = debugger~GetBreakPointTest(activesourcename, linenum)
@@ -1161,10 +1161,12 @@ self~OnCopyCommand
 ------------------------------------------------------
 ::method init
 ------------------------------------------------------
-expose controls breakpointcondition
+expose controls breakpointcondition gui
+use arg gui
 controls = .Directory~new
 breakpointcondition = ''
 forward class (super) continue 
+self~fontsize = gui~fontsize
 self~create(1,1, 260, 70, "Breakpoint Hit", "CENTER")
 
 ------------------------------------------------------
