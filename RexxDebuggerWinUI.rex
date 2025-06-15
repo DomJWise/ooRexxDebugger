@@ -271,14 +271,14 @@ self~createEdit(self~EDITSOURCENAME, 3, 2, 273, 12, "READONLY")
 self~createListBox(self~LISTSOURCE, 3, 16, 273, 132, "HSCROLL VSCROLL PARTIAL NOTIFY")
 self~createListBox(self~LISTSTACK, 3, 150, 273,29, "VSCROLL AUTOVSCROLL PARTIAL NOTIFY")
 self~createEdit(self~EDITDEBUGLOG, 3, 181, 240, 100, "HSCROLL VSCROLL MULTILINE")
-self~createPushButton(self~BUTTONNEXT, 246, 181, 30, 15,  ,"&Next", OnNextButton) 
-self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", OnRunButton) 
-self~createPushButton(self~BUTTONEXIT, 246, 215, 30, 15,  ,"E&xit", OnExitButton) 
-self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Watch", OnVarsButton) 
-self~createPushButton(self~BUTTONHELP, 246, 249, 30, 15,  ,"&Help", OnHelpButton) 
-self~createPushButton(self~BUTTONOPEN, 246, 266, 30, 15,  ,"&Open", OnOpenButton) 
+self~createPushButton(self~BUTTONNEXT, 246, 181, 30, 15,  ,"&Next", "OnNextButton") 
+self~createPushButton(self~BUTTONRUN, 246, 198, 30, 15,  ,"&Run", "OnRunButton") 
+self~createPushButton(self~BUTTONEXIT, 246, 215, 30, 15,  ,"E&xit", "OnExitButton") 
+self~createPushButton(self~BUTTONVARS, 246, 232, 30, 15,  ,"&Watch", "OnVarsButton") 
+self~createPushButton(self~BUTTONHELP, 246, 249, 30, 15,  ,"&Help", "OnHelpButton") 
+self~createPushButton(self~BUTTONOPEN, 246, 266, 30, 15,  ,"&Open", "OnOpenButton") 
 self~createEdit(self~EDITCOMMAND, 3, 283, 240, 15, "WANTRETURN")
-self~createPushButton(self~BUTTONEXEC, 246, 283,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", OnExecButton)
+self~createPushButton(self~BUTTONEXEC, 246, 283,  30, 15, "DEFPUSHBUTTON"  ,"&Exec", "OnExecButton")
 
 
 ------------------------------------------------------
@@ -455,7 +455,7 @@ else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(
 expose watchwindows  childready rootlist debugger gui
 use arg  parentwindow, parentlist = .nil
 if parentlist = .nil then do
-  if \rootlist~isA(.List) then rootlist = .list~new
+  if \VAR("rootlist") then rootlist = .list~new
   parentlist = rootlist
 end  
 existingwindow = .WatchHelper~FindWatchWindow(watchwindows,parentlist)
@@ -500,28 +500,28 @@ controls[self~LISTSOURCE] = self~newListBox(self~LISTSOURCE)
 controls[self~LISTSTACK] = self~newListBox(self~LISTSTACK)
 controls[self~BUTTONRUN] = self~newPushButton(self~BUTTONRUN)
 
-controls[self~EDITCOMMAND]~connectkeypress(OnPrevCommand, .VK~UP)
-controls[self~EDITCOMMAND]~connectkeypress(OnNextCommand, .VK~DOWN)
+controls[self~EDITCOMMAND]~connectkeypress("OnPrevCommand", .VK~UP)
+controls[self~EDITCOMMAND]~connectkeypress("OnNextCommand", .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
-controls[self~EDITCOMMAND]~connectCharEvent(EditCommandChar)
+controls[self~EDITCOMMAND]~connectCharEvent("EditCommandChar")
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
 sourcepopupmenu~insertItem(self~BPSETTINGSMENUITEM, self~BPSETTINGSMENUITEM, "Breakpoint Settings")
 sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
 sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCECOPYMENUITEM, "Copy")
 sourcepopupmenu~assignTo(self)
-sourcepopupmenu~connectContextMenu(onListSourceContext, controls[self~LISTSOURCE]~hwnd) 
+sourcepopupmenu~connectContextMenu("onListSourceContext", controls[self~LISTSOURCE]~hwnd) 
 sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "BreakpointSettings")
 sourcepopupmenu~connectCommandEvent(self~SOURCECOPYMENUITEM, "OnCopySource")
 
 stackpopupmenu = .PopupMenu~new(self~LISTSTACK)
 stackpopupmenu~insertItem(self~STACKCOPYMENUITEM, self~STACKCOPYMENUITEM, "Copy")
 stackpopupmenu~assignTo(self)
-stackpopupmenu~connectContextMenu(onListStackContext, controls[self~LISTSTACK]~hwnd) 
+stackpopupmenu~connectContextMenu("onListStackContext", controls[self~LISTSTACK]~hwnd) 
 sourcepopupmenu~connectCommandEvent(self~STACKCOPYMENUITEM, "OnCopyStack")
 
-self~connectkeypress(OnCopyKeyCommand, .VK~C, "CONTROL")
-self~connectkeypress(OnCopyKeyCommand2, .VK~INSERT, "CONTROL")
+self~connectkeypress("OnCopyKeyCommand", .VK~C, "CONTROL")
+self~connectkeypress("OnCopyKeyCommand2", .VK~INSERT, "CONTROL")
 
 if \.local~rexxdebugger.commandlineisrexxdebugger = .True then do
   self~hidecontrol(self~BUTTONOPEN)
@@ -539,8 +539,8 @@ if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help 
 self~SetSourceListInfoText(startuphelptext)
 
 
-self~connectListBoxEvent(self~LISTSTACK, SELCHANGE, "StackFrameChanged")
-self~connectListBoxEvent(self~LISTSOURCE, DBLCLK, "SourceLineDoubleClicked")
+self~connectListBoxEvent(self~LISTSTACK, "SELCHANGE", "StackFrameChanged")
+self~connectListBoxEvent(self~LISTSOURCE, "DBLCLK", "SourceLineDoubleClicked")
 
 offsetDirection = debugger~offsetdirection 
 offsetletter = offsetDirection~left(1)~upper 
@@ -1048,8 +1048,8 @@ watchpopupmenu = .nil
 controls[self~LISTVARS] = self~newListBox(self~LISTVARS)
 controls[self~STATICCLASS] = self~newstatic(self~STATICCLASS)
 
-self~connectkeypress(OnCopyCommand, .VK~C, "CONTROL")
-self~connectkeypress(OnCopyCommand2, .VK~INSERT, "CONTROL")
+self~connectkeypress("OnCopyCommand", .VK~C, "CONTROL")
+self~connectkeypress("OnCopyCommand2", .VK~INSERT, "CONTROL")
 
 minsize = .Size~new(trunc(self~pixelCX / 1.75), trunc(self~pixelCY /1.2))
 self~minSize = minsize
@@ -1057,8 +1057,8 @@ self~minSize = minsize
 hfnt = self~createFontEx("Courier New", self~fontsize)
 controls[self~LISTVARS]~setFont(hfnt, .true)
 
-self~connectListBoxEvent(self~LISTVARS, DBLCLK, "WatchRowDoubleClicked")
-self~connectListBoxEvent(self~LISTVARS, SELCHANGE, "WatchRowSelected")
+self~connectListBoxEvent(self~LISTVARS, "DBLCLK", "WatchRowDoubleClicked")
+self~connectListBoxEvent(self~LISTVARS, "SELCHANGE", "WatchRowSelected")
 
 controls[self~STATICCLASS]~setFont(hfnt, .true)
 self~DisableControl(self~STATICCLASS)
@@ -1070,7 +1070,7 @@ if parentwindow = debugwindow then mystartpos = parentpos~~incr(parentsize~width
 else mystartpos = parentpos~~incr(0, parentsize~height)
 self~moveto(mystartpos)
 
-.PopupMenu~connectContextMenu(self, OnShowContextMenu, controls[self~LISTVARS]~hwnd)
+.PopupMenu~connectContextMenu(self, "OnShowContextMenu", controls[self~LISTVARS]~hwnd)
 
 self~ensurevisible
 debugwindow~NotifyChildReady
@@ -1174,8 +1174,8 @@ expose controls
 
 self~createRadioButtonGroup(self~RADIOALWAYSBREAK , 4, 4 , , "&Always  &When", "NOBORDER")
 self~createEdit(self~EDITBREAKCONDITION, 12, 30, 242, 15)
-self~createPushButton(IDOK, 4, 50, 38, 15, "DEFPUSHBUTTON"  ,"Ok")
-self~createPushButton(IDCANCEL, 42, 50, 35, 15, , "Cancel")
+self~createPushButton(self~IDOK, 4, 50, 38, 15, "DEFPUSHBUTTON"  ,"Ok")
+self~createPushButton(self~IDCANCEL, 42, 50, 35, 15, , "Cancel")
 
 ------------------------------------------------------
 ::method initAutoDetection
@@ -1250,15 +1250,14 @@ self~create(1,1, 260, 100, "New Debug Session", "THICKFRAME, CENTER")
 ::method defineDialog
 ------------------------------------------------------
 expose controls
-
 self~createStaticText(self~STATICREXXFILETEXT, 4, 9, 50, 13, , "Rexx program:")
 self~createEdit(self~EDITREXXFILE, 54, 7, 174, 15)
-self~createPushButton(self~BUTTONFIND, 230, 7, 25, 15,,"&Find", OnFindButton)
+self~createPushButton(self~BUTTONFIND, 230, 7, 25, 15,,"&Find", "OnFindButton")
 self~createGroupBox(self~STATICARGSGROUP, 4, 23, 251, 55, ,"Arguments" )
 self~createRadioButtonGroup(self~RADIOARGTYPESINGLE , 6, 33, ,"&Single &Multiple", "NOBORDER")
 self~createEdit(self~EDITARGS, 7, 57, 243, 15)
-self~createPushButton(IDOK, 4, 80, 35, 15, "DEFPUSHBUTTON"  ,"Ok")
-self~createPushButton(IDCANCEL, 42, 80, 35, 15, , "Cancel")
+self~createPushButton(self~IDOK, 4, 80, 35, 15, "DEFPUSHBUTTON"  ,"Ok")
+self~createPushButton(self~IDCANCEL, 42, 80, 35, 15, , "Cancel")
 
 ------------------------------------------------------
 ::method defineSizing
@@ -1275,7 +1274,7 @@ do fixedcontrol over .Array~of(self~STATICREXXFILETEXT, self~RADIOARGTYPESINGLE,
   self~controlTop(fixedcontrol, 'STATIONARY', 'TOP') 
   self~controlBottom(fixedcontrol, 'STATIONARY', 'TOP') 
 end
-do movedowncontrol over .Array~of(IDOK, IDCANCEL)
+do movedowncontrol over .Array~of(self~IDOK, self~IDCANCEL)
   self~controlLeft(movedowncontrol, 'STATIONARY', 'LEFT') 
   self~controlRight(movedowncontrol, 'STATIONARY', 'LEFT') 
   self~controlTop(movedowncontrol, 'STATIONARY', 'BOTTOM') 
@@ -1532,4 +1531,5 @@ return controls[buttonid]~getText~changeStr("&", "")
 ::requires oodialog.cls
 ::requires winsystm.cls
 
+--::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
 --::options trace R
