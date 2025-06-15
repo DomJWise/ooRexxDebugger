@@ -28,8 +28,8 @@ SOFTWARE.
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
-.context~package~local[debugautonext]              = .false
-.context~package~local[debugdisableawtthreadtrace] = .false
+.context~package~local["debugautonext"]              = .false
+.context~package~local["debugdisableawtthreadtrace"] = .false
 
 --====================================================
 ::class DebuggerUI public
@@ -2296,4 +2296,5 @@ return controls[buttonid]~getText
 
 ::REQUIRES BSF.CLS      -- get the Java support
 
+::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
 --::options TRACE R
