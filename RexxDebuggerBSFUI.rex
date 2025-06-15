@@ -870,7 +870,7 @@ else if arrCommands~items >= commandnum then controls[self~EDITCOMMAND]~settext(
 expose watchwindows  childready rootlist gui debugger
 use arg  parentwindow, parentlist = .nil
 if parentlist = .nil then do
-  if \rootlist~isA(.List) then rootlist = .list~new
+  if \VAR("rootlist") then rootlist = .list~new
   parentlist = rootlist
 end  
 existingwindow = .WatchHelper~FindWatchWindow(watchwindows, parentlist)
@@ -2323,5 +2323,5 @@ return controls[buttonid]~getText
 
 ::REQUIRES BSF.CLS      -- get the Java support
 
---::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
+::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
 --::options TRACE R
