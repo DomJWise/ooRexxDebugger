@@ -1634,10 +1634,7 @@ expose controls debugwindow hfnt  parentwindow dialogtitle gui
 
 self~init:super('javax.swing.JFrame',.array~of(dialogtitle))
 self~setDefaultCloseOperation(gui~clsWindowConstants~DO_NOTHING_ON_CLOSE)
-self~setSize(300, 190)
-self~setMinimumSize(gui~clsDimension~new(220,148))
 self~setLayout(gui~clsBorderLayout~new(5,5))
-self~setLocationRelativeTo(.nil)
 
 self~ControlsInitPaneMap
 
@@ -1654,23 +1651,30 @@ listvars = gui~clsJList~new(listvarsmodel)
 
 listvars~setSelectionMode(gui~clsListSelectionModel~SINGLE_SELECTION)
 listvars~setLayoutOrientation(gui~clsJlist~VERTICAL)
-if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
-listvars~setFixedCellHeight(listvars~getFontMetrics(listvars~getFont)~getheight)
-
+if gui~fontFixed \= '' then listvars~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, gui~fontsize))
+listrowheight = listvars~getFontMetrics(listvars~getFont)~getheight
+listvars~setFixedCellHeight(listrowheight)
+listvarspreferredheight = (listrowheight * 8.2)~floor
+dialogwidth = listvars~getfontmetrics(listvars~getfont)~charwidth('X') * 40
 listvars~settransferhandler(gui~clsBSFProxyTransferHandler~new(BsfCreateRexxProxy(.ListVarsTransferHandler~new(self), gui)))
 
 labelclass = gui~clsJLabel~new("", gui~clsSwingConstants~CENTER)
-labelclass~setPreferredSize(gui~clsDimension~new(0,13))
-if gui~fontFixed \= '' then labelclass~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, 12))
+if gui~fontFixed \= '' then labelclass~setFont(gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, gui~fontsize))
+labelheight = labelclass~getFontMetrics(labelclass~getfont)~getheight
+labelclass~setPreferredSize(gui~clsDimension~new(0,labelheight))
 labelclass~setenabled(.False)
 panelmain~add(labelclass, gui~clsBorderLayout~NORTH)
 
 listvarspane = gui~clsJScrollPane~new
-listvarspane~setPreferredSize(gui~clsDimension~new(300,180))
+listvarspane~setPreferredSize(gui~clsDimension~new(dialogwidth, listvarspreferredheight + labelheight ))
 listvarspane~setViewportView(listvars)
 
 panelmain~add(listvarspane, gui~clsBorderLayout~CENTER)
 self~add(panelmain)
+
+self~pack
+self~setminimumsize(gui~clsDimension~new((self~getsize~width / 1.36)~floor, (self~getsize~height / 1.28)~floor))
+self~setLocationRelativeTo(.nil)
 
 controls[self~LISTVARS]    = listvars
 controls[self~PANEVARS]    = listvarspane
