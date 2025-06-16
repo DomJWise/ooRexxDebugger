@@ -1851,28 +1851,40 @@ self~init:super('javax.swing.JDialog', debugwindow, "Breakpoint Hit", .True)
 self~setDefaultCloseOperation(gui~clsWindowConstants~DISPOSE_ON_CLOSE)
 self~setResizable(.False)
 self~setLayout(.Nil)
-self~getrootPane~setPreferredSize(gui~clsDimension~new(405,130))
 
 radioalwaysbutton = gui~clsJRadioButton~new("Always")
 radioalwaysbutton~setMnemonic(gui~clsKeyEvent~VK_A)
-radioalwaysbutton~setbounds(5, 15, 90, 20)
+radioalwaysbutton~setFont(radioalwaysbutton~getfont~derivefont(radioalwaysbutton~getfont~getstyle, gui~fontsize))
+
 radiowhenbutton = gui~clsJRadioButton~new("When")
 radiowhenbutton~setMnemonic(gui~clsKeyEvent~VK_W)
-radiowhenbutton~setbounds(5, 35, 90, 20)
+radiowhenbutton~setFont(radiowhenbutton~getfont~derivefont(radiowhenbutton~getfont~getstyle, gui~fontsize))
+
 buttongroup = gui~clsButtonGroup~new
 buttongroup~add(radioalwaysbutton)
 buttongroup~add(radiowhenbutton)
 
 textfieldcondition = gui~clsJTextField~new
-textfieldcondition~setbounds(20, 60, 375, 25)
+textfieldcondition~setFont(textfieldcondition~getfont~derivefont(textfieldcondition~getfont~getstyle, gui~fontsize))
+
+fixedfont = gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, gui~fontsize)
+xwidth = textfieldcondition~getfontmetrics(fixedfont)~charwidth('X')
+xheight = textfieldcondition~getfontmetrics(textfieldcondition~getfont)~getheight
 
 buttonok = gui~clsJButton~new("Ok")
+buttonok~setFont(buttonok~getfont~derivefont(buttonok~getfont~getstyle, gui~fontsize))
 buttonok~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonok~setbounds(10, 95, 70, 25)
 
 buttoncancel = gui~clsJButton~new("Cancel")
+buttoncancel~setFont(buttoncancel~getfont~derivefont(buttoncancel~getfont~getstyle, gui~fontsize))
 buttoncancel~setMargin(gui~clsInsets~new(0,0,0,0))
-buttoncancel~setbounds(90, 95, 70, 25)
+
+radioalwaysbutton~setbounds((xwidth * 0.6)~floor, xheight, xwidth * 13,(xheight* 1.25)~floor)
+radiowhenbutton~setbounds((xwidth * 0.6)~floor, (xheight* 2.25)~floor, xwidth * 13, (xheight* 1.25)~floor)
+textfieldcondition~setbounds(xwidth * 2, (xheight* 3.75)~floor, xwidth * 55, (xheight* 1.5)~floor)
+buttonok~setbounds(xwidth, xheight * 6, xwidth * 11, (xheight* 1.5)~floor)
+buttoncancel~setbounds( xwidth * 13, xheight * 6, xwidth * 11, (xheight* 1.5)~floor)
+self~getrootPane~setPreferredSize(gui~clsDimension~new(xwidth * 58, xheight * 8))
 
 self~add(radiowhenbutton)
 self~add(radioalwaysbutton)
