@@ -63,6 +63,7 @@ SOFTWARE.
 ::attribute clsKeyEvent            public unguarded
 
 ::attribute clsStringSelection     public unguarded
+::attribute clsTitledBorder        public unguarded
 ::attribute clsTimer               public unguarded
 ::attribute clsTransferHandler     public unguarded
 
@@ -129,6 +130,7 @@ self~clsKeyStroke          = bsf.importclass("javax.swing.KeyStroke")
 self~clsRectangle          = bsf.importclass("java.awt.Rectangle")
 self~clsStringSelection    = bsf.importclass("java.awt.datatransfer.StringSelection") 
 self~clsTimer              = bsf.importclass("javax.swing.Timer")
+self~clsTitledBorder       = bsf.importclass("javax.swing.border.TitledBorder")
 self~clsTransferHandler    = bsf.importclass("javax.swing.TransferHandler") 
 
 self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
@@ -2004,38 +2006,52 @@ self~init:super('javax.swing.JDialog', debugwindow, "New Debug Session", .True)
 self~setDefaultCloseOperation(gui~clsWindowConstants~DISPOSE_ON_CLOSE)
 self~setResizable(.False)
 self~setLayout(.Nil)
-self~getrootPane~setPreferredSize(gui~clsDimension~new(405,170))
 
-labelrexxfile = gui~clsJLabel~new("Rexx program:")
-labelwidth = labelrexxfile~getFontMetrics(labelrexxfile~getFont)~stringwidth(labelrexxfile~gettext)
-labelrexxfile~setbounds(5, 10, labelwidth, 25)
+fixedfont = gui~clsFont~new(gui~fontFixed, gui~clsFont~BOLD, gui~fontsize)
 
 textfieldrexxfile = gui~clsJTextField~new
-textfieldrexxfile~setbounds(labelwidth + 10, 10, 325 - labelwidth, 25)
+textfieldrexxfile~setFont(textfieldrexxfile~getfont~derivefont(textfieldrexxfile~getfont~getstyle, gui~fontsize))
+xwidth = textfieldrexxfile~getfontmetrics(fixedfont)~charwidth('X')
+xheight = textfieldrexxfile~getfontmetrics(textfieldrexxfile~getfont)~getheight
+
+labelrexxfile = gui~clsJLabel~new("Rexx program:")
+labelrexxfile~setFont(labelrexxfile~getfont~derivefont(labelrexxfile~getfont~getstyle, gui~fontsize))
+labelwidth = labelrexxfile~getFontMetrics(labelrexxfile~getFont)~stringwidth(labelrexxfile~gettext)
+
+labelrexxfile~setbounds((xwidth *.7)~floor, (xheight * 0.6)~floor, labelwidth, (xheight * 1.6)~floor)
+textfieldrexxfile~setbounds(labelwidth + (xwidth * 1.4)~floor, (xheight * 0.6)~floor , (xwidth * 46.4)~floor - labelwidth, (xheight * 1.6)~floor)
 
 buttonfind = gui~clsJButton~new("Find")
+buttonfind~setFont(buttonfind~getfont~derivefont(buttonfind~getfont~getstyle, gui~fontsize))
 buttonfind~setMnemonic(gui~clsKeyEvent~VK_F)
 buttonfind~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonfind~setbounds(340, 10, 60, 25)
+buttonfind~setbounds((xwidth * 48.6)~floor, (xheight * 0.6)~floor , (xwidth * 8.6)~floor, (xheight * 1.6)~floor)
 
 panelargumentgroup = gui~clsJPanel~new
-panelargumentgroup~setbounds(5, 35, 395, 95)
-panelargumentgroup~setBorder(gui~clsBorderFactory~createTitledBorder("Arguments"))
+panelargumentgroup~setbounds((xwidth *.7)~floor, (xheight * 2.2)~floor, (xwidth * 56.4)~floor, (xheight * 5.9)~floor)
+panelargumentgroupborder = gui~clsBorderFactory~CreateTitledBorder("")
+panellabelfont=labelrexxfile~getfont~derivefont(labelrexxfile~getfont~getstyle, gui~fontsize)
+panelargumentgroupborder = gui~clsTitledBorder~new(panelargumentgroupborder, "Arguments", gui~clsTitledBorder~DEFAULT_JUSTIFICATION,gui~clsTitledBorder~DEFAULT_POSITION, panellabelfont)
+panelargumentgroup~setBorder(panelargumentgroupborder)
 panelargumentgroup~setLayout(.Nil)
 
 radiosinglearg = gui~clsJRadioButton~new("Single")
 radiosinglearg~setMnemonic(gui~clsKeyEvent~VK_S)
-radiosinglearg~setbounds(5, 15, 90, 20)
+radiosinglearg~setbounds((xwidth *.7)~floor, xheight, (xwidth * 12.9)~floor, (xheight * 1.25)~floor)
+radiosinglearg~setFont(radiosinglearg~getfont~derivefont(radiosinglearg~getfont~getstyle, gui~fontsize))
+
 radiomultipleargs = gui~clsJRadioButton~new("Multiple")
 radiomultipleargs~setMnemonic(gui~clsKeyEvent~VK_M)
-radiomultipleargs~setbounds(5, 35, 90, 20)
+radiomultipleargs~setbounds((xwidth *.7)~floor,  (xheight * 2.2)~floor, (xwidth * 12.9)~floor, (xheight * 1.25)~floor)
+radiomultipleargs~setFont(radiomultipleargs~getfont~derivefont(radiomultipleargs~getfont~getstyle, gui~fontsize))
 
 buttongroup = gui~clsButtonGroup~new
 buttongroup~add(radiosinglearg)
 buttongroup~add(radiomultipleargs)
 
 textfieldargstring = gui~clsJTextField~new
-textfieldargstring~setbounds(10, 60, 375, 25)
+textfieldargstring~setbounds((xwidth *1.4)~floor, (xheight * 3.75)~floor, (xwidth * 53.6)~floor, (xheight * 1.6)~floor)
+textfieldargstring~setFont(textfieldargstring~getfont~derivefont(textfieldargstring~getfont~getstyle, gui~fontsize))
 
 
 panelargumentgroup~add(radiosinglearg)
@@ -2044,11 +2060,13 @@ panelargumentgroup~add(textfieldargstring)
 
 buttonok = gui~clsJButton~new("Ok")
 buttonok~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonok~setbounds(10, 135, 70, 25)
+buttonok~setbounds((xwidth * .7)~floor, (xheight * 8.5)~floor, (xwidth * 10)~floor, (xheight * 1.6)~floor)
+buttonok~setFont(buttonok~getfont~derivefont(buttonok~getfont~getstyle, gui~fontsize))
 
 buttoncancel = gui~clsJButton~new("Cancel")
 buttoncancel~setMargin(gui~clsInsets~new(0,0,0,0))
-buttoncancel~setbounds(90, 135, 70, 25)
+buttoncancel~setbounds((xwidth * 12)~floor, (xheight * 8.5)~floor, (xwidth * 10)~floor, (xheight * 1.6)~floor)
+buttoncancel~setFont(buttoncancel~getfont~derivefont(buttoncancel~getfont~getstyle, gui~fontsize))
 
 self~add(textfieldrexxfile)
 self~add(buttonfind)
@@ -2063,6 +2081,8 @@ self~getrootpane~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONEN
 esckeylistener = .NewSessionDialogEscKeyListener~new
 esckeylistenerEH = BsfCreateRexxProxy(esckeylistener, self, "javax.swing.AbstractAction")
 self~getrootpane~getActionMap~put("escape", esckeylistenerEH)
+
+self~getrootPane~setPreferredSize(gui~clsDimension~new(xwidth * 58, (xheight * 10.75)~floor))
 
 self~pack
 self~setLocationRelativeTo(debugwindow)
