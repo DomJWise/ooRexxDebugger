@@ -955,13 +955,17 @@ else return .True
 -------------------------------------------------------
 ::method SetSourceListInfoText
 -------------------------------------------------------
-expose controls activesourcename 
+expose controls activesourcename
 use arg sourcelist
 
 self~ListDeleteAllItems(controls, self~LISTSOURCE)
+
+self~ListBeginSetHorizonalExtent(controls, self~LISTSOURCE)
 do listrow over sourcelist
   self~ListAddItem(controls, self~LISTSOURCE, listrow)
+  self~ListUpdateMaxHorizonalExtent(listrow)
 end
+self~ListEndSetHorizonalExtent(self~LISTSOURCE)
 
 activesourcename = .nil
 controls[self~EDITSOURCENAME]~settext("")
