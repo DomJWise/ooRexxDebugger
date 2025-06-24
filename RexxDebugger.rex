@@ -33,8 +33,8 @@ if .local~rexxdebugger.debuggerinit \= .nil then  return
 if .local~rexxdebugger.startuphelptext = .nil then do 
   .local~rexxdebugger.startuphelptext = .list~of( -
   "Command line usage:", - 
-  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] <program> <argstring>", - 
-  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] CALL <program> [<arg1>] [..<argn>]", - 
+  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] [/fontsize:8-26] <program> <argstring>", - 
+  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] [/fontsize:8-26] CALL <program> [<arg1>] [..<argn>]", - 
   "", - 
   "To launch from Rexx source include the following line:", - 
   "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.40.12"
+::CONSTANT VERSION "1.40.13"
 
 --====================================================
 ::class RexxDebugger public
@@ -975,7 +975,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   do i = 1 to traceoptions~length
     permittedflags = permittedflags||' /TRACEMODE:'traceoptions~substr(i,1)||' /TRACEMODE:?'traceoptions~substr(i,1)
   end
-  fontsizes = .array~of(8,9,10,11,12,13,14,15,16,17,18,19,20,21,22)
+  fontsizes = .array~of(8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26)
   do i over fontsizes~allindexes
     permittedflags = permittedflags||' /FONTSIZE:'fontsizes[i]
   end
