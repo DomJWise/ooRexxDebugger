@@ -39,6 +39,7 @@ SOFTWARE.
 ::attribute debugdialogresponse         public unguarded
 ::attribute fontFixed                   public unguarded
 ::attribute fontsize                    public unguarded
+::attribute ismacos                     public unguarded
 
 ::attribute clsBorderLayout        public unguarded
 ::attribute clsBorderFactory       public unguarded
@@ -150,6 +151,8 @@ arr = bsf.wrap(jarrfontfamilies)
 
 self~fontFixed = GetInstalledFontName("Courier", arr)
 if self~fontFixed = '' then self~fontFixed = GetInstalledFontName("Monospaced", arr)
+
+self~ismacos = .bsf4rexx~opsys='MACOSX'
 
 debugdialog = .nil
 
@@ -983,8 +986,14 @@ buttonnext~setFont(buttonnext~getfont~derivefont(buttonnext~getfont~getstyle, gu
 
 buttonstyle = buttonnext~getfont~getstyle
 buttonfont = buttonnext~getfont
-buttonheight = (buttonnext~getfontmetrics(buttonfont)~getheight * 1.5)~floor
-buttonverticalspacing = (buttonheight * 1.1)~floor
+if gui~ismacos then do
+  buttonheight = buttonnext~getpreferredsize~getheight~floor
+  buttonverticalspacing = buttonheight
+end
+else do
+  buttonheight = (buttonnext~getfontmetrics(buttonfont)~getheight * 1.5)~floor
+  buttonverticalspacing = (buttonheight * 1.1)~floor
+end
 
 textfieldsourcename~setPreferredSize(gui~clsDimension~new(0,buttonheight))
 panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0, buttonverticalspacing * 7 + liststackpreferredheight + 2))
@@ -1042,9 +1051,12 @@ arrButtons = .Array~Of(buttonexec, buttonopen, buttonhelp, buttonvars, buttonexi
 buttonfontmetrics = buttonexec~getFontMetrics(buttonexec~getFont)
 width = 0
 do button over arrButtons
-  width = max(width, buttonfontmetrics~stringwidth(button~gettext))
- end
-width = width + 8
+if gui~ismacos then width = max(width,button~getpreferredsize~getwidth~floor)
+  else width = max(width, buttonfontmetrics~stringwidth(button~gettext))
+end
+if gui~ismacos then  width = (width * 0.85)~floor
+else width = width + 8
+
 do button over arrButtons
   buttonbounds = button~getBounds
   button~setBounds(buttonbounds~x, buttonbounds~y, width, buttonbounds~height)
@@ -1884,8 +1896,11 @@ buttoncancel~setMargin(gui~clsInsets~new(0,0,0,0))
 radioalwaysbutton~setbounds((xwidth * 0.6)~floor, xheight, xwidth * 13,(xheight* 1.25)~floor)
 radiowhenbutton~setbounds((xwidth * 0.6)~floor, (xheight* 2.25)~floor, xwidth * 13, (xheight* 1.25)~floor)
 textfieldcondition~setbounds(xwidth * 2, (xheight* 3.75)~floor, xwidth * 55, (xheight* 1.5)~floor)
-buttonok~setbounds(xwidth, xheight * 6, xwidth * 11, (xheight* 1.5)~floor)
-buttoncancel~setbounds( xwidth * 13, xheight * 6, xwidth * 11, (xheight* 1.5)~floor)
+
+if gui~ismacos then buttonheight = buttonok~getpreferredsize~getheight~floor
+else buttonheight = (xheight* 1.5)~floor
+buttonok~setbounds(xwidth, xheight * 6, xwidth * 11, buttonheight)
+buttoncancel~setbounds( xwidth * 13, xheight * 6, xwidth * 11, buttonheight)
 self~getrootPane~setPreferredSize(gui~clsDimension~new(xwidth * 58, xheight * 8))
 
 self~add(radiowhenbutton)
