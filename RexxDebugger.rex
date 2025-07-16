@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.41"
+::CONSTANT VERSION "1.41.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -449,7 +449,7 @@ if status="breakpointcheckgetlocation" then do
       if runroutine \= .nil & frames~lastitem~executable~package~name = .context~package~name then frames = frames~section(1, frames~items-3)
       tracedprograms~put(codelocation~makearray('>')[1])
       debuggerui~UpdateUICodeView(frames, 1)
-      debuggerui~UpdateUIWatchWindows(context~variables~~remove('RESULT'))
+      debuggerui~UpdateUIWatchWindows(context~variables)
       return ''
     end  
   end
@@ -514,8 +514,7 @@ else if status~word(1)="getprogramstatus" then do
     debugchannel~frames= .nil
     debugchannel~variables= .nil
     debugchannel~status~append("programstatusupdated")
-    debugchannel~remove('RESULT')
-    return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; .debug.channels["'threadid'"]~frames = .context~StackFrames~section(2); .debug.channels["'threadid'"]~variables=.context~variables;  if .debug.channels["'threadid'"]~hasindex(''RESULT'') then RESULT =.debug.channels["'threadid'"]~result; else DROP RESULT'
+    return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context~StackFrames~section(2), "FRAMES")~~put(.context~variables, "VARIABLES"); drop _rexdeebugeer_tmp'
   end  
 end      
 else if status="programstatusupdated" then do
