@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.41.1"
+::CONSTANT VERSION "1.41.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -468,8 +468,7 @@ else if status~pos("breakpointchecklocationis") = 1 then do
     else do
       debugchannel~status~append("breakpointprocesstestresult")
       debugchannel~breakpointtestresult = .True
-      debugchannel~remove('RESULT')
-      return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; .debug.channels["'threadid'"]~breakpointtestresult = ('||test||'); if .debug.channels["'threadid'"]~hasindex(''RESULT'') then RESULT =.debug.channels["'threadid'"]~result; else DROP RESULT'
+      return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put('||test||', "BREAKPOINTTESTRESULT"); drop _rexdeebugeer_tmp'
       end
   end
   else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
