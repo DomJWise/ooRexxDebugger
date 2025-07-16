@@ -84,7 +84,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.41.2"
+::CONSTANT VERSION "1.41.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -506,8 +506,7 @@ else if status~word(1)="getprogramstatus" then do
     debugchannel~frames= .nil
     debugchannel~variables= .nil
     debugchannel~status~append("getprogramstatus")
-    debugchannel~remove('RESULT')
-     return 'if VAR(''RESULT'') THEN .debug.channels["'threadid'"]~result = RESULT; 'instructions'; if .debug.channels["'threadid'"]~hasindex(''RESULT'') then RESULT =.debug.channels["'threadid'"]~result; else DROP RESULT'
+    return instructions
   end
   else do  
     debugchannel~frames= .nil
