@@ -132,10 +132,6 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
     ::REQUIRES "DeferRexxDebuggerLaunch.rex"
 
   With this option the debugger will show trace output from the start of the program but wont break until the LaunchDebugger call
-  
-  Note that if you are running on Windows but wish to use the Java interface you can include the following line before any other ::requires statements for the debugging modules to activate this.
-  
-    ::REQUIRES "RexxDebuggerBSFUI.rex"
 
   (*) Debugger window placement is only supported by the Windows native interface
 
@@ -159,7 +155,21 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   
     rexxjh.sh <program> <arguments>
   
-  Note that when a debug session launched this way on MacOS reaches the end of the program or aborts due to an unhandled error the debugger window will disappear unless the utility functions described in the following section are added to the program
+  Note that when a debug session launched this way on MacOS reaches the end of the program or aborts due to an unhandled error the debugger window will disappear unless the utility functions described later on in the document are added to the program
+
+  ###  Embeded /direct launch alternatives for rexxdebugger command line switches ###
+  
+  THe rexxdebugger command line switches cannot be used for embedded or direct launch so a number of additional modules have been provided that can activated from the program source to bring about the same behaviours. They must appear above the call / require for RexxDebugger.rex in order to be effective
+
+  If you want the debugger windows to use a different font size (/FONTSIZE:n) you can call / require one of the RexxDebuggerFont<n>.rex modules. here is one module for each permitted font size (8-26)
+
+    ::REQUIRES "RexxDebuggerFont16"
+
+  If you are running on Windows but wish to use the Java interface (/JAVAUI option) you need to add the following line before any other ::requires statements for the debugging modules to activate this. You can still use 'call RexxDebugger' if you want but this particular override MUST be included in the form of a ::requires statement
+  
+    ::REQUIRES "RexxDebuggerBSFUI.rex"
+
+
 
 ### Utility functions for embedded / direct launch debugging
 --------------------------------------------------------
