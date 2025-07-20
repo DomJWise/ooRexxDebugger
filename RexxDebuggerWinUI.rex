@@ -49,8 +49,13 @@ expose debugdialog debugger fontsize
 
 use arg debugger,watchhelperclass
 
-if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then fontsize = .local~rexxdebugger.uifontsize
-else fontsize = 8
+fontsize = 8
+if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then  do
+  fontsize = .local~rexxdebugger.uifontsize~floor
+  if fontsize < 8 then fontsize = 8
+  if fontsize > 16 then fontsize = 16
+end
+
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)

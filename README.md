@@ -73,7 +73,7 @@ By default the debugger will use the preferred interface for the current platfor
 
 The /TRACEMODE:x option, where x is any permitted trace mode e.g. I, ?R, can be used to change the default trace mode applied to all code blocks in the main rexx file loaded. The debugger adds ::OPTIONS TRACE x to the end of the program to activate the selected mode. The default is ?A, which traces every statement (A) and has interactive tracing enabled (?).  Unless option R,A or I is used and the ? prefix is also used, any code block requiring single step or breakpoint stops will need to include a suitable TRACE clause e.g CALL TRACE '?A' at the start of the block. Further details of the available tracing modes including how to switch on and off interactive tracing from program code can be found in the ooRexx reference manual
 
-The /FONTSIZE:n argument can be used to set a font size between 8 and 26. All debugger dialogs will use the font size specified but system dialogs (e.g. the file finder) and message boxes will continue to use the default. For the native Windows interface the default font size is 8 and for the Java interface it is 12. 
+The /FONTSIZE:n argument can be used to set a font size. The valid range for the Windows interface is 8 - 16 and for Java it is 12 - 26. For both interfaces the lower limit is the default. All debugger dialogs will use the font size specified but system dialogs (e.g. the file finder) and message boxes will continue to use the platform defined default font size
 
 Specifying a program to debug
 -----------------------------

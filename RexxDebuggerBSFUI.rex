@@ -104,8 +104,13 @@ use arg debugger,watchhelperclass
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
 
-if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then self~fontsize = .local~rexxdebugger.uifontsize
-else self~fontsize = 12
+fontsize = 12
+if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then do
+  fontsize = .local~rexxdebugger.uifontsize~floor
+  if fontsize < 12 then fontsize = 12
+  if fontsize > 26 then fontsize = 26
+end
+self~fontsize = fontsize
 
 self~clsBorderLayout       = bsf.importclass("java.awt.BorderLayout")
 self~clsBorderFactory      = bsf.importclass("javax.swing.BorderFactory")
