@@ -157,15 +157,27 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
   
   Note that when a debug session launched this way on MacOS reaches the end of the program or aborts due to an unhandled error the debugger window will disappear unless the utility functions described later on in the document are added to the program
 
-  ###  Embeded /direct launch alternatives for rexxdebugger command line switches ###
+  ###  Embedded / direct launch alternatives for rexxdebugger command line switches ###
   
-  THe rexxdebugger command line switches cannot be used for embedded or direct launch so a number of additional modules have been provided that can activated from the program source to bring about the same behaviours. They must appear above the call / require for RexxDebugger.rex in order to be effective
+  The rexxdebugger command line switches cannot be used for embedded or direct launch so a number of additional modules have been provided that can be included in the program source to bring about the same behaviours. 
 
-  If you want the debugger windows to use a different font size (/FONTSIZE:n) you can call / require one of the RexxDebuggerFont<n>.rex modules. here is one module for each permitted font size (8-26)
+They need to be included above the call / require for RexxDebugger in order to be effective except in the case where RexxDebugger is included with a CALL and the  module is added via a require
 
-    ::REQUIRES "RexxDebuggerFont16"
+  If you want the debugger windows to use a different font size (/FONTSIZE:n option) you can call / require one of the RexxDebuggerFont[n].rex modules. There is one module for each permitted font size (8-26)
 
-  If you are running on Windows but wish to use the Java interface (/JAVAUI option) you need to add the following line before any other ::requires statements for the debugging modules to activate this. You can still use 'call RexxDebugger' if you want but this particular override MUST be included in the form of a ::requires statement
+    CALL RexxDebuggerFont16
+
+    or 
+
+    ::REQUIRES "RexxDebuggerFont16.rex"
+
+ If you want the debugger to use one of the custom capture options /SHOWTRACE or /NOCAPTURE you can call / require one of the following modules
+ 
+    RexxDebuggerShowTrace.rex
+    RexxDebuggerNoCapture.rex
+ 
+  
+  If you are running on Windows but wish to use the Java interface (/JAVAUI option) you need to add the following line before any other ::requires statements for the debugging modules to activate this. You can still use 'call RexxDebugger' if you want but this particular override **must** be included in the form of a ::requires statement
   
     ::REQUIRES "RexxDebuggerBSFUI.rex"
 

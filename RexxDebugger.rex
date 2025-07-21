@@ -56,8 +56,6 @@ if SetCommandLineIsRexxDebugger() then do
   .local~rexxdebugger.deferlaunch = .true
   .local~rexxdebugger.debugger = .RexxDebugger~new
   .local~rexxdebugger.debugger~canopensource = .true
-  if .local~rexxdebugger.captureoption = '/SHOWTRACE'  then .local~rexxdebugger.debugger~CaptureConsoleOutput(.False)
-  else if .local~rexxdebugger.captureoption \= '/NOCAPTURE' then .local~rexxdebugger.debugger~CaptureConsoleOutput(.True)
 
    if .local~rexxdebugger.rexxfile = '' then .local~rexxdebugger.debugger~launch
    else do
@@ -84,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.41.6"
+::CONSTANT VERSION "1.41.7"
 
 --====================================================
 ::class RexxDebugger public
@@ -216,6 +214,9 @@ end
 launched = .true
 debuggerui = .nil
 uistartupcomplete = .False
+
+if .local~rexxdebugger.captureoption = 'SHOWTRACE'  then self~CaptureConsoleOutput(.False)
+else if .local~rexxdebugger.captureoption \= 'NOCAPTURE' then self~CaptureConsoleOutput(.True)
 
 self~StartUIThread
 
@@ -979,7 +980,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
     nextflag = debuggerargstring~translate~word(1)
     parse value debuggerargstring with . debuggerargstring
     if "/SHOWTRACE /NOCAPTURE"~wordpos(nextflag) \= 0 then do
-      .local~rexxdebugger.captureoption = nextflag
+      .local~rexxdebugger.captureoption = nextflag~substr(2)
     end
     else if nextflag = "/JAVAUI" then do 
       forcejava = .True
