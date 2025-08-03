@@ -770,10 +770,10 @@ controls[self~EDITSOURCENAME]~settext(sourcefile)
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
   do line over arrSource~allIndexes
-    if arrSource[line]~strip~left(4) = '/**/' then debugger~SetBreakPoint(sourcefile, line)
+    debugger~CheckAddBreakpointFromSource(sourcefile, line, arrSource[line])
   end
   checkedsources~append(sourcefile)
-  end
+end
 listbreakpoints = debugger~GetBreakpoints(sourcefile)
 
 self~ListDeleteAllItems(controls, self~LISTSOURCE)
@@ -784,7 +784,7 @@ linecount = arrSource~items
 do line over arrSource~allIndexes
   if listbreakpoints~hasItem(line) then do
     text = '*'
-    if \self~IsBreakPointLikelyToBeHit(arrSource[line]) then text = '?'
+    if \debugger~IsBreakPointLikelyToBeHit(arrSource[line]) then text = '?'
     end
   else text=' '
   text = text||line~right(linecount~length)' 'arrSource[line]
@@ -937,7 +937,7 @@ listtext = self~ListGetItem(controls, self~LISTSOURCE, itemindex)
 if listtext~left(1) = ' ' then do
   checktext = listtext~delword(1,1)~translate~strip
   debugchar = '*'
-  if \self~IsBreakpointLikelyToBeHit(checktext) then debugchar = '?'
+  if \debugger~IsBreakpointLikelyToBeHit(checktext) then debugchar = '?'
   listtext = debugchar||listtext~substr(2)
   debugger~SetBreakpoint(activesourcename, itemindex)
 end
@@ -948,14 +948,6 @@ end
 self~ListModifyItem(controls, self~LISTSOURCE, itemindex, listtext)
 self~ListSetSelectedIndex(controls, self~LISTSOURCE, itemindex)
 
--------------------------------------------------------
-::method IsBreakpointLikelyToBeHit
--------------------------------------------------------
-parse arg sourceline
-sourceline  = sourceline~strip
-if sourceline~left(4) = '/**/' then sourceline = sourceline~substr(5)
-if sourceline = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- /*"~wordpos(sourceline~left(2)) \= 0 then return .False
-else return .True
 
 -------------------------------------------------------
 ::method SetSourceListInfoText

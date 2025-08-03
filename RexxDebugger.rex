@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.42"
+::CONSTANT VERSION "1.42.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -763,6 +763,28 @@ debuggerui~UpdateUIControlStates
 expose uifinished
 
 guard on when uifinished = .True
+
+------------------------------------------------------
+::method CheckAddBreakpointFromSource unguarded
+------------------------------------------------------
+use arg sourcefile, line, code
+
+if code~strip~left(4) = '/**/' then self~SetBreakPoint(sourcefile, line)
+else if code~strip~left(7)~translate = '/'||'*WHEN:' then do
+  parse caseless value code with . 'WHEN:'condition'*/' .
+  self~SetBreakPointTest(sourcefile, line, condition)
+end
+
+-------------------------------------------------------
+::method IsBreakpointLikelyToBeHit unguarded
+-------------------------------------------------------
+sourceline = arg(1)~strip
+sourceline  = sourceline~strip
+if sourceline~left(4) = '/**/' then sourceline = sourceline~substr(5)
+else if sourceline~strip~left(7)~translate = '/'||'*WHEN:' then parse caseless value sourceline with . 'WHEN:'.'*/'sourceline  
+if sourceline~strip = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- /*"~wordpos(sourceline~left(2)) \= 0 then return .False
+
+else return .True
 
 --====================================================
 ::class DebugOutputHandler
