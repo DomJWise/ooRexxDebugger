@@ -634,6 +634,7 @@ self~enable
 
 if dlgres = self~IDOK then do
   debugger~SetBreakPointTest(activesourcename, linenum, debugsettingsdialog~breakpointcondition)
+  debugger~SaveBreakpoints(activesourcename)
 end
 
 self~start("SetForeground")
@@ -765,10 +766,10 @@ end
 ------------------------------------------------------
 expose controls hfnt debugger loadedsources checkedsources
 use arg sourcefile 
-
 controls[self~EDITSOURCENAME]~settext(sourcefile)
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
+  debugger~LoadSavedBreakpoints(sourcefile)
   do line over arrSource~allIndexes
     debugger~CheckAddBreakpointFromSource(sourcefile, line, arrSource[line])
   end
@@ -947,7 +948,7 @@ else do
 end
 self~ListModifyItem(controls, self~LISTSOURCE, itemindex, listtext)
 self~ListSetSelectedIndex(controls, self~LISTSOURCE, itemindex)
-
+debugger~SaveBreakPoints(activeSourceName)
 
 -------------------------------------------------------
 ::method SetSourceListInfoText

@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.42.1"
+::CONSTANT VERSION "1.42.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -785,6 +785,54 @@ else if sourceline~strip~left(7)~translate = '/'||'*WHEN:' then parse caseless v
 if sourceline~strip = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- /*"~wordpos(sourceline~left(2)) \= 0 then return .False
 
 else return .True
+
+-------------------------------------------------------
+::METHOD LoadSavedBreakpoints unguarded
+-------------------------------------------------------
+expose breakpoints
+use arg sourcename
+debugfile =self~GetDebugFile(sourcename)
+if debugfile \= .nil, debugfile~IsFile then do
+  strm = .stream~new(debugfile)
+  info = strm~arrayin
+  strm~close
+  do line over info~allitems
+    parse value line with linenum condition
+    if linenum~datatype = 'NUM' then do
+      condition = condition~strip
+      self~SetBreakpointTest(sourcename, linenum, condition)
+    end  
+  end
+end
+
+-------------------------------------------------------
+::METHOD SaveBreakpoints unguarded
+-------------------------------------------------------
+expose breakpoints
+use arg sourcename
+debugfile =self~GetDebugFile(sourcename)
+if debugfile \= .nil then do
+  if debugfile~IsFile then debugfile~delete
+  strm = .stream~new(debugfile)
+  do breakpoint over breakpoints~allindexes
+    parse value breakpoint with itemsource'>'itemline
+    if itemsource = sourcename then strm~lineout(itemline breakpoints[breakpoint])
+  end  
+  strm~close
+end
+  
+-------------------------------------------------------
+::METHOD GetDebugFile unguarded
+-------------------------------------------------------
+use arg sourcename
+if sourcename='' then sourcename='default'
+debugfile = .nil
+if SysVersion()~translate~pos("WINDOWS") = 1 then home=value('HOMEDRIVE',,'ENVIRONMENT')||value('HOMEPATH',,'ENVIRONMENT')
+else home=value('HOME',,'ENVIRONMENT')
+rxddir = .File~new('.rexxdebugger',home)
+if \rxddir~isDirectory then rxddir~makedir
+if  rxddir~isDirectory then debugfile = .File~new(.File~new(sourcename)~name'-breakpoints', rxddir)
+return debugfile
 
 --====================================================
 ::class DebugOutputHandler

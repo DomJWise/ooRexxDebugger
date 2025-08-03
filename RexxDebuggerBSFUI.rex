@@ -830,8 +830,10 @@ linenum = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 breakpointcondition = debugger~GetBreakPointTest(activesourcename, linenum)
 breakpointsettingsdialog = .BreakPointSettingsDialog~new(self, gui, breakpointcondition)
 
-if breakpointsettingsdialog~okselected then debugger~SetBreakPointTest(activesourcename, linenum, breakpointsettingsdialog~breakpointcondition)
-
+if breakpointsettingsdialog~okselected then do
+  debugger~SetBreakPointTest(activesourcename, linenum, breakpointsettingsdialog~breakpointcondition)
+  debugger~SaveBreakpoints(activesourcename)
+end
 ------------------------------------------------------
 ::method OnSourceCopy
 ------------------------------------------------------
@@ -1281,6 +1283,7 @@ use arg sourcefile
 controls[self~EDITSOURCENAME]~settext(sourcefile)
 arrSource = loadedsources[sourcefile]
 if \checkedsources~hasitem(sourcefile) then do
+  debugger~LoadSavedBreakpoints(sourcefile)
   do line over arrSource~allIndexes
     debugger~CheckAddBreakpointFromSource(sourcefile, line, arrSource[line])
   end
@@ -1449,6 +1452,7 @@ else do
 end
 self~ListModifyItem(controls, self~LISTSOURCE, itemindex, listtext)
 self~ListSetSelectedIndex(controls, self~LISTSOURCE, itemindex)
+debugger~SaveBreakpoints(activesourcename)
 
 -------------------------------------------------------
 ::method SetSourceListInfoText
