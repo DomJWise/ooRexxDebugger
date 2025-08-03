@@ -1,45 +1,57 @@
-CALL SAY 'Unless indicated otherwise use the Next button to step through this demo/tutorial'
-CALL SAY 'The options at the end ensure debugging starts at the top and that everything is debugged' 
-CALL SAY 'The debugger pauses AFTER executing the line it has stopped on'
-CALL SAY 'Note that CALL SAY will show up in the debugger but by default SAY goes to your application'
-SAY 'i.e. This text should appear in your command prompt window (more on this later!)'
-CALL SAY 'Double click on line 11 to add a breakpoint then click on the highlighted row in the stack'||.endofline - 
+SAY 'Welcome to the tutorial! Unless indicated otherwise use the Next button to step forwards'
+SAY 'Note the debugger always pauses AFTER executing the line it has stopped on'
+SAY 'The options at the end ensure debugging starts straight away and that everything is debugged' 
+SAY 'The ::REQUIRES statement also ensures the debugger SAY routine (see later) can be used'
+SAY 'By default SAY output appears in the debugger and TRACE output is discarded'
+SAY 'The can be changed with the CAPTURE, CAPTUREX and NOCAPTURE debugger commands'
+SAY 'CAPTUREX is the current and default mode (capture SAY, discard TRACE)'
+SAY 'Enter CAPTURE in the console prompt and press the Exec button to add in TRACE output. Then press Next'
+SAY 'The TRACE output and SAY output should now appear in the debugger console'
+SAY 'Ensure the console window used to start this session is visible. Output will appear there soon'
+SAY 'Enter NOCAPTURE in the console prompt and press the Exec button to stop all capture. Then press Next'
+SAY 'The statement which follows uses CALL SAY (a debugger routine) to force the SAY output to the the debugger'
+CALL SAY 'Enter CAPTUREX in the console prompt and press the Exec button for normal capture. Then press Next'
+
+SAY 'Double click on line 20 to add a breakpoint then click on the highlighted row in the stack'||.endofline - 
 'view to get back to the current line.'
-CALL SAY 'Hit Next once, then Run'
+SAY 'Hit Run to progress to the line with the breakpoint '
 NOP 
 NOP
 NOP  -- NOP can be a useful placeholder for breakpoints and when single stepping 
-CALL SAY 'Hit Run. Note that the breakpoint on line 16 was already set when debugging started'
+SAY 'Hit Run. Note that the breakpoint on line 25 was already set when debugging started'
 NOP
 NOP
 NOP
 /**/ SAY 'An empty comment at the start of a traceable line will cause the debugger to insert a breakpoint'
-CALL SAY 'Double clicking on the following line will insert a ? breakpoint marker because the line isn''t traceable' 
+SAY 'Double clicking on the following line will insert a ? breakpoint marker because the line isn''t traceable' 
 /* comment or intruction  Rexx tracing wont stop at */
-CALL SAY 'Double click on any breakpoint line above to remove the breakpoint'
+SAY 'Double click on any breakpoint line above to remove the breakpoint'
 NOP
-CALL SAY 'Breakpoints can have conditions set on them via a right-click action when they are selected'
-CALL SAY 'Click on line 29 then use the right-click action to set the condition i=5 for the breakpoint'
-CALL SAY 'With this set the breakpoint will be ignored until the loop variable i has the value 5 so when running'
-CALL SAY 'you should see 1-5 printed out before the breakpoint is hit, after which it won''t be hit again'
-CALL SAY 'Hit the Run button twice to see the conditional breakpoint in action'
-CALL SAY 'Running loop 8 times'
-do i = 1 to 8
+SAY 'Breakpoints can have conditions set on them via a right-click action when they are selected'
+SAY 'Click on line 38 then use the right-click action to set the condition i=2 for the breakpoint'
+SAY 'With this set the breakpoint will be ignored until the loop variable i has the value 2 so when running'||.endofline -
+'you should see 1-2 printed out before the breakpoint is hit, after which it won''t be hit again'
+SAY 'Hit the Run button twice to see the conditional breakpoint in action'
+SAY 'Running loop from 1 to 4'
+do i = 1 to 4
   CALL SAY i
-  /**/ NOP
+  /**/NOP
 end
-CALL SAY 'Loop finished'
-
-/**/CALL SAY 'Enter "SAY 1+2" into the debugger command prompt below (without the quotes) and hit Execute or Next'
-CALL SAY 'The result should appear in your console window'
-CALL SAY 'Enter "CAPTURE" into the debugger prompt and hit Execute. Trace and SAY output will be moved here'
-SAY 'Enter "SAY 2+3"  into the debugger prompt and hit Execute or Next'
-SAY 'Type "CAPTUREX" into the debugger prompt and hit Execute.'
-SAY 'Trace output should no longer appear anywhere, unless there is an error, but SAY output will'
-SAY 'Type "SAY 3+4" into the debugger prompt and hit Execute or Next'
-SAY 'Press the Enter key on the keyboard. With text in the debug command prompt this is the same as hitting Exec'
-SAY 'Clear the text in the debugger prompt and press Enter again. This is the same as hitting Next'
-SAY 'Play around with the up/down arrow keys to see previous commands'
+SAY 'Loop finished'
+/**/ SAY 'Conditional breakpoints can be preset using a comment of the form /*WHEN:<cond>*/'
+SAY 'Hit the Run button twice to see a preset conditional breakpoint for i = 13 in action'
+SAY 'Running loop from 10 to 20'
+do i = 10 to 20
+  CALL SAY i
+  /*WHEN:i=13*/NOP
+end
+SAY 'Loop finished'
+/**/ SAY 'Rexx code can be executed in the context of your program via the input console'
+SAY 'Enter "SAY 1+2" into the debugger command prompt below (without the quotes) and hit Next'
+SAY 'Press the Enter key on the keyboard or press Exec . When finished press Next to move on'
+SAY 'Clear the text in the debugger prompt and hit Enter or press Exec. This is the same as hitting Next'
+SAY 'Enter "SAY 2+3" and hit Next'
+SAY 'Use the up/down arrow keys to navigate through console input'
 NOP
 x = 12
 SAY 'Click the Watch button then hit Next'
