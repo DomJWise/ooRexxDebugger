@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.42.2"
+::CONSTANT VERSION "1.42.3"
 
 --====================================================
 ::class RexxDebugger public
@@ -128,12 +128,13 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
 launched = .False
 breakpoints = .Properties~new
+conditionbackups = .Properties~new
 tracedprograms = .Set~new
 manualbreak = .false
 traceoutputhandler = .nil
@@ -238,26 +239,35 @@ return shutdown
 ------------------------------------------------------
 ::method SetBreakPoint unguarded
 ------------------------------------------------------
-expose breakpoints
+expose breakpoints conditionbackups
 use arg sourcefile, sourceline
-
-breakpoints~put('',sourcefile'>'sourceline)
+test = ''
+location = sourcefile'>'sourceline
+if conditionbackups~hasindex(location) then do
+  test = conditionbackups[location]
+  conditionbackups~remove(location)
+end  
+breakpoints[location] = test
 
 ------------------------------------------------------
 ::method SetBreakPointTest unguarded
 ------------------------------------------------------
-expose breakpoints
+expose breakpoints conditionbackups
 use arg sourcefile, sourceline, test
 
-breakpoints~put(test, sourcefile'>'sourceline)
+location = sourcefile'>'sourceline
+if conditionbackups~hasindex(location) then conditionbackups~remove(location)
+breakpoints[location] = test
 
 ------------------------------------------------------
 ::method ClearBreakPoint  unguarded
 ------------------------------------------------------
-expose breakpoints
+expose breakpoints conditionbackups
 use arg sourcefile, sourceline
 
-ignore = breakpoints~remove(sourcefile'>'sourceline)
+location = sourcefile'>'sourceline
+if breakpoints~hasindex(location), breakpoints[location] \= '' then conditionbackups[location] = breakpoints[location]
+breakpoints~remove(location)
 
 ------------------------------------------------------
 ::method CheckBreakPoint 
@@ -271,10 +281,11 @@ return breakpoints~hasindex(sourcefile'>'sourceline)
 ------------------------------------------------------
 expose breakpoints
 use arg sourcefile, sourceline
-if \breakpoints~hasindex(sourcefile'>'sourceline) then
+location = sourcefile'>'sourceline
+if \breakpoints~hasindex(location) then
   return ''
 else  
-  return breakpoints~at(sourcefile'>'sourceline)
+  return breakpoints[location]
 
 
 ------------------------------------------------------
