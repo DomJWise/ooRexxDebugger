@@ -288,15 +288,17 @@ origin = a Point [x=0,y=0]
 Breakpoint management
 ----------------------------------
 
-### Setting breakpoints during debug sessions ##
+### Setting breakpoints during debug sessions ###
 
 During a debug session a breakpoint can be set on a source line whenever the debugger is waiting for input by double clicking on it. If the debugger expects the breakpoint to be hit at least once a * character will be shown at the start of the line otherwise a ? will be shown
 
-Right-clicking on a source line containing a breakpoint brings up a context menu where the 'Breakpoint Settings' option can be used to set a condition (a Rexx clause) that must evaluate to True for the debugger to stop at the breakpoint when it is hit. If evaluating the condition results in a Rexx error the debugger will stop at the breakpoint as if no condition had been set and the error will be reported in the console log
+Right-clicking on a source line containing an active breakpoint brings up a context menu where the 'Breakpoint Settings' option can be used to set a condition (a Rexx clause) that must evaluate to True for the debugger to stop at the breakpoint when it is hit. If evaluating the condition results in a Rexx error the debugger will stop at the breakpoint as if no condition had been set and the error will be reported in the console log
 
-Double clicking a line containing a breakpoint will toggle it off, but any condition set for the breakpoint will be retained and then restored if the breakpoint is reactivated during the current debugging session. 
+Double clicking a line containing an active breakpoint will toggle it off, but any condition set for the breakpoint will be retained and then restored if the breakpoint is reactivated during the same debug session. 
 
-Breakpoints that are active at the end of the debug session will be loaded the next time the same program is run. They are saved by line number so if lines are added or removed from the program before running it again the breakpoints may need to be adjusted to reflect the new line numbers
+Breakpoints that are active at the end of the debug session will be loaded the next time the same program is debugged. They are saved by line number so if lines are added or removed from the program before running it again the breakpoints may need to be adjusted to reflect the new line numbers. 
+
+Note: Breakpoint save information is stored for each program as a file in a folder called .rexxdebugger that can be found in the platform specific home folder for the user. If a program does not have a name (perhaps in an embedded scenario) the name of the save file will be default-breakpoints, otherwise it will be [programname]-breakpoints. Save files and (if necesary) the entire .rexxdebugger folder can be safely deleted should loading breakpoints from them cause issues for a debug session.
 
 ### Presetting breakpoints in program code ##
 
