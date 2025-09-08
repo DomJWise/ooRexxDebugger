@@ -11,20 +11,26 @@ It's still in active development and you may find bugs but features include:
 - A main window with:
   -  Source display of the code being debugged
   -  Stack trace that allows switching between active source locations and files
-  -  An entry field for executing Rexx statements or debugger commands while tracing is waiting for feedback
+  -  An entry field for executing Rexx statements or debugger commands while tracing is paused waiting for feedback
   -  A console window to display basic help information, status and (optionally) program and debugger output 
-  -  Breakpoint functionality including the ability to set conditional breakpoints (*)
+  -  Breakpoint functionality including the ability to set conditional breakpoints, preset breakpoints with source code comments, and to remember breakpoints set in previous sessions 
   -  Single step or run to next breakpoint (or the end of the program)
   -  Break button to interrupt running code or set an automatic breakpoint for when the next line of traceable code is hit 
-  -  Toggling of breakpoints in an active session
-- Watch windows for display of variables with drilldown into string types and object collections (**)
-- Presetting of breakpoints in the Rexx source by adding  empty comments (/**/) at the start of traceable lines.
+- Watch windows for display of variables with drilldown into string types and object collections (*)
 
-(*) Note that the debugger is built around the interactive trace framework included with ooRexx so can only pause where that framework would pause. Some statements are hit at all, other statements only once. The Rexx documentation provides information on which instructions will pause during interactive tracing, used to guide the "hit" likelihood indicator when setting breakpoints but this may notalways be 100% accurate.
+ (*) A relation collection can have the same index linked to different collection items. At present Watch drilldown from a relation collection is only possible for one collection item per group of duplicate indexes. This may be addressed in a future release
 
-(**) A relation collection can have the same index linked to different collection items. At present Watch drilldown from a relation collection is only possible for one collection item per group of duplicate indexes. This may be addressed in a future release
+ ### Important notes on program flow when debugging 
 
-The ooRexx tracing framework pauses for feedback after executing an instruction, not before. If you want to see the value of a variable just before a particular line which changes that variable you need to check the value before stepping or running to that line. This behaviour also means that instructions which change the control flow of a program (e.g. call) will not pause on that statement unless and until control is returned there e.g. by a return from a called function
+The ooRexx interactive tracing framework utilised by the debugger pauses for feedback after executing an instruction not before it and the same is true when stepping through your program. i.e when the debugger shows you as stopped at a particular line the code for that line has already been executed. 
+
+This means that if, for example, you want to check the value of a variable when executing a particular line which may change that variable you need to pause execution before stepping or running into that line. This behaviour also means that lines with instructions which change the control flow of a program (e.g. calling a subroutine) will not pause on that line unless and until control is returned there e.g. by a return from the called subroutine.
+
+Also note that during interactive tracing (and therefore debugging) ooRexx has rules about when it will stop at specific statements. Some statements it will never stop at, others it will only stop at the first time they are executed. The Rexx documentation provides information on which instructions will pause during interactive tracing, and when setting a breakpoint on a line  a 'hit' indicator is provided based on these rules to indicate whether the debugger expects the breakpoint to be hit at least one time.
+
+ #### Working with the above
+
+ If you have a need to pause in your program at a specific spot and the code there is not suitable for single step or a breakpoint you can almost always insert a NOP instruction nearby since the debugger can always stop at these instructions and they should have no functional impact on how the program runs.
 
 Prerequisites
 -------------
@@ -40,19 +46,21 @@ For any platform using the Java interface the following are needed:
 Deployment of the files in this package
 ---------------------------------------
 
-To use the debugger, RexxDebugger.rex (and DeferRexxDebuggerLaunch.rex if used) need to be in your path or the local directory along with one of the user interface modules below:
+To use the debugger on Windows, at a bare minimum **RexxDebugger.rex** needs to be in your path or the local directory along with one of the user interface modules below:
 
    - RexxDebuggerWinUI.rex  - required for the Windows native interface
 
-   - RexxDebuggerBSFUI.rex - required for the Java interface
+   - RexxDebuggerBSFUI.rex - required for the cross platform Java interface
 
    On Windows when both modules are available the native interface module will be preferred but this can be overridden if needed. See usage instructions below for further details
 
-On Linux and MacOS the files should all be placed in the same directory (local or in the path) along with the following launcher script, which will need to be set as executable:
+On Linux and MacOS the Java interface file must be used with **RexxDebugger.rex** and the files should all be placed in the same directory (local or in the path) along with the following launcher script, which will need to be set as executable:
 
    - rexxdebugger 
 
-The package file tutorial.rex is not required but may be helpful for learning how to navigate the various debugger features.
+The package file **tutorial.rex** is not required but is recommended for learning how to navigate the various debugger features.
+
+There are a number of additional .rex files that can be used in specific circumstances detailed  in the following section. If used they should be copied to the same location as the core debugger files.
 
 Getting started
 ---------------
@@ -63,7 +71,7 @@ To launch the main debugger window so that you can open a Rexx program for debug
 
 The Open button can then be used on the main dialog to select a program to debug.
 
-By default the debugger will use the preferred interface for the current platform, program output will appear in the debugger console pane, and trace output will be dropped but this can be overridden with the following command-line options:
+By default the debugger will use the preferred interface for the current platform, program output will appear in the debugger console pane, and trace output will be dropped but this can be overridden with the following command-line options: 
 
     /JAVAUI      - Force the Java interface to be used (Windows only)
     /NOCAPTURE   - Send all program and trace output to the console window that launched the debugger
@@ -74,6 +82,8 @@ By default the debugger will use the preferred interface for the current platfor
 The /TRACEMODE:x option, where x is any permitted trace mode e.g. I, ?R, can be used to change the default trace mode applied to all code blocks in the main rexx file loaded. The debugger adds ::OPTIONS TRACE x to the end of the program to activate the selected mode. The default is ?A, which traces every statement (A) and has interactive tracing enabled (?).  Unless option R,A or I is used and the ? prefix is also used, any code block requiring single step or breakpoint stops will need to include a suitable TRACE clause e.g CALL TRACE '?A' at the start of the block. Further details of the available tracing modes including how to switch on and off interactive tracing from program code can be found in the ooRexx reference manual
 
 The /FONTSIZE:n argument can be used to set a font size. The valid range for the Windows interface is 8 - 16 and for Java it is 12 - 26. For both interfaces the lower limit is the default. All debugger dialogs will use the font size specified but system dialogs (e.g. the file finder) and message boxes will continue to use the platform defined default font size
+
+Note that the JAVAUI, NOCAPTURE, SHOWTRACE and FONTSIZE will require corresponding .rex files from this package to be deployed alongside the core debugger files
 
 Specifying a program to debug
 -----------------------------
@@ -96,8 +106,7 @@ Embedded Rexx programs / special requirements
 Starting debug sessions with the rexxdebugger command facilitates debugging for a huge range of scenarios but there are situations where it either cannot be used or where finer controls over some aspects of debugging are needed. So long as the Rexx source can be modified many of these scenarios can also be handled using certain Rexx directives and statements.
 
   ### Embedded Rexx programs
-  --------------------------
- 
+  
   If you have an application in which a Rexx interpreter is embedded, a Rexx program run within that environment cannot be debugged using the rexxdebugger command, but so long as the embedding application does not itself capture trace input you will very likely be able to debug the script when it is run by the application.
   
   For this to work you will need modify the Rexx program to load the debugger and activate tracing, either with a TRACE statement or ::OPTIONS TRACE if you have methods and routines that should be debuggable. You may also want to have the debugger open relative to a specific window e.g. to the right of the application window. Following are 3 example scenarios 
@@ -137,7 +146,7 @@ Starting debug sessions with the rexxdebugger command facilitates debugging for 
 
 
   ### Direct launch of a Rexx program 
-  -----------------------------------
+  
   
   The code modification examples above can also be used for debugging Rexx programs that you launch directly instead of via the rexxdebugger command. Sometimes you may just do this for convenience or for additional control but it's possible you may find specific situations where launching a program from rexxdebugger does not work as expected. In these situations modifying the program and using direct launch is an alternative that may be successful.
   
@@ -184,7 +193,7 @@ They need to be included above the call / require for RexxDebugger in order to b
 
 
 ### Utility functions for embedded / direct launch debugging
---------------------------------------------------------
+
 
 When debugging embedded code or using direct launch there are two utility functions that can be used to provide more control over how the program terminates, making the behaviour similar to that when debugging from rexxdebugger. These can be especially useful on MacOS to prevent the debugger closing immediately at program exit or if a runtime error occurs
 
@@ -220,7 +229,7 @@ exit
 ::OPTIONS TRACE ?A
 ```
 
-Control of program / trace output and possible limitations
+Control of program / trace output and possible limitations with embedded environments
 ----------------------------------------------------------
 
 When launching a debug session via rexxdebugger there are command line options (see above) for controlling where these types of ouput go but there are additional debugger commands (CAPTURE/CAPTUREX/NOCAPTURE) that can be used to make changes during any active debug session. Further details on what they do can can found in the Help text, but it is important to note that some embedded environments may take full control of program and trace output. For these environments you may not be able to redirect ouput to the debug console window and will be limited to  whatever output is generated by the embedding application.
@@ -275,6 +284,35 @@ return 'x='||x||',y='y
 In a Watch window the return value will be appended to the display line in square brackets so for a Point at (0,0) called 'origin' you would see:
 
 origin = a Point [x=0,y=0]
+
+Breakpoint management
+----------------------------------
+
+### Setting breakpoints during debug sessions ##
+
+During a debug session a breakpoint can be set on a source line whenever the debugger is waiting for input by double clicking on it. If the debugger expects the breakpoint to be hit at least once a * character will be shown at the start of the line otherwise a ? will be shown
+
+Right-clicking on a source line containing a breakpoint brings up a context menu where the 'Breakpoint Settings' option can be used to set a condition (a Rexx clause) that must evaluate to True for the debugger to stop at the breakpoint when it is hit. If evaluating the condition results in a Rexx error the debugger will stop at the breakpoint as if no condition had been set and the error will be reported in the console log
+
+Double clicking a line containing a breakpoint will toggle it off, but any condition set for the breakpoint will be retained and then restored if the breakpoint is reactivated during the current debugging session. 
+
+Breakpoints that are active at the end of the debug session will be loaded the next time the same program is run. They are saved by line number so if lines are added or removed from the program before running it again the breakpoints may need to be adjusted to reflect the new line numbers
+
+### Presetting breakpoints in program code ##
+
+If an empty comment marker /**/ is included at the start of a line, the debugger will treat this as an instruction to set a simple breakpoint on that line
+
+Conditional breakpoints can also be preset, again with a comment at the start of the line. The comment needs to be structured as follows:
+
+```
+ /*WHEN:<condition>*/
+
+ e.g. 
+
+ /*WHEN:testval=.True*/
+ ```
+
+All preset breakpoints are loaded each time the program is run. This includes any that may have been deactivated at runtime during a previous debug session
 
 
 Final notes and further information
