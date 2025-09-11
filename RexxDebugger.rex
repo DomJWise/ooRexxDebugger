@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.42.4"
+::CONSTANT VERSION "1.42.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -458,7 +458,7 @@ if status="breakpointcheckgetlocation" then do
     else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then dobreak = .True
     if breakpoints[codelocation] = '' | dobreak then do
       frames = .context~stackframes~section(5)
-      if runroutine \= .nil & frames~lastitem~executable~package~name = .context~package~name then frames = frames~section(1, frames~items-3)
+      if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
       tracedprograms~put(codelocation~makearray('>')[1])
       debuggerui~UpdateUICodeView(frames, 1)
       debuggerui~UpdateUIWatchWindows(context~variables)
