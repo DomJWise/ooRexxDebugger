@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43"
+::CONSTANT VERSION "1.43.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -128,7 +128,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -149,6 +149,8 @@ uithreadid = 0
 getthreadidroutine = .Nil
 
 .local~debug.channels = .Directory~new
+
+stackhascontext = .context~stackframes[1]~hasmethod("context")
 
 uiloaded = self~findandloadui()
 
@@ -433,7 +435,7 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse unguarded
 ------------------------------------------------------
-expose debuggerui tracedprograms manualbreak breakpoints runroutine 
+expose debuggerui tracedprograms manualbreak breakpoints runroutine stackhascontext
 use arg debugchannel, threadid
 
 status = debugchannel~status~string
@@ -441,7 +443,7 @@ status = debugchannel~status~string
 debugchannel~status~delete(1)
 
 if status="breakpointcheckgetlocation" then do
-  if .context~stackframes[1]~hasmethod("context") then do
+  if stackhascontext then do
     ---Fast track is possible in 5.1, for simple breakpoint checks at least
     context = .context~stackframes[5]~context
     codelocation=context~package~name'>'context~line 
@@ -469,35 +471,32 @@ if status="breakpointcheckgetlocation" then do
   end
 else if status~pos("breakpointchecklocationis") = 1 then do
   parse value status with ignore codelocation -- Is this a breakpoint ?
-  if breakpoints~hasindex(codelocation) then do  
-    test = breakpoints[codelocation]
-    if test = '' | manualbreak then do
-      if manualbreak then CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
-      manualbreak = .False
-      debugchannel~status~append("getprogramstatus")
-      return 'NOP'
-    end  
-    else do
-      debugchannel~status~append("breakpointprocesstestresult")
-      debugchannel~breakpointtestresult = .True
-      return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put('||test||', "BREAKPOINTTESTRESULT"); drop _rexdeebugeer_tmp'
-      end
+  if \manualbreak & \breakpoints~hasindex(codelocation)  & tracedprograms~hasitem(codelocation~makearray('>')[1]) then do
+    debugchannel~status~append("breakpointcheckgetlocation")
+    return ''
+  end  
+  else if manualbreak then do 
+    CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
+    manualbreak = .false
+    debugchannel~status~append("getprogramstatus")
+    return 'NOP'
   end
   else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
     tracedprograms~put(codelocation~makearray('>')[1])
     debugchannel~status~append("getprogramstatus")
     return 'NOP'
   end
-  else if manualbreak then do -- Was a break issued from the dialog? 
-    CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
-    manualbreak = .false
-    debugchannel~status~append("getprogramstatus")
-    return 'NOP'
+  else /*breakpoints~hasindex(codelocation)*/  do  
+    if breakpoints[codelocation] = '' then do
+      debugchannel~status~append("getprogramstatus")
+      return 'NOP'
+    end  
+    else do
+      debugchannel~status~append("breakpointprocesstestresult")
+      debugchannel~breakpointtestresult = .True
+      return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put('||breakpoints[codelocation]||', "BREAKPOINTTESTRESULT"); drop _rexdeebugeer_tmp'
+    end
   end
-  else do       
-    debugchannel~status~append("breakpointcheckgetlocation")
-    return ''
-  end  
 end  
 else if status~pos("breakpointprocesstestresult") = 1 then do
   testresult = debugchannel~breakpointtestresult
