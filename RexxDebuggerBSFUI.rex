@@ -99,10 +99,13 @@ return .Routine~new("",code)
 ::method init
 ------------------------------------------------------
 expose debugdialog debugger 
-use arg debugger,watchhelperclass
+use arg debugger,watchhelperclass, debughelperclass
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
+
+if .DebugHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("DebugHelper", debughelperclass)
+.DebugDialog~inherit(.DebugHelper)
 
 fontsize = 12
 if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then do
@@ -410,6 +413,25 @@ self~define("actionPerformed", .Method~new("", self~method("actionPerformed")~so
 -- Will only be activated for items that dont already intercept the keys e.g. buttons
 NOP
 
+--====================================================
+::class DebugDialogGotoListener public
+--====================================================
+------------------------------------------------------
+::method actionPerformed
+------------------------------------------------------
+use arg eventobj, slotdir
+slotdir~userdata~OnSourceGoto
+
+--====================================================
+::class DebugDialogFindListener public
+--====================================================
+------------------------------------------------------
+::method actionPerformed
+------------------------------------------------------
+use arg eventobj, slotdir
+slotdir~userdata~OnSourceFind
+
+
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -622,8 +644,10 @@ return text~strip
 ::constant SOURCEMENU     113
 ::constant BPSETTINGS     114
 ::constant SOURCECOPY     115
-::constant STACKMENU      116
-::constant STACKCOPY      117
+::constant SOURCEFIND     117
+::constant SOURCEGOTO     118
+::constant STACKMENU      119
+::constant STACKCOPY      120
 
 
 ------------------------------------------------------
@@ -684,7 +708,7 @@ if .BSFPackageDevTestingGlobals~package~local~debugautonext = .true then .AwtGui
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoleappendbuffer debugconsoleupdatetimer
+expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoleappendbuffer debugconsoleupdatetimer lastfind
 use arg debugger, gui, startuphelptext
 arrstack = .nil
 activesourcename = .nil
@@ -700,6 +724,10 @@ commandnum = 0
 
 debugconsoleappendbuffer = ''
 debugconsoleupdatetimer = .Nil
+
+lastfind = ''
+
+self~init:.DebugHelper(controls)
 
 self~InitDialog
 
@@ -844,6 +872,22 @@ cliptext = .ListSourceTransferHandler~new~GetClipboardText(seltext)
 gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
 
 ------------------------------------------------------
+::method OnSourceGoto
+------------------------------------------------------
+expose controls gui 
+
+line = .bsf.dialog~inputbox("Goto line number:", self~lastgoto)
+if line \= .nil & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
+
+------------------------------------------------------
+::method OnSourceFind
+------------------------------------------------------
+expose controls gui 
+
+find = .bsf.dialog~inputbox("Find next:", self~lastfind)
+if find \= .nil then self~DoSourceFind(find)
+
+------------------------------------------------------
 ::method OnStackCopy
 ------------------------------------------------------
 expose controls gui
@@ -952,8 +996,13 @@ dialogwidth = listsource~getfontmetrics(listsource~getfont)~charwidth('X') * 60
 
 sourcecontextmenu = gui~clsJPopupMenu~new("")
 sourcecopymenuitem = gui~clsJMenuItem~new("Copy")
+sourcefindmenuitem = gui~clsJMenuItem~new("Find")
+sourcegotomenuitem = gui~clsJMenuItem~new("Goto")
 breakpointsettingsmenuitem = gui~clsJMenuItem~new("Breakpoint Settings")
 sourcecontextmenu~add(sourcecopymenuitem)
+sourcecontextmenu~addSeparator
+sourcecontextmenu~add(sourcefindmenuitem)
+sourcecontextmenu~add(sourcegotomenuitem)
 sourcecontextmenu~addSeparator
 sourcecontextmenu~add(breakpointsettingsmenuitem)
 
@@ -1115,6 +1164,8 @@ controls[self~PANESOURCE] = listsourcepane
 controls[self~SOURCEMENU] = sourcecontextmenu
 controls[self~BPSETTINGS] = breakpointsettingsmenuitem
 controls[self~SOURCECOPY] = sourcecopymenuitem
+controls[self~SOURCEFIND] = sourcefindmenuitem
+controls[self~SOURCEGOTO] = sourcegotomenuitem
 controls[self~STACKMENU ] = stackcontextmenu
 controls[self~STACKCOPY ] = stackcopymenuitem
 
@@ -1133,6 +1184,8 @@ controls[self~BUTTONVARS]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BUTTONOPEN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOPEN, "java.awt.event.ActionListener"))
 controls[self~BPSETTINGS]~addActionListener(BsfCreateRexxProxy(self, self~BPSETTINGS, "java.awt.event.ActionListener"))
 controls[self~SOURCECOPY]~addActionListener(BsfCreateRexxProxy(self, self~SOURCECOPY, "java.awt.event.ActionListener"))
+controls[self~SOURCEFIND]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEFIND, "java.awt.event.ActionListener"))
+controls[self~SOURCEGOTO]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEGOTO, "java.awt.event.ActionListener"))
 controls[self~STACKCOPY ]~addActionListener(BsfCreateRexxProxy(self, self~STACKCOPY,  "java.awt.event.ActionListener"))
 
 
@@ -1156,6 +1209,13 @@ controls[self~LISTSOURCE]~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED
 findkeylistener = .DebugDialogCopyTextListener~new
 findkeylistenerEH = BsfCreateRexxProxy(findkeylistener, self, "javax.swing.AbstractAction")
 controls[self~LISTSOURCE]~getActionMap~put("copytext", findkeylistenerEH)
+
+controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~clsInputEvent~CTRL_MASK), "goto")
+controls[self~LISTSOURCE]~getActionMap~put("goto", BsfCreateRexxProxy(.DebugDialogGotoListener~new, self, "javax.swing.AbstractAction"))
+
+controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "find")
+controls[self~LISTSOURCE]~getActionMap~put("find", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
+
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
@@ -1218,6 +1278,8 @@ if id = self~BUTTONVARS then self~OnVarsButton
 if id = self~BUTTONOPEN then self~OnOpenButton
 if id = self~BPSETTINGS then self~OnBreakpointSettings
 if id = self~SOURCECOPY then self~OnSourceCopy
+if id = self~SOURCEFIND then self~OnSourceFind
+if id = self~SOURCEGOTO then self~OnSourceGoto
 if id = self~STACKCOPY  then self~OnStackCopy
 
 ------------------------------------------------------

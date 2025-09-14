@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.1"
+::CONSTANT VERSION "1.43.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -119,7 +119,7 @@ uifinished = .False
 
 REPLY /* Switch to a new thread */
 
-debuggerui = .DebuggerUI~new(self, .WatchHelper)
+debuggerui = .DebuggerUI~new(self, .WatchHelper, .DebugHelper)
 
 debuggerui~RunUI
 
@@ -1081,6 +1081,62 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   
 end
 return
+
+--====================================================
+::class DebugHelper mixinclass object public
+--====================================================
+
+::attribute lastgoto get public
+::attribute lastfind get public
+
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose controls lastgoto lastfind
+use arg controls
+
+lastgoto = ''
+lastfind = ''
+
+------------------------------------------------------
+::method DoSourceGoto
+------------------------------------------------------
+expose controls lastgoto
+use arg line
+
+lastgoto = line
+if line < 1 then line = 1
+if line > self~ListGetRowCount(controls, self~LISTSOURCE) then line = self~ListGetRowCount(controls, self~LISTSOURCE) 
+visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
+firstrow = MAX(1, line - (visiblelistrows/2)~floor)
+self~ListSetSelectedIndex(controls, self~LISTSOURCE, line)
+self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
+
+------------------------------------------------------
+::method DoSourceFind
+------------------------------------------------------
+expose controls lastfind
+use arg find
+lastfind = find
+  
+found = .False
+rows = self~ListGetRowCount(controls, self~LISTSOURCE)
+currentsel = self~ListGetSelectedIndex(controls,self~LISTSOURCE)
+foundline = 0
+do i = 0 to rows - 1
+  testrow = (i + currentsel) // rows + 1
+  seltext = self~ListGetItem(controls, self~LISTSOURCE, testrow)
+  if seltext~translate~pos(find~translate) \= 0 then do
+    foundline = testrow
+    leave
+  end
+end    
+if foundline \= 0 then do
+  visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
+  firstrow = MAX(1, foundline - (visiblelistrows/2)~floor)
+  self~ListSetSelectedIndex(controls, self~LISTSOURCE, foundline)
+  self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
+end  
 
 --====================================================
 ::class WatchHelper mixinclass object public

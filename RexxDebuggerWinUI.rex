@@ -47,7 +47,7 @@ return .Routine~new("", code)
 expose debugdialog debugger fontsize
 
 
-use arg debugger,watchhelperclass
+use arg debugger,watchhelperclass, debughelperclass
 
 fontsize = 8
 if datatype(.local~rexxdebugger.uifontsize) = 'NUM'  then  do
@@ -59,6 +59,9 @@ end
 
 if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("WatchHelper", watchhelperclass)
 .WatchDialog~inherit(.WatchHelper)
+
+if .DebugHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("DebugHelper", debughelperclass)
+.DebugDialog~inherit(.DebugHelper)
 
 debugdialog = .DebugDialog~new(debugger, self, .rexxdebugger.startuphelptext)
 
@@ -159,7 +162,9 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ClearConsole
 ::constant BUTTONEXEC         111
 ::constant BPSETTINGSMENUITEM 112
 ::constant SOURCECOPYMENUITEM 114
-::constant STACKCOPYMENUITEM  115
+::constant SOURCEGOTOMENUITEM 115
+::constant SOURCEFINDMENUITEM 116
+::constant STACKCOPYMENUITEM  117
 ::constant MENUSEPARATOR1       1
 ------------------------------------------------------
 ::method activate class
@@ -229,6 +234,8 @@ checkedsources = .List~new
 scrollcharpos = 1
 waiting = .false
 controls = .Directory~new
+
+self~init:.DebugHelper(controls)
 
 forward class (super) continue array(.nil)
 
@@ -510,14 +517,24 @@ controls[self~EDITCOMMAND]~connectkeypress("OnNextCommand", .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
 controls[self~EDITCOMMAND]~connectCharEvent("EditCommandChar")
 
+controls[self~LISTSOURCE]~connectkeypress("OnGotoSource", .VK~G, "CONTROL")
+controls[self~LISTSOURCE]~connectkeypress("OnFindSource", .VK~F, "CONTROL")
+
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
-sourcepopupmenu~insertItem(self~BPSETTINGSMENUITEM, self~BPSETTINGSMENUITEM, "Breakpoint Settings")
+sourcepopupmenu~insertItem(1, self~BPSETTINGSMENUITEM, "Breakpoint Settings",,,.True )
 sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
-sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCECOPYMENUITEM, "Copy")
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEFINDMENUITEM, "Find",,,.True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEGOTOMENUITEM, "Goto",,,.True)
+sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEGOTOMENUITEM, "Copy",,,.True)
 sourcepopupmenu~assignTo(self)
 sourcepopupmenu~connectContextMenu("onListSourceContext", controls[self~LISTSOURCE]~hwnd) 
 sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "BreakpointSettings")
 sourcepopupmenu~connectCommandEvent(self~SOURCECOPYMENUITEM, "OnCopySource")
+sourcepopupmenu~connectCommandEvent(self~SOURCEGOTOMENUITEM, "OnGotoSource")
+sourcepopupmenu~connectCommandEvent(self~SOURCEFINDMENUITEM, "OnFindSource")
+
+
 
 stackpopupmenu = .PopupMenu~new(self~LISTSTACK)
 stackpopupmenu~insertItem(self~STACKCOPYMENUITEM, self~STACKCOPYMENUITEM, "Copy")
@@ -662,6 +679,25 @@ if index > 0  then do
   clipboard = .WindowsClipboard~new
   clipboard~copy(text~strip)
 end
+
+------------------------------------------------------
+::method OnGotoSource unguarded
+------------------------------------------------------
+expose controls debugger
+
+dlg = .InputBox~new("Line number:", "Goto", self~lastgoto)
+line = dlg~execute
+if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
+
+------------------------------------------------------
+::method OnFindSource unguarded
+------------------------------------------------------
+expose controls debugger
+
+dlg = .InputBox~new("Find next:", "Find", self~lastfind, 248)
+line = dlg~execute
+if line \= '' then self~DoSourceFind(line)
+
 
 ------------------------------------------------------
 ::method OnCopyKeyCommand unguarded
