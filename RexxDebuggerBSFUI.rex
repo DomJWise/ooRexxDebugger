@@ -54,6 +54,7 @@ SOFTWARE.
 ::attribute clsJLabel              public unguarded
 ::attribute clsJList               public unguarded
 ::attribute clsJMenuItem           public unguarded
+::attribute clsJOptionPane         public unguarded
 ::attribute clsJPanel              public unguarded
 ::attribute clsJPopupMenu          public unguarded
 ::attribute clsJRadioButton        public unguarded
@@ -128,6 +129,7 @@ self~clsJFileChooser       = bsf.importclass("javax.swing.JFileChooser")
 self~clsJLabel             = bsf.importclass("javax.swing.JLabel") 
 self~clsJList              = bsf.importclass("javax.swing.JList") 
 self~clsJMenuItem          = bsf.importclass("javax.swing.JMenuItem") 
+self~clsJOptionPane        = bsf.importclass("javax.swing.JOptionPane")
 self~clsJPanel             = bsf.importclass("javax.swing.JPanel")
 self~clsJPopupMenu         = bsf.importclass("javax.swing.JPopupMenu")
 self~clsJRadioButton       = bsf.importclass("javax.swing.JRadioButton")
@@ -876,7 +878,8 @@ gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
 ------------------------------------------------------
 expose controls gui 
 
-line = .bsf.dialog~inputbox("Goto line number:", self~lastgoto)
+line = gui~clsJOptionPane~new~showInputDialog(self, "Line number", "Goto", gui~clsJOptionPane~PLAIN_MESSAGE,.nil, .nil, self~lastgoto)
+
 if line \= .nil & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
 
 ------------------------------------------------------
@@ -884,7 +887,7 @@ if line \= .nil & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceG
 ------------------------------------------------------
 expose controls gui 
 
-find = .bsf.dialog~inputbox("Find next:", self~lastfind)
+find = gui~clsJOptionPane~new~showInputDialog(self, "Search text", "Find", gui~clsJOptionPane~PLAIN_MESSAGE,.nil, .nil, self~lastfind)
 if find \= .nil then self~DoSourceFind(find)
 
 ------------------------------------------------------

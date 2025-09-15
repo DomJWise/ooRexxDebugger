@@ -685,7 +685,7 @@ end
 ------------------------------------------------------
 expose controls debugger
 
-dlg = .InputBox~new("Line number:", "Goto", self~lastgoto)
+dlg = .InputBox~new("Line number", "Goto", self~lastgoto)
 line = dlg~execute
 if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
 
@@ -694,7 +694,7 @@ if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGot
 ------------------------------------------------------
 expose controls debugger
 
-dlg = .InputBox~new("Find next:", "Find", self~lastfind, 248)
+dlg = .InputBox~new("Search text", "Find", self~lastfind, 248)
 line = dlg~execute
 if line \= '' then self~DoSourceFind(line)
 
