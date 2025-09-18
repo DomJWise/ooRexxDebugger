@@ -517,8 +517,8 @@ controls[self~EDITCOMMAND]~connectkeypress("OnNextCommand", .VK~DOWN)
 controls[self~EDITCOMMAND]~wantreturn("EditReturn")
 controls[self~EDITCOMMAND]~connectCharEvent("EditCommandChar")
 
-controls[self~LISTSOURCE]~connectkeypress("OnGotoSource", .VK~G, "CONTROL")
-controls[self~LISTSOURCE]~connectkeypress("OnFindSource", .VK~F, "CONTROL")
+self~connectkeypress("OnGotoSource", .VK~G, "CONTROL")
+self~connectkeypress("OnFindSource", .VK~F, "CONTROL")
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
 sourcepopupmenu~insertItem(1, self~BPSETTINGSMENUITEM, "Breakpoint Settings",,,.True )

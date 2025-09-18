@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.4"
+::CONSTANT VERSION "1.43.5"
 
 --====================================================
 ::class RexxDebugger public
@@ -1126,6 +1126,7 @@ foundline = 0
 do i = 0 to rows - 1
   testrow = (i + currentsel) // rows + 1
   seltext = self~ListGetItem(controls, self~LISTSOURCE, testrow)
+  parse value seltext with 2 linenum seltext
   if seltext~translate~pos(find~translate) \= 0 then do
     foundline = testrow
     leave

@@ -1215,9 +1215,13 @@ controls[self~LISTSOURCE]~getActionMap~put("copytext", findkeylistenerEH)
 
 controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~clsInputEvent~CTRL_MASK), "goto")
 controls[self~LISTSOURCE]~getActionMap~put("goto", BsfCreateRexxProxy(.DebugDialogGotoListener~new, self, "javax.swing.AbstractAction"))
+self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~clsInputEvent~CTRL_MASK), "goto")
+self~getRootPane~getActionMap~put("goto", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
 
 controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "find")
 controls[self~LISTSOURCE]~getActionMap~put("find", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
+self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "find")
+self~getRootPane~getActionMap~put("find", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
 
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
