@@ -685,7 +685,7 @@ end
 ------------------------------------------------------
 expose controls debugger
 
-dlg = .InputBox~new("Line number", "Goto", self~lastgoto)
+dlg = .DebuggerInputBox~new(self, "Line number", "Goto", self~lastgoto)
 line = dlg~execute
 if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
 
@@ -694,7 +694,7 @@ if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGot
 ------------------------------------------------------
 expose controls debugger
 
-dlg = .InputBox~new("Search text", "Find", self~lastfind, 248)
+dlg = .DebuggerInputBox~new(self, "Search text", "Find", self~lastfind, 248)
 line = dlg~execute
 if line \= '' then self~DoSourceFind(line)
 
@@ -1570,6 +1570,35 @@ return controls[buttonid]~getText~changeStr("&", "")
 
 ::requires oodialog.cls
 ::requires winsystm.cls
+
+--====================================================
+::CLASS DebuggerInputBox subclass InputBox
+--====================================================
+------------------------------------------------------
+::method init
+------------------------------------------------------
+expose dlg
+use arg dlg, ...
+
+forward class (super) continue ARGUMENTS (arg(2,"A"))
+
+------------------------------------------------------
+::method initdialog
+------------------------------------------------------
+forward class (super) continue 
+edit = self~newEdit(self~IDC_EDIT)
+if edit~gettext~length > 0  then edit~select
+
+------------------------------------------------------
+::method execute
+------------------------------------------------------
+expose dlg
+dlg~disable
+forward class (super) continue
+res = RESULT
+dlg~enable
+dlg~setforegroundwindow(dlg~hWnd)
+return res
 
 --::OPTIONS NOVALUE SYNTAX /* ooRexx 5+ only */
 --::options trace R
