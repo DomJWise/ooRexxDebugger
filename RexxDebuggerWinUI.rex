@@ -731,9 +731,12 @@ self~OnCopyKeyCommand
 ------------------------------------------------------
 ::method EditCommandChar 
 ------------------------------------------------------
-use arg char
-if char \= 13 then return .true
-else return .false
+use arg char, isShift, isCtrl
+if char = 13 then return .False              --Return
+if char = 9 then  return .False              --Tab
+if char = 6 & isCtrl = 1 then return .False -- Ctrl F 
+if char = 7 & isCtrl = 1 then return .False -- Ctrl G
+return .True
 
 ------------------------------------------------------
 ::method EditReturn 
