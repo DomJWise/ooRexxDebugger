@@ -128,7 +128,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -147,6 +147,7 @@ uifinished = .True
 runroutine = .nil
 uithreadid = 0
 getthreadidroutine = .Nil
+codelocation = ""
 
 .local~debug.channels = .Directory~new
 
@@ -435,7 +436,7 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse unguarded
 ------------------------------------------------------
-expose debuggerui tracedprograms manualbreak breakpoints runroutine stackhascontext
+expose debuggerui tracedprograms manualbreak breakpoints runroutine stackhascontext codelocation
 use arg debugchannel, threadid
 
 status = debugchannel~status~string
@@ -446,8 +447,9 @@ if status="breakpointcheckgetlocation" then do
   if stackhascontext then do
     ---Fast track is possible in 5.1, for simple breakpoint checks at least
     context = .context~stackframes[5]~context
-    codelocation=context~package~name'>'context~line 
-    if \breakpoints~hasindex(codelocation) & \manualbreak & tracedprograms~hasitem(codelocation~makearray('>')[1]) then do
+    program = context~package~name
+    codelocation = program'>'context~line
+    if \breakpoints~hasindex(codelocation) & \manualbreak & tracedprograms~hasitem(program) then do
       debugchannel~status~append("breakpointcheckgetlocation")
       return ''
     end  
@@ -457,11 +459,11 @@ if status="breakpointcheckgetlocation" then do
       CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
       manualbreak = .False
     end
-    else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then dobreak = .True
+    else if \tracedprograms~hasitem(program) then dobreak = .True
     if breakpoints[codelocation] = '' | dobreak then do
       frames = .context~stackframes~section(5)
       if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
-      tracedprograms~put(codelocation~makearray('>')[1])
+      tracedprograms~put(program)
       debuggerui~UpdateUICodeView(frames, 1)
       debuggerui~UpdateUIWatchWindows(context~variables)
       return ''
@@ -471,7 +473,8 @@ if status="breakpointcheckgetlocation" then do
   end
 else if status~pos("breakpointchecklocationis") = 1 then do
   parse value status with ignore codelocation -- Is this a breakpoint ?
-  if \manualbreak & \breakpoints~hasindex(codelocation)  & tracedprograms~hasitem(codelocation~makearray('>')[1]) then do
+  parse value codelocation with program">"line
+  if \manualbreak & \breakpoints~hasindex(codelocation)  & tracedprograms~hasitem(program) then do
     debugchannel~status~append("breakpointcheckgetlocation")
     return ''
   end  
@@ -481,8 +484,8 @@ else if status~pos("breakpointchecklocationis") = 1 then do
     debugchannel~status~append("getprogramstatus")
     return 'NOP'
   end
-  else if \tracedprograms~hasitem(codelocation~makearray('>')[1]) then do -- Break (first time time only) when hitting a new program which traces.
-    tracedprograms~put(codelocation~makearray('>')[1])
+  else if \tracedprograms~hasitem(program) then do -- Break (first time time only) when hitting a new program which traces.
+    tracedprograms~put(program)
     debugchannel~status~append("getprogramstatus")
     return 'NOP'
   end
@@ -569,6 +572,20 @@ use arg manualbreak
 expose manualbreak
 
 return manualbreak
+
+-----------------------------------------------------
+::method GetLastSourceFile unguarded
+------------------------------------------------------
+expose codelocation
+parse value codelocation with program">"linenumber
+return program
+
+-----------------------------------------------------
+::method GetLastSourceLine unguarded
+------------------------------------------------------
+expose codelocation
+parse value codelocation with program">"linenumber
+return linenumber
 
 -----------------------------------------------------
 ::method ShowHelptext 
