@@ -544,7 +544,7 @@ sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
 sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEFINDMENUITEM, "Find",,,.True)
 sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEGOTOMENUITEM, "Goto",,,.True)
 sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
-sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEGOTOMENUITEM, "Copy",,,.True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCECOPYMENUITEM, "Copy",,,.True)
 sourcepopupmenu~assignTo(self)
 sourcepopupmenu~connectContextMenu("onListSourceContext", controls[self~LISTSOURCE]~hwnd) 
 sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "BreakpointSettings")
@@ -620,7 +620,7 @@ debugger~FlagUIStartupComplete
 ------------------------------------------------------
 ::method OnListSourceContext
 ------------------------------------------------------
-expose sourcepopupmenu controls 
+expose sourcepopupmenu controls loadedsources
 use arg hwnd,x,y
 listbox = controls[self~LISTSOURCE]
 
@@ -629,14 +629,23 @@ if x == -1, y == -1 then do
   x = rect~right - .SM~cxVScroll + 15
   y = rect~bottom - 15
 end
+enablebreak = .False
+enablecopy = .False
+hassource =  (loadedsources~items > 0) 
 index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
-enable = .False
 if index > 0  then do
+  enablecopy = .True
+  
   listtext = self~ListGetItem(controls, self~LISTSOURCE, index)
-  if listtext~left(1) = '*' | listtext~left(1) = '?' then enable = .True
+  if hassource, self~ListGetRowCount(controls, self~LISTSTACK) \= 0 then do 
+    if listtext~left(1) = '*' | listtext~left(1) = '?' then enablebreak = .True
+  end  
 end
-if enable then sourcepopupmenu~enable(self~BPSETTINGSMENUITEM)
-else  sourcepopupmenu~disable(self~BPSETTINGSMENUITEM)
+if enablebreak then sourcepopupmenu~enable(self~BPSETTINGSMENUITEM) ; else sourcepopupmenu~disable(self~BPSETTINGSMENUITEM)
+if enablecopy then sourcepopupmenu~enable(self~SOURCECOPYMENUITEM) ; else sourcepopupmenu~disable(self~SOURCECOPYMENUITEM)
+if hassource then sourcepopupmenu~enable(self~SOURCEGOTOMENUITEM) ; else sourcepopupmenu~disable(self~SOURCEGOTOMENUITEM)
+if hassource then sourcepopupmenu~enable(self~SOURCEFINDMENUITEM) ; else sourcepopupmenu~disable(self~SOURCEFINDMENUITEM)
+
 sourcepopupmenu~show(.Point~new(x,y))
 
 ------------------------------------------------------
@@ -701,8 +710,9 @@ end
 ------------------------------------------------------
 ::method OnGotoSource unguarded
 ------------------------------------------------------
-expose controls debugger
+expose controls debugger loadedsources
 
+if loadedsources~items = 0 then return
 dlg = .DebuggerInputBox~new(self, "Line number", "Goto", self~lastgoto)
 line = dlg~execute
 if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
@@ -710,8 +720,9 @@ if line \= '' & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGot
 ------------------------------------------------------
 ::method OnFindSource unguarded
 ------------------------------------------------------
-expose controls debugger
+expose controls debugger loadedsources
 
+if loadedsources~items = 0 then return
 dlg = .DebuggerInputBox~new(self, "Search text", "Find", self~lastfind, 248)
 line = dlg~execute
 if line \= '' then self~DoSourceFind(line)

@@ -869,10 +869,11 @@ end
 ------------------------------------------------------
 expose controls gui
 
-seltext = self~ListGetItem(controls, self~LISTSOURCE, self~ListGetSelectedIndex(controls,self~LISTSOURCE))
-cliptext = .ListSourceTransferHandler~new~GetClipboardText(seltext)
-gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
-
+if self~ListGetSelectedIndex(controls,self~LISTSOURCE) \= 0 then do
+  seltext = self~ListGetItem(controls, self~LISTSOURCE, self~ListGetSelectedIndex(controls,self~LISTSOURCE))
+  cliptext = .ListSourceTransferHandler~new~GetClipboardText(seltext)
+  gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
+end
 ------------------------------------------------------
 ::method OnSourceGoto
 ------------------------------------------------------
@@ -1495,8 +1496,9 @@ if setstacktotop then self~ListSetSelectedIndex(controls, self~LISTSTACK, 1)
 ------------------------------------------------------
 ::method StackFrameChanged 
 ------------------------------------------------------
-expose controls arrstack
-self~UpdateCodeView(arrstack, self~ListGetSelectedIndex(controls, self~LISTSTACK))
+expose controls arrstack loadedsource
+
+if loadedsources~items \= 0 then self~UpdateCodeView(arrstack, self~ListGetSelectedIndex(controls, self~LISTSTACK))
 return 0
 
 ------------------------------------------------------
@@ -1551,30 +1553,36 @@ activesourcename=.nil
 -------------------------------------------------------
 ::method ShowSourcePopupMenu
 -------------------------------------------------------
-expose gui controls
+expose gui controls loadedsources
 use arg eventobj
 
-contextmenu = controls[self~SOURCEMENU]
-breakpointsettingsmenuitem = controls[self~BPSETTINGS]
+enablebreak = .False
+enablecopy = .False
+hassource =  (loadedsources~items > 0) 
 index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
-enable = .False
 if index > 0  then do
+  enablecopy = .True
   listtext = self~ListGetItem(controls, self~LISTSOURCE, index)
-  if listtext~left(1) = '*' | listtext~left(1) = '?' then enable = .True
+  if hassource, self~ListGetRowCount(controls, self~LISTSTACK) \= 0 then do 
+    if listtext~left(1) = '*' | listtext~left(1) = '?' then enablebreak = .True
+  end  
 end
-breakpointsettingsmenuitem~setEnabled(enable)
+controls[self~SOURCECOPY]~setEnabled(enablecopy)
+controls[self~SOURCEGOTO]~setEnabled(hassource)
+controls[self~SOURCEFIND]~setEnabled(hassource)
+controls[self~BPSETTINGS]~setEnabled(enablebreak)
 
-contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
-
+controls[self~SOURCEMENU]~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
 -------------------------------------------------------
 ::method ShowStackPopupMenu
 -------------------------------------------------------
-expose gui controls
+expose gui controls 
 use arg eventobj
 
-contextmenu = controls[self~STACKMENU]
-contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
-
+if self~ListGetRowCount(controls, self~LISTSTACK) \= 0 then do 
+  contextmenu = controls[self~STACKMENU]
+  contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
+end
 
 --====================================================
 ::class WatchDialogWindowListener public
