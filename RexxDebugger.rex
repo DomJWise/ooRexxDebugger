@@ -1124,6 +1124,7 @@ use arg line
 
 lastgoto = line
 self~SelectAndCentreLine(self~LISTSOURCE, line)
+
 ------------------------------------------------------
 ::method DoSourceFind
 ------------------------------------------------------
@@ -1145,6 +1146,12 @@ do i = 0 to rows - 1
   end
 end    
 if foundline \= 0 then self~SelectAndCentreLine(self~LISTSOURCE, foundline)
+
+------------------------------------------------------
+::method DoSourceFindNext
+------------------------------------------------------
+expose lastfind
+if lastfind \= '' then self~DoSourceFind(lastfind)
 
 ------------------------------------------------------
 ::method SelectAndCentreLine

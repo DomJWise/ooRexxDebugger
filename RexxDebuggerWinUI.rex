@@ -545,6 +545,7 @@ controls[self~EDITCOMMAND]~connectCharEvent("EditCommandChar")
 
 self~connectkeypress("OnGotoSource", .VK~G, "CONTROL")
 self~connectkeypress("OnFindSource", .VK~F, "CONTROL")
+self~connectkeypress("DoSourceFindNext", .VK~N, "CONTROL")
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
 sourcepopupmenu~insertItem(1, self~BPSETTINGSMENUITEM, "Breakpoint Settings",,,.True )
@@ -735,7 +736,6 @@ dlg = .DebuggerInputBox~new(self, "Search text", "Find", self~lastfind, 248)
 line = dlg~execute
 if line \= '' then self~DoSourceFind(line)
 
-
 ------------------------------------------------------
 ::method OnCopyKeyCommand unguarded
 ------------------------------------------------------
@@ -753,8 +753,9 @@ self~OnCopyKeyCommand
 use arg char, isShift, isCtrl
 if char = 13 then return .False              --Return
 if char = 9 then  return .False              --Tab
-if char = 6 & isCtrl = 1 then return .False -- Ctrl F 
-if char = 7 & isCtrl = 1 then return .False -- Ctrl G
+if char = 6 & isCtrl = 1 then return .False  -- Ctrl F 
+if char = 7 & isCtrl = 1 then return .False  -- Ctrl G
+if char = 14 & isCtrl = 1 then return .False -- Ctrl N
 return .True
 
 ------------------------------------------------------
