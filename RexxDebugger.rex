@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.8"
+::CONSTANT VERSION "1.43.9"
 
 --====================================================
 ::class RexxDebugger public
@@ -1123,13 +1123,7 @@ expose controls lastgoto
 use arg line
 
 lastgoto = line
-if line < 1 then line = 1
-if line > self~ListGetRowCount(controls, self~LISTSOURCE) then line = self~ListGetRowCount(controls, self~LISTSOURCE) 
-visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
-firstrow = MAX(1, line - (visiblelistrows/2)~floor)
-self~ListSetSelectedIndex(controls, self~LISTSOURCE, line)
-self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
-
+self~SelectAndCentreLine(self~LISTSOURCE, line)
 ------------------------------------------------------
 ::method DoSourceFind
 ------------------------------------------------------
@@ -1150,12 +1144,25 @@ do i = 0 to rows - 1
     leave
   end
 end    
-if foundline \= 0 then do
-  visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
-  firstrow = MAX(1, foundline - (visiblelistrows/2)~floor)
-  self~ListSetSelectedIndex(controls, self~LISTSOURCE, foundline)
-  self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
-end  
+if foundline \= 0 then self~SelectAndCentreLine(self~LISTSOURCE, foundline)
+
+------------------------------------------------------
+::method SelectAndCentreLine
+------------------------------------------------------
+expose controls
+use arg listcontrol, line
+line = line~floor
+maxline = self~ListGetRowCount(controls, self~LISTSOURCE)
+if maxline = 0 then return
+if line > maxline then line = maxline
+if line < 1 then line = 1
+
+self~ControlDeferRedraw(controls, self~LISTSOURCE, .True)
+visiblelistrows = self~ListGetVisibleRowCount(controls, listcontrol)
+firstrow = MAX(1, line - (visiblelistrows/2)~floor)
+self~ListSetSelectedIndex(controls, listcontrol, line)
+self~ListSetFirstVisible(controls, listcontrol, firstrow)
+self~ControlDeferRedraw(controls, self~LISTSOURCE, .False)
 
 --====================================================
 ::class WatchHelper mixinclass object public
