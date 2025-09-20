@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.7"
+::CONSTANT VERSION "1.43.8"
 
 --====================================================
 ::class RexxDebugger public
@@ -623,13 +623,14 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine 
+expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine  codelocation
 
 use arg rexxfile,argstring,multipleargs = .False, firsttime = .False
 
 shutdown = .False
 breakpoints~empty
 tracedprograms~empty
+codelocation = ''
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
 .debug.channels~empty
 runroutine = .nil

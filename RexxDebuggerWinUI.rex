@@ -226,15 +226,23 @@ if updatelastexecuted then self~HighlightLastExecuted
 ------------------------------------------------------
 ::method HighlightLastExecuted
 ------------------------------------------------------
-expose activesourcename controls debugger
+expose activesourcename controls debugger activesourcename
 lastprogram = debugger~GetLastSourceFile
 if lastprogram \= '' then do
-  if lastprogram \= activesourcename then self~SetListSource(lastprogram)
+  self~ControlDeferRedraw(controls, self~LISTSOURCE, .True)
+  if lastprogram \= activesourcename then do
+    self~SetListSource(lastprogram)
+    activesourcename = lastprogram
+  end  
   lastline = debugger~GetLastSourceLine
   if lastline \= '' then do
      self~updatesourcetitle(lastline)
      self~ListSetSelectedIndex(controls, self~LISTSOURCE, lastline)
+     visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
+     firstrow = MAX(1, lastline - (visiblelistrows/2)~floor)
+     self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
   end 
+  self~ControlDeferRedraw(controls, self~LISTSOURCE, .False)
 end  
 
 ------------------------------------------------------
@@ -366,7 +374,7 @@ end
 ------------------------------------------------------
 ::method OnRunButton unguarded
 ------------------------------------------------------
-expose waiting debugger controls activesourcename
+expose waiting debugger controls
 if waiting then do
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
   self~HereIsResponse('RUN')

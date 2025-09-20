@@ -292,8 +292,8 @@ expose debugdialog debugger
 use arg arrStack, activateindex
 
 if debugdialog \= .nil & \debugger~isshutdown then do
-  if .AWTGuiThread~isGuiThread then debugdialog~UpdateControlStates
-  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates")~~result~errorCondition, .context)
+  if .AWTGuiThread~isGuiThread then debugdialog~UpdateControlStates(.True)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates", "I", .True)~~result~errorCondition, .context)
 end
 
 
@@ -689,6 +689,7 @@ end
 ::method UpdateControlStates unguarded
 ------------------------------------------------------
 expose waiting controls watchwindows debugger activesourcename gui
+use arg updatelastexecuted = .False
 
 do control over .array~of(SELF~LISTSOURCE, SELF~LISTSTACK, self~BUTTONNEXT, self~BUTTONEXIT, self~BUTTONVARS, self~BUTTONEXEC, self~BUTTONHELP)
   if control = self~LISTSOURCE | control = self~LISTSTACK then self~ControlEnable(controls, control, waiting | debugger~canopensource | (activesourcename = .nil))
@@ -704,7 +705,32 @@ if waiting then controls[self~EDITCOMMAND]~requestFocus
 do watchwindow over watchwindows~allitems
   watchwindow~SetListState(waiting)
 end
+
+if updatelastexecuted then self~HighlightLastExecuted
+
 if .BSFPackageDevTestingGlobals~package~local~debugautonext = .true then .AwtGuiThread~runLater(self, "OnNextButton")
+
+------------------------------------------------------
+::method HighlightLastExecuted
+------------------------------------------------------
+expose activesourcename controls debugger
+lastprogram = debugger~GetLastSourceFile
+if lastprogram \= '' then do
+  if lastprogram \= activesourcename then do
+    self~SetListSource(lastprogram)
+    activesourcename = lastprogram
+  end  
+  lastline = debugger~GetLastSourceLine
+  if lastline \= '' then do
+     self~updatesourcetitle(lastline)
+     self~ListSetSelectedIndex(controls, self~LISTSOURCE, lastline)
+     visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
+     firstrow = MAX(1, lastline - (visiblelistrows/2)~floor)
+     self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
+  end 
+end  
+
+
 
 
 ------------------------------------------------------
@@ -780,6 +806,7 @@ else if \debugger~GetManualBreak then do
   debugger~SetManualBreak(.True)
   self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
   self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
+  self~HighlightLastExecuted
   gui~RestoreBaseJavaThreadPriority
 end
 else do
@@ -1379,12 +1406,13 @@ end
 ------------------------------------------------------
 ::method SetSourceListSelectedRow 
 ------------------------------------------------------
-expose controls arrStack
+expose controls arrStack debugger
 
 -- Assumes the correct source is already loaded
 -- This is just to set the position in the source listbox
 newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
 if newrow <  1 | newrow > self~ListGetRowCount(controls, self~LISTSOURCE) then return
+if \debugger~canopensource then self~UpdateSourceTitle(newrow)
 currentrow = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
 
@@ -1477,6 +1505,16 @@ end
 InvalidContext:
 return
 
+------------------------------------------------------
+::method UpdateSourceTitle
+------------------------------------------------------
+expose controls activesourcename
+use arg linenum
+if linenum \= '' then location = activesourcename '('linenum')'
+else location = activesourcename
+if location = .nil then location = ''
+controls[self~EDITSOURCENAME]~settext(location)
+
 
 ------------------------------------------------------
 ::method UpdateWatchWindows  unguarded
@@ -1496,7 +1534,7 @@ if setstacktotop then self~ListSetSelectedIndex(controls, self~LISTSTACK, 1)
 ------------------------------------------------------
 ::method StackFrameChanged 
 ------------------------------------------------------
-expose controls arrstack loadedsource
+expose controls arrstack loadedsources
 
 if loadedsources~items \= 0 then self~UpdateCodeView(arrstack, self~ListGetSelectedIndex(controls, self~LISTSTACK))
 return 0
