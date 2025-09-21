@@ -692,7 +692,7 @@ expose waiting debugger hfnt watchwindows controls gui
 close = .True
 numeric digits 20
 if waiting | (\debugger~canopensource & .local~rexxdebugger.commandlineisrexxdebugger) | TIME('F') - debugger~lastexecfulltime < 250000 then do
-  ret = .bsf.dialog~dialogbox("Do you really want to quit and end the program ?", "Program still running","question", "YesNo")
+  ret = gui~clsJOptionPane~new~showConfirmDialog(self, "Do you really want to quit and end the program ?",  "Program still running", gui~clsJOptionPane~YES_NO_OPTION, gui~clsJOptionPane~QUESTION_MESSAGE)
   if ret = 1 then close = .False
 end  
 if close then do
@@ -845,9 +845,10 @@ end
 ------------------------------------------------------
 ::method OnExitButton
 ------------------------------------------------------
-expose waiting debugger
+expose waiting debugger gui
 if waiting then do
-  ret = .bsf.dialog~dialogbox("Do you really want to exit the program ?", "Program still running","question", "YesNo")
+  ret = gui~clsJOptionPane~new~showConfirmDialog(self, "Do you really want to exit the program ?",  "Program still running", gui~clsJOptionPane~YES_NO_OPTION, gui~clsJOptionPane~QUESTION_MESSAGE)
+  
   if ret = 0 then do
     self~appendtext(debugger~DebugMsgPrefix||"Debug session terminated", .true, .true)
     self~HereIsResponse('EXIT')
