@@ -411,58 +411,6 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
 self~define("actionPerformed", .Method~new("", self~method("actionPerformed")~source))
 
 --====================================================
-::class DebugDialogCopyTextListener public
---====================================================
-
-------------------------------------------------------
-::method actionPerformed
-------------------------------------------------------
--- Will only be activated for items that dont already intercept the keys e.g. buttons
-NOP
-
---====================================================
-::class DebugDialogGotoListener public
---====================================================
-------------------------------------------------------
-::method actionPerformed
-------------------------------------------------------
-use arg eventobj, slotdir
-slotdir~userdata~OnSourceGoto
-
---====================================================
-::class DebugDialogFindListener public
---====================================================
-------------------------------------------------------
-::method actionPerformed
-------------------------------------------------------
-use arg eventobj, slotdir
-slotdir~userdata~OnSourceFind
-
---====================================================
-::class DebugDialogFindNextListener public
---====================================================
-------------------------------------------------------
-::method actionPerformed
-------------------------------------------------------
-use arg eventobj, slotdir
-slotdir~userdata~DoSourceFindNext
-
-
---====================================================
-::class DebugDialogFindPreviousListener public
---====================================================
-------------------------------------------------------
-::method actionPerformed
-------------------------------------------------------
-use arg eventobj, slotdir
-slotdir~userdata~DoSourceFindPrevious
-
-------------------------------------------------------
-::method activate class
-------------------------------------------------------
-if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true then call detracemethods self
-
---====================================================
 ::class DebugDialogWindowListener public
 --====================================================
 ::method windowopened
@@ -1054,12 +1002,12 @@ listsourcepreferredheight = (listrowheight *15.3)~floor
 dialogwidth = listsource~getfontmetrics(listsource~getfont)~charwidth('X') * 60
 
 sourcecontextmenu = gui~clsJPopupMenu~new("")
-sourcecopymenuitem = gui~clsJMenuItem~new("Copy")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_C, gui~menuShortcutMaskKey))
-sourcefindmenuitem = gui~clsJMenuItem~new("Find")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~menuShortcutMaskKey))
-sourcenextmenuitem = gui~clsJMenuItem~new("Next")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_N, gui~menuShortcutMaskKey))
-sourceprevmenuitem = gui~clsJMenuItem~new("Previous")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_P, gui~menuShortcutMaskKey))
-sourcegotomenuitem = gui~clsJMenuItem~new("Goto")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~menuShortcutMaskKey))
-breakpointsettingsmenuitem = gui~clsJMenuItem~new("Breakpoint Settings")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_S, gui~menuShortcutMaskKey))
+sourcecopymenuitem = self~CreateMenuItem("Copy",     gui~clsKeyEvent~VK_C)
+sourcefindmenuitem = self~CreateMenuItem("Find",     gui~clsKeyEvent~VK_F)
+sourcenextmenuitem = self~CreateMenuItem("Next",     gui~clsKeyEvent~VK_N)
+sourceprevmenuitem = self~CreateMenuItem("Previous", gui~clsKeyEvent~VK_P)
+sourcegotomenuitem = self~CreateMenuItem("Goto",     gui~clsKeyEvent~VK_G)
+breakpointsettingsmenuitem = self~CreateMenuItem("Breakpoint Settings", gui~clsKeyEvent~VK_S)
 
 sourcecontextmenu~add(sourcecopymenuitem)
 sourcecontextmenu~addSeparator
@@ -1088,7 +1036,7 @@ liststack~setFixedCellHeight(liststack~getFontMetrics(liststack~getFont)~getheig
 liststackpreferredheight = (listrowheight * 3.5)~floor
 
 stackcontextmenu = gui~clsJPopupMenu~new("")
-stackcopymenuitem = gui~clsJMenuItem~new("Copy")
+stackcopymenuitem = self~CreateMenuItem("Copy", gui~clsKeyEvent~VK_C)
 stackcontextmenu~add(stackcopymenuitem)
 
 liststackpane = gui~clsJScrollPane~new
@@ -1104,9 +1052,9 @@ buttonnext = gui~clsJButton~new("Next")
 buttonnext~setMnemonic(gui~clsKeyEvent~VK_N)
 buttonnext~setMargin(gui~clsInsets~new(0,0,0,0))
 buttonnext~setFont(buttonnext~getfont~derivefont(buttonnext~getfont~getstyle, gui~fontsize))
-
 buttonstyle = buttonnext~getfont~getstyle
 buttonfont = buttonnext~getfont
+
 if gui~ismacos then do
   buttonheight = buttonnext~getpreferredsize~getheight~floor
   buttonverticalspacing = buttonheight
@@ -1122,50 +1070,25 @@ panellevel1lowercontrols~setPreferredSize(gui~clsDimension~new(0, buttonvertical
 buttonnext~setBounds(0,0, 50,buttonheight)
 panelllevel2forbuttons~add(buttonnext)
 
-buttonrun = gui~clsJButton~new("Run")
-buttonrun~setMnemonic(gui~clsKeyEvent~VK_R)
-buttonrun~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonrun~setBounds(0,buttonverticalspacing, 50,buttonheight)
-buttonrun~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
+buttonrun = self~CreatePanelButton("Run", gui~clsKeyEvent~VK_R, 0, buttonverticalspacing, 50, buttonheight, buttonfont)
 panelllevel2forbuttons~add(buttonrun)
 
-buttonexit = gui~clsJButton~new("Exit")
-buttonexit~setMnemonic(gui~clsKeyEvent~VK_X)
-buttonexit~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonexit~setBounds(0,buttonverticalspacing * 2, 50,buttonheight)
-buttonexit~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
+buttonexit = self~CreatePanelButton("Exit", gui~clsKeyEvent~VK_X, 0, buttonverticalspacing * 2, 50, buttonheight, buttonfont)
 panelllevel2forbuttons~add(buttonexit)
 
-buttonvars = gui~clsJButton~new("Watch")
-buttonvars~setMnemonic(gui~clsKeyEvent~VK_W)
-buttonvars~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonvars~setBounds(0,buttonverticalspacing * 3, 50,buttonheight)
-buttonvars~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
+buttonvars = self~CreatePanelButton("Watch", gui~clsKeyEvent~VK_W, 0, buttonverticalspacing * 3, 50, buttonheight, buttonfont)
 panelllevel2forbuttons~add(buttonvars)
 
-buttonhelp = gui~clsJButton~new("Help")
-buttonhelp~setMnemonic(gui~clsKeyEvent~VK_H)
-buttonhelp~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonhelp~setBounds(0,buttonverticalspacing * 4, 50,buttonheight)
-buttonhelp~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
+buttonhelp = self~CreatePanelButton("Help", gui~clsKeyEvent~VK_H, 0, buttonverticalspacing * 4, 50, buttonheight, buttonfont)
 panelllevel2forbuttons~add(buttonhelp)
 
-buttonopen = gui~clsJButton~new("Open")
-buttonopen~setMnemonic(gui~clsKeyEvent~VK_O)
-buttonopen~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonopen~setBounds(0,buttonverticalspacing * 5, 50,buttonheight)
-buttonopen~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
-
+buttonopen = self~CreatePanelButton("Open", gui~clsKeyEvent~VK_O, 0, buttonverticalspacing * 5, 50, buttonheight, buttonfont)
 panelllevel2forbuttons~add(buttonopen)
 if .local~rexxdebugger.commandlineisrexxdebugger \= .True then do
   buttonopen~setVisible(.False)
 end  
-buttonexec = gui~clsJButton~new("Exec")
-buttonexec~setMnemonic(gui~clsKeyEvent~VK_E)
-buttonexec~setMargin(gui~clsInsets~new(0,0,0,0))
-buttonexec~setBounds(0,buttonverticalspacing * 6, 50, buttonheight)
-buttonexec~setFont(buttonfont~derivefont(buttonstyle, gui~fontsize))
 
+buttonexec = self~CreatePanelButton("Exec", gui~clsKeyEvent~VK_E, 0, buttonverticalspacing * 6, 50, buttonheight, buttonfont)
 panelllevel2forbuttons~add(buttonexec)
 
 arrButtons = .Array~Of(buttonexec, buttonopen, buttonhelp, buttonvars, buttonexit, buttonrun, buttonnext)
@@ -1242,20 +1165,7 @@ windowlistener = .DebugDialogWindowListener~new
 windowlistenerEH = BsfCreateRexxProxy(windowlistener, self, "java.awt.event.ActionListener", "java.awt.event.WindowListener")
 self~addWindowListener(windowlistenerEH)
 
-controls[self~BUTTONNEXT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONNEXT, "java.awt.event.ActionListener"))
-controls[self~BUTTONRUN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONRUN, "java.awt.event.ActionListener"))
-controls[self~BUTTONHELP]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONHELP, "java.awt.event.ActionListener"))
-controls[self~BUTTONEXIT]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXIT, "java.awt.event.ActionListener"))
-controls[self~BUTTONEXEC]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONEXEC, "java.awt.event.ActionListener"))
-controls[self~BUTTONVARS]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONVARS, "java.awt.event.ActionListener"))
-controls[self~BUTTONOPEN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTONOPEN, "java.awt.event.ActionListener"))
-controls[self~BPSETTINGS]~addActionListener(BsfCreateRexxProxy(self, self~BPSETTINGS, "java.awt.event.ActionListener"))
-controls[self~SOURCECOPY]~addActionListener(BsfCreateRexxProxy(self, self~SOURCECOPY, "java.awt.event.ActionListener"))
-controls[self~SOURCEFIND]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEFIND, "java.awt.event.ActionListener"))
-controls[self~SOURCENEXT]~addActionListener(BsfCreateRexxProxy(self, self~SOURCENEXT, "java.awt.event.ActionListener"))
-controls[self~SOURCEPREV]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEPREV, "java.awt.event.ActionListener"))
-controls[self~SOURCEGOTO]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEGOTO, "java.awt.event.ActionListener"))
-controls[self~STACKCOPY ]~addActionListener(BsfCreateRexxProxy(self, self~STACKCOPY,  "java.awt.event.ActionListener"))
+self~SetDialogItemsActionPerformed(self~BUTTONNEXT, self~BUTTONRUN, self~BUTTONHELP, self~BUTTONEXIT, self~BUTTONEXEC, self~BUTTONVARS, self~BUTTONOPEN, self~BPSETTINGS, self~SOURCECOPY, self~SOURCEFIND, self~SOURCENEXT, self~SOURCEPREV, self~SOURCEGOTO, self~STACKCOPY)
 
 
 stackmouselistener = .DebugDialogListStackMouseListener~new
@@ -1270,34 +1180,10 @@ commandkeylistener = .DebugDialogCommandKeyListener~new
 commandkeylistenerEH = BsfCreateRexxProxy(commandkeylistener, self, "java.awt.event.KeyListener")
 controls[self~EDITCOMMAND]~addKeyListener(commandkeylistenerEH)
 
-
--- This can't be used for custom copy for the lists because they already intercept these keys for the same tasks but it is a good template
--- Custom copy with just the source (no line numbers etc) would be nice but is very much a TODO
-controls[self~LISTSOURCE]~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "copytext")
-controls[self~LISTSOURCE]~getInputMap(gui~clsJComponent~WHEN_ANCESTOR_OF_FOCUSED_COMPONENT)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_INSERT, gui~clsInputEvent~CTRL_MASK), "copytext")
-findkeylistener = .DebugDialogCopyTextListener~new
-findkeylistenerEH = BsfCreateRexxProxy(findkeylistener, self, "javax.swing.AbstractAction")
-controls[self~LISTSOURCE]~getActionMap~put("copytext", findkeylistenerEH)
-
-controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~clsInputEvent~CTRL_MASK), "goto")
-controls[self~LISTSOURCE]~getActionMap~put("goto", BsfCreateRexxProxy(.DebugDialogGotoListener~new, self, "javax.swing.AbstractAction"))
-self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~clsInputEvent~CTRL_MASK), "goto")
-self~getRootPane~getActionMap~put("goto", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
-
-controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "find")
-controls[self~LISTSOURCE]~getActionMap~put("find", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
-self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~clsInputEvent~CTRL_MASK), "find")
-self~getRootPane~getActionMap~put("find", BsfCreateRexxProxy(.DebugDialogFindListener~new, self, "javax.swing.AbstractAction"))
-
-controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_N, gui~clsInputEvent~CTRL_MASK), "findnext")
-controls[self~LISTSOURCE]~getActionMap~put("findnext", BsfCreateRexxProxy(.DebugDialogFindNextListener~new, self, "javax.swing.AbstractAction"))
-self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_N, gui~clsInputEvent~CTRL_MASK), "findnext")
-self~getRootPane~getActionMap~put("findnext", BsfCreateRexxProxy(.DebugDialogFindNextListener~new, self, "javax.swing.AbstractAction"))
-
-controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_P, gui~clsInputEvent~CTRL_MASK), "findprevious")
-controls[self~LISTSOURCE]~getActionMap~put("findprevious", BsfCreateRexxProxy(.DebugDialogFindPreviousListener~new, self, "javax.swing.AbstractAction"))
-self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_P, gui~clsInputEvent~CTRL_MASK), "findprevious")
-self~getRootPane~getActionMap~put("findprevious", BsfCreateRexxProxy(.DebugDialogFindPreviousListener~new, self, "javax.swing.AbstractAction"))
+self~SetDialogControlKeyActionPerformed(self~SOURCEFIND, gui~clsKeyEvent~VK_F)
+self~SetDialogControlKeyActionPerformed(self~SOURCEGOTO, gui~clsKeyEvent~VK_G)
+self~SetDialogControlKeyActionPerformed(self~SOURCENEXT, gui~clsKeyEvent~VK_N)
+self~SetDialogControlKeyActionPerformed(self~SOURCEPREV, gui~clsKeyEvent~VK_P)
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
@@ -1343,7 +1229,46 @@ if "LRUD"~pos(offsetletter) \= 0 then do
 end
 */
 
+------------------------------------------------------
+::method SetDialogControlKeyActionPerformed
+------------------------------------------------------
+expose controls gui
+use arg id, key
 
+proxy = BsfCreateRexxProxy(self, id, "javax.swing.AbstractAction")
+controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(key, gui~clsInputEvent~CTRL_MASK), id)
+controls[self~LISTSOURCE]~getActionMap~put(id, BsfCreateRexxProxy(self, id, "javax.swing.AbstractAction"))
+self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(key, gui~clsInputEvent~CTRL_MASK), id)
+self~getRootPane~getActionMap~put(id, BsfCreateRexxProxy(self, id, "javax.swing.AbstractAction"))
+
+------------------------------------------------------
+::method SetDialogItemsActionPerformed
+------------------------------------------------------
+expose controls
+ids = arg(1, "A")
+do id over ids~allitems
+  controls[id]~addActionListener(BsfCreateRexxProxy(self, id, "java.awt.event.ActionListener"))
+end
+
+------------------------------------------------------
+::method CreatePanelButton
+------------------------------------------------------
+expose gui
+use arg title, mnemonic, xpos, ypos, width, height, font
+button =  gui~clsJButton~new(title)
+button~setMnemonic(mnemonic)
+button~setMargin(gui~clsInsets~new(0,0,0,0))
+button~setBounds(xpos,ypos,width,height)
+button~setFont(font)
+return button
+
+------------------------------------------------------
+::method CreateMenuItem
+------------------------------------------------------
+expose gui
+use arg title, key
+item  = gui~clsJMenuItem~new(title)~~setAccelerator(gui~clsKeyStroke~getKeyStroke(key, gui~menuShortcutMaskKey))
+return item
 
 ------------------------------------------------------
 ::method actionPerformed unguarded
@@ -1362,7 +1287,7 @@ if id = self~BPSETTINGS then self~OnBreakpointSettings
 if id = self~SOURCECOPY then self~OnSourceCopy
 if id = self~SOURCEFIND then self~OnSourceFind
 if id = self~SOURCENEXT then self~DoSourceFindNext
-if id = self~SOURCEFIND then self~DoSourceFindPrevious
+if id = self~SOURCEPREV then self~DoSourceFindPrevious
 if id = self~SOURCEGOTO then self~OnSourceGoto
 if id = self~STACKCOPY  then self~OnStackCopy
 

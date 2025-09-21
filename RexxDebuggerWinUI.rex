@@ -573,7 +573,7 @@ sourcepopupmenu~connectCommandEvent(self~SOURCEPREVMENUITEM, "DoSourceFindPrevio
 
 
 stackpopupmenu = .PopupMenu~new(self~LISTSTACK)
-stackpopupmenu~insertItem(self~STACKCOPYMENUITEM, self~STACKCOPYMENUITEM, "Copy")
+stackpopupmenu~insertItem(self~STACKCOPYMENUITEM, self~STACKCOPYMENUITEM, "Copy"d2c(9)"Ctrl+C")
 stackpopupmenu~assignTo(self)
 stackpopupmenu~connectContextMenu("onListStackContext", controls[self~LISTSTACK]~hwnd) 
 sourcepopupmenu~connectCommandEvent(self~STACKCOPYMENUITEM, "OnCopyStack")
