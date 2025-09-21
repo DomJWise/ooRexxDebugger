@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.14"
+::CONSTANT VERSION "1.43.15"
 
 --====================================================
 ::class RexxDebugger public
@@ -807,9 +807,9 @@ end
 ::method IsBreakpointLikelyToBeHit unguarded
 -------------------------------------------------------
 sourceline = arg(1)~strip
-sourceline  = sourceline~strip
+sourceline  = sourceline~translate
 if sourceline~left(4) = '/**/' then sourceline = sourceline~substr(5)
-else if sourceline~strip~left(7)~translate = '/'||'*WHEN:' then parse caseless value sourceline with . 'WHEN:'.'*/'sourceline  
+else if sourceline~strip~left(7)~translate = '/'||'*WHEN:' then parse value sourceline with . 'WHEN:'.'*/'sourceline
 if sourceline~strip = '' | "END THEN ELSE OTHERWISE RETURN EXIT SIGNAL"~wordpos(sourceline~word(1)) \= 0 | ":: -- /*"~wordpos(sourceline~left(2)) \= 0 then return .False
 
 else return .True
