@@ -443,6 +443,15 @@ use arg eventobj, slotdir
 slotdir~userdata~DoSourceFindNext
 
 
+--====================================================
+::class DebugDialogFindPreviousListener public
+--====================================================
+------------------------------------------------------
+::method actionPerformed
+------------------------------------------------------
+use arg eventobj, slotdir
+slotdir~userdata~DoSourceFindPrevious
+
 ------------------------------------------------------
 ::method activate class
 ------------------------------------------------------
@@ -1264,6 +1273,11 @@ controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsK
 controls[self~LISTSOURCE]~getActionMap~put("findnext", BsfCreateRexxProxy(.DebugDialogFindNextListener~new, self, "javax.swing.AbstractAction"))
 self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_N, gui~clsInputEvent~CTRL_MASK), "findnext")
 self~getRootPane~getActionMap~put("findnext", BsfCreateRexxProxy(.DebugDialogFindNextListener~new, self, "javax.swing.AbstractAction"))
+
+controls[self~LISTSOURCE]~getInputMap~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_P, gui~clsInputEvent~CTRL_MASK), "findprevious")
+controls[self~LISTSOURCE]~getActionMap~put("findprevious", BsfCreateRexxProxy(.DebugDialogFindPreviousListener~new, self, "javax.swing.AbstractAction"))
+self~getRootPane~getInputMap(gui~clsJComponent~WHEN_IN_FOCUSED_WINDOW)~put(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_P, gui~clsInputEvent~CTRL_MASK), "findprevious")
+self~getRootPane~getActionMap~put("findprevious", BsfCreateRexxProxy(.DebugDialogFindPreviousListener~new, self, "javax.swing.AbstractAction"))
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 

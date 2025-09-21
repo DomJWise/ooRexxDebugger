@@ -82,7 +82,7 @@ if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugg
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.9"
+::CONSTANT VERSION "1.43.10"
 
 --====================================================
 ::class RexxDebugger public
@@ -1129,14 +1129,26 @@ self~SelectAndCentreLine(self~LISTSOURCE, line)
 ::method DoSourceFind
 ------------------------------------------------------
 expose controls lastfind
-use arg find
+use arg find, forward = .True
 lastfind = find
   
 found = .False
 rows = self~ListGetRowCount(controls, self~LISTSOURCE)
 currentsel = self~ListGetSelectedIndex(controls,self~LISTSOURCE)
 foundline = 0
-do i = 0 to rows - 1
+
+if forward then do 
+  first = 0
+  last = rows - 2
+  step = 1
+end 
+else do
+  first = rows - 2
+  last = 0
+  step = -1
+end
+
+do i = first to last by step
   testrow = (i + currentsel) // rows + 1
   seltext = self~ListGetItem(controls, self~LISTSOURCE, testrow)
   parse value seltext with 2 linenum seltext
@@ -1145,6 +1157,7 @@ do i = 0 to rows - 1
     leave
   end
 end    
+
 if foundline \= 0 then self~SelectAndCentreLine(self~LISTSOURCE, foundline)
 
 ------------------------------------------------------
@@ -1152,6 +1165,12 @@ if foundline \= 0 then self~SelectAndCentreLine(self~LISTSOURCE, foundline)
 ------------------------------------------------------
 expose lastfind
 if lastfind \= '' then self~DoSourceFind(lastfind)
+
+------------------------------------------------------
+::method DoSourceFindPrevious
+------------------------------------------------------
+expose lastfind
+if lastfind \= '' then self~DoSourceFind(lastfind, .False)
 
 ------------------------------------------------------
 ::method SelectAndCentreLine

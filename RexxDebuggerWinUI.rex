@@ -546,6 +546,7 @@ controls[self~EDITCOMMAND]~connectCharEvent("EditCommandChar")
 self~connectkeypress("OnGotoSource", .VK~G, "CONTROL")
 self~connectkeypress("OnFindSource", .VK~F, "CONTROL")
 self~connectkeypress("DoSourceFindNext", .VK~N, "CONTROL")
+self~connectkeypress("DoSourceFindPrevious", .VK~P, "CONTROL")
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
 sourcepopupmenu~insertItem(1, self~BPSETTINGSMENUITEM, "Breakpoint Settings",,,.True )
@@ -756,6 +757,7 @@ if char = 9 then  return .False              --Tab
 if char = 6 & isCtrl = 1 then return .False  -- Ctrl F 
 if char = 7 & isCtrl = 1 then return .False  -- Ctrl G
 if char = 14 & isCtrl = 1 then return .False -- Ctrl N
+if char = 16 & isCtrl = 1 then return .False -- Ctrl P
 return .True
 
 ------------------------------------------------------
