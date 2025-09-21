@@ -855,7 +855,18 @@ end
 ------------------------------------------------------
 ::method OnBreakpointSettings
 ------------------------------------------------------
-expose gui debugger controls activesourcename
+expose gui debugger controls activesourcename loadedsources
+
+dodialog = .False
+hassource =  (loadedsources~items > 0) 
+index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+if index > 0  then do
+  listtext = self~ListGetItem(controls, self~LISTSOURCE, index)
+  if hassource, self~ListGetRowCount(controls, self~LISTSTACK) \= 0 then do 
+    if listtext~left(1) = '*' | listtext~left(1) = '?' then dodialog = .True
+  end  
+end
+if \dodialog then return
 
 linenum = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 breakpointcondition = debugger~GetBreakPointTest(activesourcename, linenum)
@@ -1184,6 +1195,7 @@ self~SetDialogControlKeyActionPerformed(self~SOURCEFIND, gui~clsKeyEvent~VK_F)
 self~SetDialogControlKeyActionPerformed(self~SOURCEGOTO, gui~clsKeyEvent~VK_G)
 self~SetDialogControlKeyActionPerformed(self~SOURCENEXT, gui~clsKeyEvent~VK_N)
 self~SetDialogControlKeyActionPerformed(self~SOURCEPREV, gui~clsKeyEvent~VK_P)
+self~SetDialogControlKeyActionPerformed(self~BPSETTINGS, gui~clsKeyEvent~VK_S)
 
 self~getRootPane~setDefaultButton(controls[self~BUTTONEXEC])
 
