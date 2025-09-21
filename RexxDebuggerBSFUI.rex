@@ -69,6 +69,7 @@ SOFTWARE.
 ::attribute clsTimer               public unguarded
 ::attribute clsTransferHandler     public unguarded
 
+::attribute clsActionEvent         public unguarded
 ::attribute clsInputEvent          public unguarded
 ::attribute clsJComponent          public unguarded
 ::attribute clsListSelectionModel  public unguarded
@@ -80,6 +81,7 @@ SOFTWARE.
 ::attribute clsBSFProxyTransferHandler public unguarded
 
 ::attribute clipboard              public unguarded
+::attribute menuShortcutMaskKey    public unguarded
 
 ------------------------------------------------------
 ::method activate class
@@ -144,6 +146,7 @@ self~clsTimer              = bsf.importclass("javax.swing.Timer")
 self~clsTitledBorder       = bsf.importclass("javax.swing.border.TitledBorder")
 self~clsTransferHandler    = bsf.importclass("javax.swing.TransferHandler") 
 
+self~clsActionEvent        = bsf.loadclass("java.awt.event.ActionEvent")
 self~clsInputEvent         = bsf.loadclass("java.awt.event.InputEvent")
 self~clsJComponent         = bsf.loadclass("javax.swing.JComponent")
 self~clsListSelectionModel = bsf.loadclass("javax.swing.ListSelectionModel")
@@ -152,7 +155,9 @@ self~clsWindowConstants    = bsf.loadclass("javax.swing.WindowConstants")
 
 self~clsBSFProxyTransferHandler = bsf.CreateProxyClass("javax.swing.TransferHandler", ,"getSourceActions", "createTransferable")
 
-self~clipboard = bsf.loadClass("java.awt.Toolkit")~getDefaultToolkit~getSystemClipboard
+toolkit =  bsf.loadClass("java.awt.Toolkit")~getDefaultToolkit
+self~clipboard = toolkit~getSystemClipboard
+self~menuShortcutMaskKey = toolkit~getMenuShortcutKeyMask
 
 graphicsenv = bsf.loadclass("java.awt.GraphicsEnvironment")
 jarrfontfamilies = graphicsenv~getLocalGraphicsEnvironment~getAvailableFontFamilyNames()
@@ -665,9 +670,11 @@ return text~strip
 ::constant BPSETTINGS     114
 ::constant SOURCECOPY     115
 ::constant SOURCEFIND     117
-::constant SOURCEGOTO     118
-::constant STACKMENU      119
-::constant STACKCOPY      120
+::constant SOURCENEXT     118
+::constant SOURCEPREV     119
+::constant SOURCEGOTO     120
+::constant STACKMENU      121
+::constant STACKCOPY      122
 
 
 ------------------------------------------------------
@@ -922,8 +929,9 @@ end
 ------------------------------------------------------
 ::method OnSourceGoto
 ------------------------------------------------------
-expose controls gui 
+expose controls gui loadedsources
 
+if loadedsources~items = 0 then return
 line = gui~clsJOptionPane~new~showInputDialog(self, "Line number", "Goto", gui~clsJOptionPane~PLAIN_MESSAGE,.nil, .nil, self~lastgoto)
 
 if line \= .nil & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceGoto(line)
@@ -931,8 +939,9 @@ if line \= .nil & datatype(line) = 'NUM', TRUNC(line) = line then self~DoSourceG
 ------------------------------------------------------
 ::method OnSourceFind
 ------------------------------------------------------
-expose controls gui 
+expose controls gui loadedsources
 
+if loadedsources~items = 0 then return
 find = gui~clsJOptionPane~new~showInputDialog(self, "Search text", "Find", gui~clsJOptionPane~PLAIN_MESSAGE,.nil, .nil, self~lastfind)
 if find \= .nil then self~DoSourceFind(find)
 
@@ -1044,14 +1053,20 @@ listsourcepreferredheight = (listrowheight *15.3)~floor
 dialogwidth = listsource~getfontmetrics(listsource~getfont)~charwidth('X') * 60
 
 sourcecontextmenu = gui~clsJPopupMenu~new("")
-sourcecopymenuitem = gui~clsJMenuItem~new("Copy")
-sourcefindmenuitem = gui~clsJMenuItem~new("Find")
-sourcegotomenuitem = gui~clsJMenuItem~new("Goto")
-breakpointsettingsmenuitem = gui~clsJMenuItem~new("Breakpoint Settings")
+sourcecopymenuitem = gui~clsJMenuItem~new("Copy")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_C, gui~menuShortcutMaskKey))
+sourcefindmenuitem = gui~clsJMenuItem~new("Find")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_F, gui~menuShortcutMaskKey))
+sourcenextmenuitem = gui~clsJMenuItem~new("Next")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_N, gui~menuShortcutMaskKey))
+sourceprevmenuitem = gui~clsJMenuItem~new("Previous")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_P, gui~menuShortcutMaskKey))
+sourcegotomenuitem = gui~clsJMenuItem~new("Goto")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_G, gui~menuShortcutMaskKey))
+breakpointsettingsmenuitem = gui~clsJMenuItem~new("Breakpoint Settings")~~setAccelerator(gui~clsKeyStroke~getKeyStroke(gui~clsKeyEvent~VK_S, gui~menuShortcutMaskKey))
+
 sourcecontextmenu~add(sourcecopymenuitem)
 sourcecontextmenu~addSeparator
-sourcecontextmenu~add(sourcefindmenuitem)
 sourcecontextmenu~add(sourcegotomenuitem)
+sourcecontextmenu~addSeparator
+sourcecontextmenu~add(sourcefindmenuitem)
+sourcecontextmenu~add(sourcenextmenuitem)
+sourcecontextmenu~add(sourceprevmenuitem)
 sourcecontextmenu~addSeparator
 sourcecontextmenu~add(breakpointsettingsmenuitem)
 
@@ -1214,6 +1229,8 @@ controls[self~SOURCEMENU] = sourcecontextmenu
 controls[self~BPSETTINGS] = breakpointsettingsmenuitem
 controls[self~SOURCECOPY] = sourcecopymenuitem
 controls[self~SOURCEFIND] = sourcefindmenuitem
+controls[self~SOURCENEXT] = sourcenextmenuitem
+controls[self~SOURCEPREV] = sourceprevmenuitem
 controls[self~SOURCEGOTO] = sourcegotomenuitem
 controls[self~STACKMENU ] = stackcontextmenu
 controls[self~STACKCOPY ] = stackcopymenuitem
@@ -1234,6 +1251,8 @@ controls[self~BUTTONOPEN]~addActionListener(BsfCreateRexxProxy(self, self~BUTTON
 controls[self~BPSETTINGS]~addActionListener(BsfCreateRexxProxy(self, self~BPSETTINGS, "java.awt.event.ActionListener"))
 controls[self~SOURCECOPY]~addActionListener(BsfCreateRexxProxy(self, self~SOURCECOPY, "java.awt.event.ActionListener"))
 controls[self~SOURCEFIND]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEFIND, "java.awt.event.ActionListener"))
+controls[self~SOURCENEXT]~addActionListener(BsfCreateRexxProxy(self, self~SOURCENEXT, "java.awt.event.ActionListener"))
+controls[self~SOURCEPREV]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEPREV, "java.awt.event.ActionListener"))
 controls[self~SOURCEGOTO]~addActionListener(BsfCreateRexxProxy(self, self~SOURCEGOTO, "java.awt.event.ActionListener"))
 controls[self~STACKCOPY ]~addActionListener(BsfCreateRexxProxy(self, self~STACKCOPY,  "java.awt.event.ActionListener"))
 
@@ -1341,6 +1360,8 @@ if id = self~BUTTONOPEN then self~OnOpenButton
 if id = self~BPSETTINGS then self~OnBreakpointSettings
 if id = self~SOURCECOPY then self~OnSourceCopy
 if id = self~SOURCEFIND then self~OnSourceFind
+if id = self~SOURCENEXT then self~DoSourceFindNext
+if id = self~SOURCEFIND then self~DoSourceFindPrevious
 if id = self~SOURCEGOTO then self~OnSourceGoto
 if id = self~STACKCOPY  then self~OnStackCopy
 
@@ -1635,6 +1656,8 @@ end
 controls[self~SOURCECOPY]~setEnabled(enablecopy)
 controls[self~SOURCEGOTO]~setEnabled(hassource)
 controls[self~SOURCEFIND]~setEnabled(hassource)
+controls[self~SOURCENEXT]~setEnabled(hassource)
+controls[self~SOURCEPREV]~setEnabled(hassource)
 controls[self~BPSETTINGS]~setEnabled(enablebreak)
 
 controls[self~SOURCEMENU]~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)

@@ -163,7 +163,9 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~ClearConsole
 ::constant SOURCECOPYMENUITEM 114
 ::constant SOURCEGOTOMENUITEM 115
 ::constant SOURCEFINDMENUITEM 116
-::constant STACKCOPYMENUITEM  117
+::constant SOURCENEXTMENUITEM 117
+::constant SOURCEPREVMENUITEM 118
+::constant STACKCOPYMENUITEM  119
 ::constant MENUSEPARATOR1       1
 ------------------------------------------------------
 ::method activate class
@@ -547,20 +549,26 @@ self~connectkeypress("OnGotoSource", .VK~G, "CONTROL")
 self~connectkeypress("OnFindSource", .VK~F, "CONTROL")
 self~connectkeypress("DoSourceFindNext", .VK~N, "CONTROL")
 self~connectkeypress("DoSourceFindPrevious", .VK~P, "CONTROL")
+self~connectkeypress("OnBreakpointSettings", .VK~S, "CONTROL")
 
 sourcepopupmenu = .PopupMenu~new(self~LISTSOURCE)
-sourcepopupmenu~insertItem(1, self~BPSETTINGSMENUITEM, "Breakpoint Settings",,,.True )
+sourcepopupmenu~insertItem(1, self~BPSETTINGSMENUITEM, "Breakpoint Settings"d2c(9)"Ctrl+S",,,.True )
 sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
-sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEFINDMENUITEM, "Find",,,.True)
-sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEGOTOMENUITEM, "Goto",,,.True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEPREVMENUITEM, "Previous"d2c(9)"Ctrl+P",,,.True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCENEXTMENUITEM, "Next"d2c(9)"Ctrl+N",,,.True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEFINDMENUITEM, "Find"d2c(9)"Ctrl+F",,,.True)
 sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
-sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCECOPYMENUITEM, "Copy",,,.True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCEGOTOMENUITEM, "Goto"d2c(9)"Ctrl+G",,,.True)
+sourcepopupmenu~insertSeparator(1, self~MENUSEPARATOR1, .True)
+sourcepopupmenu~insertItem(self~MENUSEPARATOR1, self~SOURCECOPYMENUITEM, "Copy"d2c(9)"Ctrl+C",,,.True)
 sourcepopupmenu~assignTo(self)
 sourcepopupmenu~connectContextMenu("onListSourceContext", controls[self~LISTSOURCE]~hwnd) 
-sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "BreakpointSettings")
+sourcepopupmenu~connectCommandEvent(self~BPSETTINGSMENUITEM, "OnBreakpointSettings")
 sourcepopupmenu~connectCommandEvent(self~SOURCECOPYMENUITEM, "OnCopySource")
 sourcepopupmenu~connectCommandEvent(self~SOURCEGOTOMENUITEM, "OnGotoSource")
 sourcepopupmenu~connectCommandEvent(self~SOURCEFINDMENUITEM, "OnFindSource")
+sourcepopupmenu~connectCommandEvent(self~SOURCENEXTMENUITEM, "DoSourceFindNext")
+sourcepopupmenu~connectCommandEvent(self~SOURCEPREVMENUITEM, "DoSourceFindPrevious")
 
 
 
@@ -655,6 +663,8 @@ if enablebreak then sourcepopupmenu~enable(self~BPSETTINGSMENUITEM) ; else sourc
 if enablecopy then sourcepopupmenu~enable(self~SOURCECOPYMENUITEM) ; else sourcepopupmenu~disable(self~SOURCECOPYMENUITEM)
 if hassource then sourcepopupmenu~enable(self~SOURCEGOTOMENUITEM) ; else sourcepopupmenu~disable(self~SOURCEGOTOMENUITEM)
 if hassource then sourcepopupmenu~enable(self~SOURCEFINDMENUITEM) ; else sourcepopupmenu~disable(self~SOURCEFINDMENUITEM)
+if hassource then sourcepopupmenu~enable(self~SOURCENEXTMENUITEM) ; else sourcepopupmenu~disable(self~SOURCENEXTMENUITEM)
+if hassource then sourcepopupmenu~enable(self~SOURCEPREVMENUITEM) ; else sourcepopupmenu~disable(self~SOURCEPREVMENUITEM)
 
 sourcepopupmenu~show(.Point~new(x,y))
 
@@ -673,9 +683,20 @@ end
 stackpopupmenu~show(.Point~new(x,y))
 
 --------------------------------------------
-::method BreakPointSettings 
+::method OnBreakPointSettings unguarded
 --------------------------------------------
-expose activesourcename controls debugger gui
+expose activesourcename controls debugger gui loadedsources
+
+dodialog = .False
+hassource =  (loadedsources~items > 0) 
+index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
+if index > 0  then do
+  listtext = self~ListGetItem(controls, self~LISTSOURCE, index)
+  if hassource, self~ListGetRowCount(controls, self~LISTSTACK) \= 0 then do 
+    if listtext~left(1) = '*' | listtext~left(1) = '?' then dodialog = .True
+  end  
+end
+if \dodialog then return
 debugsettingsdialog = .BreakPointSettingsDialog~new(gui)
 
 linenum = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
@@ -758,6 +779,7 @@ if char = 6 & isCtrl = 1 then return .False  -- Ctrl F
 if char = 7 & isCtrl = 1 then return .False  -- Ctrl G
 if char = 14 & isCtrl = 1 then return .False -- Ctrl N
 if char = 16 & isCtrl = 1 then return .False -- Ctrl P
+if char = 19 & isCtrl = 1 then return .False -- Ctrl S
 return .True
 
 ------------------------------------------------------
