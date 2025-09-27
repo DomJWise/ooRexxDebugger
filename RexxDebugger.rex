@@ -75,14 +75,16 @@ else do
   .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
 end  
 if .local~rexxdebugger.debugger~debuggerui \= .nil then .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
+else return
 
 if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~WaitForUIToEnd
+else .local~rexxdebugger.debugger~TrackMainContext
 
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.16"
+::CONSTANT VERSION "1.43.17"
 
 --====================================================
 ::class RexxDebugger public
@@ -128,7 +130,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -148,6 +150,7 @@ runroutine = .nil
 uithreadid = 0
 getthreadidroutine = .Nil
 codelocation = ""
+trackingmaincontext = .False
 
 .local~debug.channels = .Directory~new
 
@@ -369,7 +372,7 @@ else do
     debugchannel = .Directory~new
     debugchannel~status=.MutableBuffer~new("getprogramstatus", 256)
     debugchannel~frames=.Nil
-    debugchannel~variables=.Nil
+    debugchannel~context=.Nil
     debugchannel~breakpointtestresult = .False
     .debug.channels[threadid] = debugchannel
   end
@@ -464,6 +467,7 @@ if status="breakpointcheckgetlocation" then do
       frames = .context~stackframes~section(5)
       if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
       tracedprograms~put(program)
+      self~CheckSetMainContext(frames, context)
       debuggerui~UpdateUICodeView(frames, 1)
       debuggerui~UpdateUIWatchWindows(context~variables)
       return ''
@@ -518,48 +522,88 @@ else if status~word(1)="getprogramstatus" then do
   instructions = status~delword(1,1)~strip
   if instructions \= '' then do 
     debugchannel~frames= .nil
-    debugchannel~variables= .nil
+    debugchannel~context= .nil
     debugchannel~status~append("getprogramstatus")
     return instructions
   end
   else do  
     debugchannel~frames= .nil
-    debugchannel~variables= .nil
+    debugchannel~context= .nil
     debugchannel~status~append("programstatusupdated")
-    return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context~StackFrames~section(2), "FRAMES")~~put(.context~variables, "VARIABLES"); drop _rexdeebugeer_tmp'
+    return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context~StackFrames~section(2), "FRAMES")~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
   end  
 end      
 else if status="programstatusupdated" then do
+  self~CheckSetMainContext(debugchannel~frames, debugchannel~context)
   if debugchannel~frames \=.nil then do
     frames = debugchannel~frames
     if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
     tracedprograms~put(frames~firstitem~executable~package~name)
     debuggerui~UpdateUICodeView(frames, 1)
   end
-  if debugchannel~variables \=.nil then do
-    debuggerui~UpdateUIWatchWindows(debugchannel~variables)
+  if debugchannel~context \= .nil, debugchannel~context~variables \=.nil then do
+    debuggerui~UpdateUIWatchWindows(debugchannel~context~variables)
   end  
+  debugchannel~context= .nil
   debugchannel~frames= .nil
-  debugchannel~variables= .nil
   debugchannel~status~append("")
   return ''
 end
 else if status="getvars" then do
   debugchannel~frames= .nil
-  debugchannel~variables= .nil
+  debugchannel~context= .nil
   debugchannel~status~append("gotvars")
-  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context~variables, "VARIABLES"); drop _rexdeebugeer_tmp'
+  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
 end     
 else if status="gotvars" then do
-  if debugchannel~variables \=.nil then do
-    debuggerui~UpdateUIWatchWindows(debugchannel~variables)
+  if debugchannel~context \= .nil, debugchannel~context~variables \=.nil then do
+    debuggerui~UpdateUIWatchWindows(debugchannel~context~variables)
   end
   debugchannel~frames= .nil
-  debugchannel~variables= .nil
+  debugchannel~context = .nil
   debugchannel~status~append("")
   return 'NOP'
 end
 return ''
+
+------------------------------------------------------
+::method TrackMainContext unguarded
+------------------------------------------------------
+expose trackingmaincontext shutdown debuggerui canopensource
+trackingmaincontext = .True
+reply
+do while shutdown = .False
+  maincontext = .local~debuggermaincontext
+  if maincontext~class = .context~class & maincontext \= .nil then do
+    signal on syntax
+    executable = maincontext~executable -- Will raise an error when the context becomes invalid
+    signal off syntax
+  end
+  call SysSleep .20
+end
+return
+
+syntax:
+if debuggerui\ = .nil then do
+  canopensource = .True  
+  debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session ended")
+  debuggerui~UpdateUIControlStates
+end
+
+------------------------------------------------------
+::method CheckSetMainContext unguarded
+------------------------------------------------------
+expose trackingmaincontext
+use arg frames, context
+
+if \trackingmaincontext then return
+
+maincontext = .local~debuggermaincontext
+if \(maincontext~class = .context~class), frames \= .nil then do
+  if context \= .nil, frames~items = 1, (context~executable~class = .routine) then do 
+    .local~debuggermaincontext = context
+  end
+end
 ------------------------------------------------------
 ::method SetManualBreak unguarded
 ------------------------------------------------------
@@ -997,6 +1041,7 @@ end
 ::ROUTINE RexxDebuggerHandleExit public
 ------------------------------------------------------
 if .rexxdebugger.debugger~isA(.RexxDebugger) then do
+  .local~debuggermaincontext = .Nil
   debugger = .rexxdebugger.debugger
   if \.rexxdebugger.debugger~isshutdown then do
     debuggerui = debugger~debuggerui
@@ -1015,6 +1060,7 @@ end
 ------------------------------------------------------
 use arg context
 if .rexxdebugger.debugger~isA(.RexxDebugger) then do
+  .local~debuggermaincontext = .Nil
   debugger = .rexxdebugger.debugger
   if \.rexxdebugger.debugger~isshutdown then do
     debuggerui = debugger~debuggerui
