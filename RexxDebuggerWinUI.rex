@@ -680,6 +680,9 @@ if x == -1, y == -1 then do
   x = rect~right - .SM~cxVScroll + 15
   y = rect~bottom - 15
 end
+selindex = self~ListGetSelectedIndex(controls, self~LISTSTACK)
+if selindex \=0  then stackpopupmenu~enable(self~STACKCOPYMENUITEM) ; else stackpopupmenu~disable(self~STACKCOPYMENUITEM)
+
 stackpopupmenu~show(.Point~new(x,y))
 
 --------------------------------------------
@@ -733,7 +736,7 @@ expose controls debugger
 index = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 if index > 0  then do
   text = self~ListGetItem(controls, self~LISTSOURCE, index)
-  if \debugger~canopensource then parse value text with 2 lineno text
+  if text~substr(2)~word(1)~datatype='NUM' then parse value text with 2 lineno text
   clipboard = .WindowsClipboard~new
   clipboard~copy(text~strip)
 end

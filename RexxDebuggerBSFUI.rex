@@ -577,10 +577,9 @@ if .BSFPackageDevTestingGlobals~package~local~debugdisableawtthreadtrace = .true
 ------------------------------------------------------
 ::method GetClipboardText
 ------------------------------------------------------
-use arg listtext
-parse value listtext with 2 linenumber text
+use arg text
+if text~substr(2)~word(1)~datatype='NUM' then parse value text with 2 lineno text
 return text
-
 
 --====================================================
 ::class ListStackTransferHandler subclass ListTransferHandler
@@ -910,11 +909,12 @@ if find \= .nil then self~DoSourceFind(find)
 ------------------------------------------------------
 expose controls gui
 
-seltext = self~ListGetItem(controls, self~LISTSTACK, self~ListGetSelectedIndex(controls,self~LISTSTACK))
-cliptext = .ListStackTransferHandler~new~GetClipboardText(seltext)
-gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
-
-
+selindex = self~ListGetSelectedIndex(controls,self~LISTSTACK)
+if selindex \= 0 then do
+  seltext = self~ListGetItem(controls, self~LISTSTACK, selindex)
+  cliptext = .ListStackTransferHandler~new~GetClipboardText(seltext)
+  gui~clipboard~setContents(gui~clsStringSelection~new(cliptext), .nil)
+end
 
 ------------------------------------------------------
 ::method OnPrevCommand 
@@ -1605,10 +1605,9 @@ controls[self~SOURCEMENU]~show(eventobj~getcomponent, eventobj~getx, eventobj~ge
 expose gui controls 
 use arg eventobj
 
-if self~ListGetRowCount(controls, self~LISTSTACK) \= 0 then do 
-  contextmenu = controls[self~STACKMENU]
-  contextmenu~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
-end
+enablecopy = self~ListGetSelectedIndex(controls,self~LISTSTACK) \= 0 
+controls[self~STACKCOPY]~setEnabled(enablecopy)
+controls[self~STACKMENU]~show(eventobj~getcomponent, eventobj~getx, eventobj~gety)
 
 --====================================================
 ::class WatchDialogWindowListener public
