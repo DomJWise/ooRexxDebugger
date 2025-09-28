@@ -108,9 +108,9 @@ if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateCodeView(ar
 ::method UpdateUIControlStates
 ------------------------------------------------------
 expose debugdialog debugger
-use arg arrStack, activateindex
+use arg programfinished = .False
 
-if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateControlStates(.True)
+if debugdialog \= .nil & \debugger~isshutdown then debugdialog~UpdateControlStates(programfinished)
 
 ------------------------------------------------------
 ::method UpdateUIWatchWindows 
@@ -228,7 +228,7 @@ if updatelastexecuted then self~HighlightLastExecuted
 ------------------------------------------------------
 ::method HighlightLastExecuted
 ------------------------------------------------------
-expose activesourcename controls debugger activesourcename
+expose activesourcename controls debugger arrStack
 lastprogram = debugger~GetLastSourceFile
 if lastprogram \= '' then do
   self~ControlDeferRedraw(controls, self~LISTSOURCE, .True)
@@ -245,6 +245,11 @@ if lastprogram \= '' then do
      self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
   end 
   self~ControlDeferRedraw(controls, self~LISTSOURCE, .False)
+  laststack = debugger~GetLastStack
+  if laststack \= .nil then do
+    arrStack = laststack
+    self~UpdateStack
+  end
 end  
 
 ------------------------------------------------------
@@ -967,16 +972,7 @@ do stackindex = 1 to arrstack~items
 end    
 
 -- Populate the stack
-self~ListDeleteAllItems(controls, self~LISTSTACK)
-indent = arrStack~items
-do frame over arrStack
-  frametext = frame~makestring
-  parse value frametext with pre '*-*' post
-  finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
-  self~ListAddItem(controls, self~LISTSTACK, finaltext)
-  indent = indent - 1
-end  
-self~ListSetSelectedIndex(controls, self~LISTSTACK, activateIndex)
+self~UpdateStack(activateIndex)
 
 -- Set to not redraw. Switched back on when selecting
 controls[self~LISTSOURCE]~hidefast
@@ -1009,6 +1005,24 @@ end
 
 InvalidContext:
 return
+
+------------------------------------------------------
+::method UpdateStack unguarded
+------------------------------------------------------
+expose controls arrStack
+use arg activateindex = 1
+
+-- Populate the stack
+self~ListDeleteAllItems(controls, self~LISTSTACK)
+indent = arrStack~items
+do frame over arrStack
+  frametext = frame~makestring
+  parse value frametext with pre '*-*' post
+  finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
+  self~ListAddItem(controls, self~LISTSTACK, finaltext)
+  indent = indent - 1
+end  
+self~ListSetSelectedIndex(controls, self~LISTSTACK, activateIndex)
 
 ------------------------------------------------------
 ::method UpdateSourceTitle

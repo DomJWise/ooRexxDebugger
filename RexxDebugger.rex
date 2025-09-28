@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.17"
+::CONSTANT VERSION "1.43.18"
 
 --====================================================
 ::class RexxDebugger public
@@ -130,7 +130,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext laststack
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -151,7 +151,7 @@ uithreadid = 0
 getthreadidroutine = .Nil
 codelocation = ""
 trackingmaincontext = .False
-
+laststack = .nil
 .local~debug.channels = .Directory~new
 
 stackhascontext = .context~stackframes[1]~hasmethod("context")
@@ -439,7 +439,7 @@ return response
 ------------------------------------------------------
 ::method GetAutoResponse unguarded
 ------------------------------------------------------
-expose debuggerui tracedprograms manualbreak breakpoints runroutine stackhascontext codelocation
+expose debuggerui tracedprograms manualbreak breakpoints runroutine stackhascontext codelocation laststack
 use arg debugchannel, threadid
 
 status = debugchannel~status~string
@@ -451,6 +451,7 @@ if status="breakpointcheckgetlocation" then do
     ---Fast track is possible in 5.1, for simple breakpoint checks at least
     context = .context~stackframes[5]~context
     program = context~package~name
+    laststack = context~stackframes
     codelocation = program'>'context~line
     if \breakpoints~hasindex(codelocation) & \manualbreak & tracedprograms~hasitem(program) then do
       debugchannel~status~append("breakpointcheckgetlocation")
@@ -473,11 +474,13 @@ if status="breakpointcheckgetlocation" then do
       return ''
     end  
   end
-  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~status~append("breakpointchecklocationis ".context~package~name">".context~line);  drop _rexdeebugeer_tmp'
+  debugchannel~status~append("breakpointchecklocationis")
+  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
   end
-else if status~pos("breakpointchecklocationis") = 1 then do
-  parse value status with ignore codelocation -- Is this a breakpoint ?
-  parse value codelocation with program">"line
+else if status="breakpointchecklocationis"  then do
+  program = debugchannel~context~package~name
+  codelocation=program'>'debugchannel~context~line
+  laststack = debugchannel~context~stackframes
   if \manualbreak & \breakpoints~hasindex(codelocation)  & tracedprograms~hasitem(program) then do
     debugchannel~status~append("breakpointcheckgetlocation")
     return ''
@@ -587,7 +590,7 @@ syntax:
 if debuggerui\ = .nil then do
   canopensource = .True  
   debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session ended")
-  debuggerui~UpdateUIControlStates
+  debuggerui~UpdateUIControlStates(.True)
 end
 
 ------------------------------------------------------
@@ -630,6 +633,18 @@ return program
 expose codelocation
 parse value codelocation with program">"linenumber
 return linenumber
+
+-----------------------------------------------------
+::method GetLastStack unguarded
+------------------------------------------------------
+expose laststack runroutine debuggerui
+frames = laststack
+if frames \= .nil then do
+  frames = frames~section(5)
+  if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
+end  
+return frames
+
 
 -----------------------------------------------------
 ::method ShowHelptext 
@@ -675,6 +690,7 @@ shutdown = .False
 breakpoints~empty
 tracedprograms~empty
 codelocation = ''
+laststack = .Nil
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
 .debug.channels~empty
 runroutine = .nil
@@ -742,10 +758,12 @@ else do
   proghasresult = .True
   if Symbol('RESULT') \= 'VAR' then proghasresult = .False; else progresult = RESULT
   
-  canopensource = .True
-  debuggerui~UpdateUIControlStates
-  debuggerui~AppendUIConsoleText("")
-  debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session ended normally")
+  if \canopensource then do 
+    canopensource = .True
+    debuggerui~UpdateUIControlStates(.True)
+    debuggerui~AppendUIConsoleText("")
+    debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session ended normally")
+  end  
   if proghasresult then debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Program returned : "progresult~string)
 end  
 
@@ -778,7 +796,7 @@ else do
 end  
 
 self~canopensource = .true
-debuggerui~UpdateUIControlStates
+debuggerui~UpdateUIControlStates(.True)
 return
 
 ------------
@@ -797,37 +815,9 @@ self~SendDebugMessage(self~DebugMsgPrefix||"Debug session was aborted")
   
 
 self~canopensource = .true
-debuggerui~UpdateUIControlStates
+debuggerui~UpdateUIControlStates(.True)
 
 return
-
-------------------------------------------------------
-::method RunNewProgram unguarded
-------------------------------------------------------
-expose canopensource debuggerui breakpoints tracedprograms
-
-use arg rexxfile, runroutine,argstring,multipleargs, firsttime
-
-
-
-if \multipleargs then runargs = .array~of(argstring)
-else do
-  runargs = .array~new
-  do while argstring \= ''
-    if argstring~left(1) \= '"' then parse value argstring with nextarg argstring 
-    else parse value  argstring with '"' nextarg '"' argstring
-    runargs~append(nextarg~strip)
-    argstring = argstring~strip
-  end  
-end  
-
-debuggerui~ResetUISourceState
-debuggerui~UpdateUIControlStates
-
-runroutine~callwith(runargs)
-
-canopensource = .True
-debuggerui~UpdateUIControlStates
 
 ------------------------------------------------------
 ::method WaitForUIToEnd
@@ -1048,8 +1038,8 @@ if .rexxdebugger.debugger~isA(.RexxDebugger) then do
     debugger~canopensource = .true
 
     debugger~debuggerui~AppendUIConsoleText("")
-    debugger~debuggerui~AppendUIConsoleText(debugger~DebugMsgPrefix||"Debug session ended")
-    debugger~debuggerui~UpdateUIControlStates
+    debugger~debuggerui~AppendUIConsoleText(debugger~DebugMsgPrefix||"Debug session ended normally")
+    debugger~debuggerui~UpdateUIControlStates(.True)
 
     .local~rexxdebugger.debugger~WaitForUIToEnd
   end  
@@ -1077,7 +1067,7 @@ if .rexxdebugger.debugger~isA(.RexxDebugger) then do
   
 
     debugger~canopensource = .true
-    debugger~debuggerui~UpdateUIControlStates
+    debugger~debuggerui~UpdateUIControlStates(.True)
 
     .local~rexxdebugger.debugger~WaitForUIToEnd
   end  

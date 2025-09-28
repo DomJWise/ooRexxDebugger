@@ -294,11 +294,11 @@ end
 ::method UpdateUIControlStates unguarded
 ------------------------------------------------------
 expose debugdialog debugger
-use arg arrStack, activateindex
+use arg programfinished = .False
 
 if debugdialog \= .nil & \debugger~isshutdown then do
   if .AWTGuiThread~isGuiThread then debugdialog~UpdateControlStates(.True)
-  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates", "I", .True)~~result~errorCondition, .context)
+  else success = self~DidUICallSucceed(.AwtGuiThread~runLater(debugdialog, "UpdateControlStates", "I", programfinished)~~result~errorCondition, .context)
 end
 
 
@@ -685,7 +685,7 @@ if .BSFPackageDevTestingGlobals~package~local~debugautonext = .true then .AwtGui
 ------------------------------------------------------
 ::method HighlightLastExecuted
 ------------------------------------------------------
-expose activesourcename controls debugger
+expose activesourcename controls debugger arrStack
 lastprogram = debugger~GetLastSourceFile
 if lastprogram \= '' then do
   if lastprogram \= activesourcename then do
@@ -699,7 +699,13 @@ if lastprogram \= '' then do
      visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
      firstrow = MAX(1, lastline - (visiblelistrows/2)~floor)
      self~ListSetFirstVisible(controls, self~LISTSOURCE, firstrow)
-  end 
+  end
+  laststack = debugger~GetLastStack
+  if laststack \= .nil then do
+    arrStack = laststack
+    self~UpdateStack
+  end
+
 end  
 
 
@@ -1451,19 +1457,7 @@ do stackindex = 1 to arrstack~items
 end    
 
 -- Populate the stack
-self~ListDeleteAllItems(controls,self~LISTSTACK)
-
-indent = arrStack~items
-do frame over arrStack~allitems
-  frametext = frame~makestring
-  parse value frametext with pre '*-*' post
-  finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
-  self~ListAddItem(controls,self~LISTSTACK, finaltext)
-  indent = indent - 1
-end  
-
-self~ListSetSelectedIndex(controls, self~LISTSTACK, activateindex)
-
+self~UpdateStack(activateIndex)
 
 --Ensure the correct source (if any) is loaded
 if arrstack[activateindex]~executable~source \= .Nil, arrstack[activateindex]~executable~source~items \= 0 then do 
@@ -1490,6 +1484,24 @@ end
 
 InvalidContext:
 return
+
+------------------------------------------------------
+::method UpdateStack unguarded
+------------------------------------------------------
+expose controls arrStack
+use arg activateindex = 1
+
+-- Populate the stack
+self~ListDeleteAllItems(controls, self~LISTSTACK)
+indent = arrStack~items
+do frame over arrStack
+  frametext = frame~makestring
+  parse value frametext with pre '*-*' post
+  finaltext =  pre' *-*'||" "~copies(indent *2)||strip(post)
+  self~ListAddItem(controls, self~LISTSTACK, finaltext)
+  indent = indent - 1
+end  
+self~ListSetSelectedIndex(controls, self~LISTSTACK, activateIndex)
 
 ------------------------------------------------------
 ::method UpdateSourceTitle
