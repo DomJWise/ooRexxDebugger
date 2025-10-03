@@ -1447,6 +1447,7 @@ expose controls arrStack activesourcename loadedsources debugger
 use arg arrstack,activateindex
 
 -- Ensure the (available) sources are loaded
+if arrStack = .nil then return
 do stackindex = 1 to arrstack~items
    if arrstack[stackindex]~executable~package \= .nil then do
      sourcename= arrstack[stackindex]~executable~package~name

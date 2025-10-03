@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.18"
+::CONSTANT VERSION "1.43.19"
 
 --====================================================
 ::class RexxDebugger public
@@ -684,7 +684,7 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine  codelocation
 
-use arg rexxfile,argstring,multipleargs = .False, firsttime = .False
+use arg programname,argstring,multipleargs = .False, firsttime = .False
 
 shutdown = .False
 breakpoints~empty
@@ -694,10 +694,32 @@ laststack = .Nil
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
 .debug.channels~empty
 runroutine = .nil
-strm = .stream~new(rexxfile)
+
+if .context~package~hasmethod("FINDPROGAM") then do 
+  programpath = .context~package~findProgram(programname)
+  if programpath=.nil then programpath = programname
+end  
+else do
+  programpath=''
+  ext = FILESPEC('E', programname)
+  if ext \= '' then programpath = SysSearchPath("PATH", programname)
+  else do
+    programpath = SysSearchPath("PATH", programname'.REX')
+    if programpath = '' & .File~isCaseSensitive then programpath = SysSearchPath("PATH", programname'.rex')
+    if programpath = '' then programpath = SysSearchPath("PATH", programname)
+  end
+  if programpath='' then programpath = programname
+end    
+programname = FILESPEC('N', programpath)
+strm = .stream~new(programpath)
+
 signal on ANY name HandleSyntaxError
-if strm~query('EXISTS') = '' then  raise syntax 3.1 ADDITIONAL (Rexxfile)
+if strm~query('EXISTS') = '' then  raise syntax 3.901 ADDITIONAL (programname)
 else do  
+  signal off ANY 
+  openstate = strm~open("READ SHAREREAD")
+  signal on ANY name HandleSyntaxError
+  if openstate \= 'READY:' then raise syntax 3.1 ADDITIONAL (programpath)
   signal off ANY 
   arrsource = strm~arrayin
   strm~close
@@ -707,19 +729,19 @@ else do
 
   if \firsttime then do
     debuggerui~AppendUIConsoleText("")
-    debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"New debug session started for "rexxfile)
+    debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"New debug session started for "programname)
     debuggerui~AppendUIConsoleText("")
   end
   else do
-    debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session started for "rexxfile)
+    debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session started for "programname)
     debuggerui~AppendUIConsoleText("")
   end
 
   self~canopensource = .False
-  debuggerui~InitUISource(arrSource, rexxfile)
+  debuggerui~InitUISource(arrSource, programpath)
 
   signal on ANY name HandleSyntaxError
-  runroutine = .routine~new(rexxfile, arrSource)
+  runroutine = .routine~new(programpath, arrSource)
   routinepackage = runroutine~package
 
   signal off ANY
@@ -776,23 +798,29 @@ cond = .context~condition
 sourceerrorline = cond~POSITION
 
 errorlist = .list~new
-if cond~CODE = 3.1 then do 
+if cond~CODE = 3.901 then do 
   filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
   if filename = '"&1"' then errorlist~append("Error: No Rexx program specified")
   else errorlist~append('Error: Rexx program 'filename' not found')
   debuggerui~SetUISourceListInfoText(errorlist)
 end
+else if cond~CODE = 3.1 then do 
+  filename = cond~MESSAGE~substr(cond~MESSAGE~pos('"'), cond~MESSAGE~lastpos('"') - cond~MESSAGE~pos('"') + 1)
+  errorlist~append('Error: Rexx program 'filename' could not be accessed')
+  debuggerui~SetUISourceListInfoText(errorlist)
+end
 else do  
-  strm = .stream~new(rexxfile)
+  strm = .stream~new(programpath)
   arrsource = strm~arrayin
   strm~close
-  self~SendDebugMessage(self~DebugMsgPrefix||'Error: Syntax error parsing 'rexxfile' at line 'sourceerrorline)
+  self~SendDebugMessage(self~DebugMsgPrefix||'Error: Syntax error parsing 'programname' at line 'sourceerrorline)
   self~SendDebugMessage(self~DebugMsgPrefix)
   if sourceerrorline \= 0 then self~SendDebugMessage(self~DebugMsgPrefix||sourceerrorline~right(5)' *-* 'arrSource[sourceerrorline])
   self~SendDebugMessage(self~DebugMsgPrefix||'Error 'cond~RC' : 'cond~ERRORTEXT)
   self~SendDebugMessage(self~DebugMsgPrefix||'Error 'cond~CODE': 'cond~MESSAGE)
   self~SendDebugMessage('')  
   self~SendDebugMessage(self~DebugMsgPrefix||"Debug session was aborted")
+  codelocation=programpath'>'sourceerrorline
 end  
 
 self~canopensource = .true
