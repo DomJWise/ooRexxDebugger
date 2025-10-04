@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.22"
+::CONSTANT VERSION "1.43.23"
 
 --====================================================
 ::class RexxDebugger public
@@ -130,7 +130,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext laststack debugchannels
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished uithreadid launchedbydebugger getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext laststack debugchannels
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -146,7 +146,7 @@ debuggerui = .nil
 canopensource = .False
 lastexecfulltime = 0
 uifinished = .True
-runroutine = .nil
+launchedbydebugger = .False
 uithreadid = 0
 getthreadidroutine = .Nil
 codelocation = ""
@@ -350,7 +350,7 @@ if outputhandler \= .nil then outputhandler~SetCapture(.False)
 ------------------------------------------------------
 ::method LINEIN unguarded
 ------------------------------------------------------
-expose uithreadid getthreadidroutine debuggerui shutdown launched canopensource lastexecfulltime debugchannels tracedprograms manualbreak breakpoints runroutine stackhascontext codelocation laststack 
+expose uithreadid getthreadidroutine debuggerui shutdown launched canopensource lastexecfulltime debugchannels tracedprograms manualbreak breakpoints launchedbydebugger stackhascontext codelocation laststack 
 
 threadid = getthreadidroutine~call
 if threadid = uithreadid then return ''
@@ -396,7 +396,7 @@ else do
       else if \tracedprograms~hasitem(program) then dobreak = .True
       if breakpoints[codelocation] = '' | dobreak then do
         frames = .context~stackframes~section(3)
-        if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
+        if launchedbydebugger then frames = frames~section(1, frames~items-3)
         tracedprograms~put(program)
         self~CheckSetMainContext(frames, context)
         debuggerui~UpdateUICodeView(frames, 1)
@@ -470,7 +470,7 @@ else do
     self~CheckSetMainContext(debugchannel~frames, debugchannel~context)
     if debugchannel~frames \=.nil then do
       frames = debugchannel~frames
-      if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
+      if launchedbydebugger then frames = frames~section(1, frames~items-3)
       tracedprograms~put(frames~firstitem~executable~package~name)
       debuggerui~UpdateUICodeView(frames, 1)
     end
@@ -624,11 +624,11 @@ return linenumber
 -----------------------------------------------------
 ::method GetLastStack unguarded
 ------------------------------------------------------
-expose laststack runroutine debuggerui
+expose laststack launchedbydebugger debuggerui
 frames = laststack
 if frames \= .nil then do
   frames = frames~section(3)
-  if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
+  if launchedbydebugger then frames = frames~section(1, frames~items-3)
 end  
 return frames
 
@@ -669,7 +669,7 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine  codelocation debugchannels
+expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler codelocation debugchannels launchedbydebugger laststack
 
 use arg programname,argstring,multipleargs = .False, firsttime = .False
 
@@ -680,8 +680,7 @@ codelocation = ''
 laststack = .Nil
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
 debugchannels~empty
-runroutine = .nil
-
+launchedbydebugger = .True
 if .context~package~hasmethod("FINDPROGAM") then do 
   programpath = .context~package~findProgram(programname)
   if programpath=.nil then programpath = programname
@@ -819,8 +818,7 @@ HandleRuntimeError:
 ------------
 self~SendDebugMessage(self~DebugMsgPrefix||'Runtime error:')   
 cond = .context~condition
-do lineidx = 0 to cond~Traceback~items -1
-  if cond~Traceback[lineidx]~pos('runroutine~callwith(runargs)') \= 0 then leave
+do lineidx = 0 to cond~Traceback~items - 4
   self~SendDebugMessage(self~DebugMsgPrefix||cond~Traceback[lineidx])
 end    
 self~SendDebugMessage(self~DebugMsgPrefix||'Error 'cond~RC' running 'cond~package~name' line 'cond~Position': 'cond~ErrorText)   
@@ -910,6 +908,12 @@ rxddir = .File~new('.rexxdebugger',home)
 if \rxddir~isDirectory then rxddir~makedir
 if  rxddir~isDirectory then debugfile = .File~new(.File~new(sourcename)~name'-breakpoints', rxddir)
 return debugfile
+
+-------------------------------------------------------
+::METHOD LaunchedByDebugger unguarded
+-------------------------------------------------------
+expose launchedbydebugger
+return launchedbydebugger
 
 --====================================================
 ::class DebugOutputHandler
@@ -1065,6 +1069,8 @@ end
 ------------------------------------------------------
 use arg context
 if .rexxdebugger.debugger~isA(.RexxDebugger) then do
+  if .rexxdebugger.debugger~LaunchedByDebugger then framestoremove = 4
+  else framestoremove = 1
   .local~debuggermaincontext = .Nil
   debugger = .rexxdebugger.debugger
   if \.rexxdebugger.debugger~isshutdown then do
@@ -1072,7 +1078,7 @@ if .rexxdebugger.debugger~isA(.RexxDebugger) then do
 
     debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Runtime error:')   
     cond = context~condition
-    do lineidx = 0 to cond~Traceback~items -1
+    do lineidx = 0 to cond~Traceback~items - framestoremove
       debugger~SendDebugMessage(debugger~DebugMsgPrefix||cond~Traceback[lineidx])
     end    
     debugger~SendDebugMessage(debugger~DebugMsgPrefix||'Error 'cond~RC' running 'cond~package~name' line 'cond~Position': 'cond~ErrorText)   
@@ -1147,7 +1153,6 @@ if .local~rexxdebugger.commandlineisrexxdebugger then do
   if forcejava & SysVersion()~translate~pos("WINDOWS") = 1 then call RexxDebuggerBSFUI.rex
   .local~rexxdebugger.rexxfile = rexxfile~strip
   .local~rexxdebugger.rawargstring = debuggerargstring~strip
-  
 end
 return
 
