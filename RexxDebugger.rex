@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.19"
+::CONSTANT VERSION "1.43.20"
 
 --====================================================
 ::class RexxDebugger public
@@ -130,7 +130,7 @@ uiFinished = .True
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext laststack
+expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished runroutine uithreadid getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext laststack debugchannels
 use arg windowname = "", offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
@@ -152,8 +152,8 @@ getthreadidroutine = .Nil
 codelocation = ""
 trackingmaincontext = .False
 laststack = .nil
-.local~debug.channels = .Directory~new
-
+debugchannels = .Directory~new
+.local~debug.channels = debugchannels
 stackhascontext = .context~stackframes[1]~hasmethod("context")
 
 uiloaded = self~findandloadui()
@@ -350,37 +350,157 @@ if outputhandler \= .nil then outputhandler~SetCapture(.False)
 ------------------------------------------------------
 ::method LINEIN unguarded
 ------------------------------------------------------
-expose uithreadid getthreadidroutine
-tid = getthreadidroutine~call
+expose uithreadid getthreadidroutine debuggerui shutdown launched canopensource lastexecfulltime debugchannels tracedprograms manualbreak breakpoints runroutine stackhascontext codelocation laststack 
 
-if tid = uithreadid then return ''
-else do
-  guard on
-  return self~ReplyWithTraceCommand(tid)
-end
-------------------------------------------------------
-::method ReplyWithTraceCommand  unguarded
-------------------------------------------------------
-expose debuggerui shutdown launched canopensource lastexecfulltime
-use arg threadid
+threadid = getthreadidroutine~call
+if threadid = uithreadid then return ''
+
+guard on
+
 lastexecfulltime = TIME('F')
 if shutdown then return 'trace off; exit' 
 if \launched then return ''
 else do
-  debugchannel = .debug.channels[threadid]
+  debugchannel = debugchannels[threadid]
   if debugchannel = .nil then do
     debugchannel = .Directory~new
     debugchannel~status=.MutableBuffer~new("getprogramstatus", 256)
     debugchannel~frames=.Nil
     debugchannel~context=.Nil
     debugchannel~breakpointtestresult = .False
-    .debug.channels[threadid] = debugchannel
+    debugchannels[threadid] = debugchannel
   end
- response =self~GetAutoResponse(debugchannel, threadid)
-end 
-if response \= "" | debugchannel~status~string = "breakpointcheckgetlocation" then return response 
 
-response =  debuggerui~GetUINextResponse
+  -- Autoresponses
+  status = debugchannel~status~string
+  response = ''
+  debugchannel~status~delete(1)
+  
+  if status="breakpointcheckgetlocation" then do
+    if stackhascontext then do
+      ---Fast track is possible in 5.1, for simple breakpoint checks at least
+      context = .context~stackframes[3]~context
+      program = context~package~name
+      laststack = context~stackframes
+      codelocation = program'>'context~line
+      if \breakpoints~hasindex(codelocation), \manualbreak, tracedprograms~hasitem(program) then do
+        debugchannel~status~append("breakpointcheckgetlocation")
+        return ''
+      end  
+      dobreak = .False
+      if manualbreak then do
+        dobreak = .True
+        CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
+        manualbreak = .False
+      end
+      else if \tracedprograms~hasitem(program) then dobreak = .True
+      if breakpoints[codelocation] = '' | dobreak then do
+        frames = .context~stackframes~section(3)
+        if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
+        tracedprograms~put(program)
+        self~CheckSetMainContext(frames, context)
+        debuggerui~UpdateUICodeView(frames, 1)
+        debuggerui~UpdateUIWatchWindows(context~variables)
+        signal checkwaitforui
+      end  
+    end
+    debugchannel~status~append("breakpointchecklocationis")
+    return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
+    end
+  else if status="breakpointchecklocationis"  then do
+    program = debugchannel~context~package~name
+    codelocation=program'>'debugchannel~context~line
+    laststack = debugchannel~context~stackframes
+    if \manualbreak , \breakpoints~hasindex(codelocation) , tracedprograms~hasitem(program) then do
+      debugchannel~status~append("breakpointcheckgetlocation")
+      return ''
+    end  
+    else if manualbreak then do 
+      CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
+      manualbreak = .false
+      debugchannel~status~append("getprogramstatus")
+      return 'NOP'
+    end
+    else if \tracedprograms~hasitem(program) then do -- Break (first time time only) when hitting a new program which traces.
+      tracedprograms~put(program)
+      debugchannel~status~append("getprogramstatus")
+      return 'NOP'
+    end
+    else /*breakpoints~hasindex(codelocation)*/  do  
+      if breakpoints[codelocation] = '' then do
+        debugchannel~status~append("getprogramstatus")
+        return 'NOP'
+      end  
+      else do
+        debugchannel~status~append("breakpointprocesstestresult")
+        debugchannel~breakpointtestresult = .True
+        return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put('||breakpoints[codelocation]||', "BREAKPOINTTESTRESULT"); drop _rexdeebugeer_tmp'
+      end
+    end
+  end  
+  else if status~pos("breakpointprocesstestresult") = 1 then do
+    testresult = debugchannel~breakpointtestresult
+    debugchannel~breakpointtestresult = .False
+    if testresult = .True then do
+      debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Breakpoint condition is satisfied")
+      debugchannel~status~append("getprogramstatus")
+      return 'NOP'
+    end  
+    else do
+      debugchannel~status~append("breakpointcheckgetlocation")
+      return ''
+    end
+  end
+  else if status~word(1)="getprogramstatus" then do
+    instructions = status~delword(1,1)~strip
+    if instructions \= '' then do 
+      debugchannel~frames= .nil
+      debugchannel~context= .nil
+      debugchannel~status~append("getprogramstatus")
+      return instructions
+    end
+    else do  
+      debugchannel~frames= .nil
+      debugchannel~context= .nil
+      debugchannel~status~append("programstatusupdated")
+      return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context~StackFrames~section(2), "FRAMES")~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
+    end  
+  end      
+  else if status="programstatusupdated" then do
+    self~CheckSetMainContext(debugchannel~frames, debugchannel~context)
+    if debugchannel~frames \=.nil then do
+      frames = debugchannel~frames
+      if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
+      tracedprograms~put(frames~firstitem~executable~package~name)
+      debuggerui~UpdateUICodeView(frames, 1)
+    end
+    if debugchannel~context \= .nil, debugchannel~context~variables \=.nil then do
+      debuggerui~UpdateUIWatchWindows(debugchannel~context~variables)
+    end  
+    debugchannel~context= .nil
+    debugchannel~frames= .nil
+    debugchannel~status~append("")
+    signal checkwaitforui
+  end
+  else if status="getvars" then do
+    debugchannel~frames= .nil
+    debugchannel~context= .nil
+    debugchannel~status~append("gotvars")
+    return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
+  end     
+  else if status="gotvars" then do
+    if debugchannel~context \= .nil, debugchannel~context~variables \=.nil then do
+      debuggerui~UpdateUIWatchWindows(debugchannel~context~variables)
+    end
+    debugchannel~frames= .nil
+    debugchannel~context = .nil
+    debugchannel~status~append("")
+    return 'NOP'
+  end
+end 
+
+checkwaitforui:
+if response = "" then response = debuggerui~GetUINextResponse
 
 if translate(response) = 'EXIT' then do
    canopensource = .True
@@ -435,139 +555,6 @@ if shutdown & response \= '' then response = response||'; trace off; exit'
 debugchannel~status~append("getprogramstatus")
 
 return response
-
-------------------------------------------------------
-::method GetAutoResponse unguarded
-------------------------------------------------------
-expose debuggerui tracedprograms manualbreak breakpoints runroutine stackhascontext codelocation laststack
-use arg debugchannel, threadid
-
-status = debugchannel~status~string
-
-debugchannel~status~delete(1)
-
-if status="breakpointcheckgetlocation" then do
-  if stackhascontext then do
-    ---Fast track is possible in 5.1, for simple breakpoint checks at least
-    context = .context~stackframes[5]~context
-    program = context~package~name
-    laststack = context~stackframes
-    codelocation = program'>'context~line
-    if \breakpoints~hasindex(codelocation) & \manualbreak & tracedprograms~hasitem(program) then do
-      debugchannel~status~append("breakpointcheckgetlocation")
-      return ''
-    end  
-    dobreak = .False
-    if manualbreak then do
-      dobreak = .True
-      CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
-      manualbreak = .False
-    end
-    else if \tracedprograms~hasitem(program) then dobreak = .True
-    if breakpoints[codelocation] = '' | dobreak then do
-      frames = .context~stackframes~section(5)
-      if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
-      tracedprograms~put(program)
-      self~CheckSetMainContext(frames, context)
-      debuggerui~UpdateUICodeView(frames, 1)
-      debuggerui~UpdateUIWatchWindows(context~variables)
-      return ''
-    end  
-  end
-  debugchannel~status~append("breakpointchecklocationis")
-  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
-  end
-else if status="breakpointchecklocationis"  then do
-  program = debugchannel~context~package~name
-  codelocation=program'>'debugchannel~context~line
-  laststack = debugchannel~context~stackframes
-  if \manualbreak & \breakpoints~hasindex(codelocation)  & tracedprograms~hasitem(program) then do
-    debugchannel~status~append("breakpointcheckgetlocation")
-    return ''
-  end  
-  else if manualbreak then do 
-    CALL SAY self~DebugMsgPrefix||'Automatic breakpoint hit.'
-    manualbreak = .false
-    debugchannel~status~append("getprogramstatus")
-    return 'NOP'
-  end
-  else if \tracedprograms~hasitem(program) then do -- Break (first time time only) when hitting a new program which traces.
-    tracedprograms~put(program)
-    debugchannel~status~append("getprogramstatus")
-    return 'NOP'
-  end
-  else /*breakpoints~hasindex(codelocation)*/  do  
-    if breakpoints[codelocation] = '' then do
-      debugchannel~status~append("getprogramstatus")
-      return 'NOP'
-    end  
-    else do
-      debugchannel~status~append("breakpointprocesstestresult")
-      debugchannel~breakpointtestresult = .True
-      return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put('||breakpoints[codelocation]||', "BREAKPOINTTESTRESULT"); drop _rexdeebugeer_tmp'
-    end
-  end
-end  
-else if status~pos("breakpointprocesstestresult") = 1 then do
-  testresult = debugchannel~breakpointtestresult
-  debugchannel~breakpointtestresult = .False
-  if testresult = .True then do
-     debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Breakpoint condition is satisfied")
-    debugchannel~status~append("getprogramstatus")
-    return 'NOP'
-  end  
-  else do
-    debugchannel~status~append("breakpointcheckgetlocation")
-    return ''
-  end
-end
-else if status~word(1)="getprogramstatus" then do
-  instructions = status~delword(1,1)~strip
-  if instructions \= '' then do 
-    debugchannel~frames= .nil
-    debugchannel~context= .nil
-    debugchannel~status~append("getprogramstatus")
-    return instructions
-  end
-  else do  
-    debugchannel~frames= .nil
-    debugchannel~context= .nil
-    debugchannel~status~append("programstatusupdated")
-    return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context~StackFrames~section(2), "FRAMES")~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
-  end  
-end      
-else if status="programstatusupdated" then do
-  self~CheckSetMainContext(debugchannel~frames, debugchannel~context)
-  if debugchannel~frames \=.nil then do
-    frames = debugchannel~frames
-    if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
-    tracedprograms~put(frames~firstitem~executable~package~name)
-    debuggerui~UpdateUICodeView(frames, 1)
-  end
-  if debugchannel~context \= .nil, debugchannel~context~variables \=.nil then do
-    debuggerui~UpdateUIWatchWindows(debugchannel~context~variables)
-  end  
-  debugchannel~context= .nil
-  debugchannel~frames= .nil
-  debugchannel~status~append("")
-  return ''
-end
-else if status="getvars" then do
-  debugchannel~frames= .nil
-  debugchannel~context= .nil
-  debugchannel~status~append("gotvars")
-  return '_rexdeebugeer_tmp = .debug.channels["'threadid'"]~~put(.context, "CONTEXT"); drop _rexdeebugeer_tmp'
-end     
-else if status="gotvars" then do
-  if debugchannel~context \= .nil, debugchannel~context~variables \=.nil then do
-    debuggerui~UpdateUIWatchWindows(debugchannel~context~variables)
-  end
-  debugchannel~frames= .nil
-  debugchannel~context = .nil
-  debugchannel~status~append("")
-  return 'NOP'
-end
-return ''
 
 ------------------------------------------------------
 ::method TrackMainContext unguarded
@@ -640,7 +627,7 @@ return linenumber
 expose laststack runroutine debuggerui
 frames = laststack
 if frames \= .nil then do
-  frames = frames~section(5)
+  frames = frames~section(3)
   if runroutine \= .nil, frames~lastitem~executable~package \= .nil, frames~lastitem~executable~package~name = .context~package~name | frames~lastitem~executable~package~name = debuggerui~class~method("INIT")~package~name then frames = frames~section(1, frames~items-3)
 end  
 return frames
@@ -682,7 +669,7 @@ return "ooRexx Debugger Version "||GetPackageConstant("Version")
 ------------------------------------------------------
 ::method OpenNewProgram unguarded
 ------------------------------------------------------
-expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine  codelocation
+expose debuggerui shutdown breakpoints tracedprograms canopensource traceoutputhandler runroutine  codelocation debugchannels
 
 use arg programname,argstring,multipleargs = .False, firsttime = .False
 
@@ -692,7 +679,7 @@ tracedprograms~empty
 codelocation = ''
 laststack = .Nil
 if traceoutputhandler \= .nil then traceoutputhandler~dononwrappedchecks = .False
-.debug.channels~empty
+debugchannels~empty
 runroutine = .nil
 
 if .context~package~hasmethod("FINDPROGAM") then do 
