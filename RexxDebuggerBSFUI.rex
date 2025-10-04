@@ -694,7 +694,7 @@ if lastprogram \= '' then do
   end  
   lastline = debugger~GetLastSourceLine
   if lastline \= '' then do
-     self~updatesourcetitle(lastline)
+     self~updatesourcetitle
      self~ListSetSelectedIndex(controls, self~LISTSOURCE, lastline)
      visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
      firstrow = MAX(1, lastline - (visiblelistrows/2)~floor)
@@ -1404,7 +1404,7 @@ expose controls arrStack debugger
 -- This is just to set the position in the source listbox
 newrow = arrStack[self~ListGetSelectedIndex(controls, self~LISTSTACK)]~line
 if newrow <  1 | newrow > self~ListGetRowCount(controls, self~LISTSOURCE) then return
-if \debugger~canopensource then self~UpdateSourceTitle(newrow)
+if \debugger~canopensource then self~UpdateSourceTitle
 currentrow = self~ListGetSelectedIndex(controls, self~LISTSOURCE)
 visiblelistrows = self~ListGetVisibleRowCount(controls, self~LISTSOURCE)
 
@@ -1508,12 +1508,9 @@ self~ListSetSelectedIndex(controls, self~LISTSTACK, activateIndex)
 ::method UpdateSourceTitle
 ------------------------------------------------------
 expose controls activesourcename
-use arg linenum
-if linenum \= '' then location = activesourcename '('linenum')'
-else location = activesourcename
+location = activesourcename
 if location = .nil then location = ''
 controls[self~EDITSOURCENAME]~settext(location)
-
 
 ------------------------------------------------------
 ::method UpdateWatchWindows  unguarded

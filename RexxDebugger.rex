@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.21"
+::CONSTANT VERSION "1.43.22"
 
 --====================================================
 ::class RexxDebugger public
