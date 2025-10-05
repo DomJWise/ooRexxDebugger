@@ -605,8 +605,11 @@ controls[self~LISTSTACK]~setFont(hfnt, .true)
 if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help text is available") 
 self~SetSourceListInfoText(startuphelptext)
 
-if initialmessages~isA(.list) then do msg over initialmessages
-  self~appendtext(debugger~DebugMsgPrefix||msg)
+if initialmessages~isA(.list) then do 
+  do msg over initialmessages
+    self~appendtext(debugger~DebugMsgPrefix||msg)
+  end  
+  if initialmessages~items > 0 then self~appendtext('')
 end
 
 self~connectListBoxEvent(self~LISTSTACK, "SELCHANGE", "StackFrameChanged")
@@ -969,7 +972,6 @@ expose controls arrStack activesourcename loadedsources debugger startmessagedis
 use arg arrStack, activateindex
 
 if \debugger~LaunchedByDebugger & \startmessagedisplayed then do
-  self~appendtext('')
   self~appendtext(debugger~DebugMsgPrefix||'Debug session started')
   self~appendtext('')
   startmessagedisplayed = .true

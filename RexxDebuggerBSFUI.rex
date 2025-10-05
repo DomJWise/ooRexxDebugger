@@ -1214,8 +1214,11 @@ buttonpushed = .False
 if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help text is available") 
 self~SetSourceListInfoText(startuphelptext)
 
-if initialmessages~isA(.list) then do msg over initialmessages
-  self~appendtext(debugger~DebugMsgPrefix||msg)
+if initialmessages~isA(.list) then do 
+  do msg over initialmessages
+    self~appendtext(debugger~DebugMsgPrefix||msg)
+  end  
+  if initialmessages~items > 0 then self~appendtext('')
 end
 
 
@@ -1456,7 +1459,6 @@ expose controls arrStack activesourcename loadedsources debugger startmessagedis
 use arg arrstack,activateindex
 
 if \debugger~LaunchedByDebugger & \startmessagedisplayed then do
-  self~appendtext('')
   self~appendtext(debugger~DebugMsgPrefix||'Debug session started')
   self~appendtext('')
   startmessagedisplayed = .true
