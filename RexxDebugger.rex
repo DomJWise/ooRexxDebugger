@@ -84,7 +84,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.23"
+::CONSTANT VERSION "1.43.24"
 
 --====================================================
 ::class RexxDebugger public
@@ -796,17 +796,21 @@ else if cond~CODE = 3.1 then do
   debuggerui~SetUISourceListInfoText(errorlist)
 end
 else do  
-  strm = .stream~new(programpath)
-  arrsource = strm~arrayin
-  strm~close
-  self~SendDebugMessage(self~DebugMsgPrefix||'Error: Syntax error parsing 'programname' at line 'sourceerrorline)
+  failedprogramname = FILESPEC('N', cond~program)
+  if failedprogramname~translate \= programname~translate then programtoreport = cond~program
+  else do
+    programtoreport = programname
+    codelocation=programpath'>'sourceerrorline
+  end
+  self~SendDebugMessage(self~DebugMsgPrefix||'Error at: 'programtoreport' line 'sourceerrorline)
   self~SendDebugMessage(self~DebugMsgPrefix)
-  if sourceerrorline \= 0 then self~SendDebugMessage(self~DebugMsgPrefix||sourceerrorline~right(5)' *-* 'arrSource[sourceerrorline])
+  do lineidx = 0 to cond~Traceback~items - 4
+    self~SendDebugMessage(self~DebugMsgPrefix||cond~Traceback[lineidx])
+  end
   self~SendDebugMessage(self~DebugMsgPrefix||'Error 'cond~RC' : 'cond~ERRORTEXT)
   self~SendDebugMessage(self~DebugMsgPrefix||'Error 'cond~CODE': 'cond~MESSAGE)
   self~SendDebugMessage('')  
   self~SendDebugMessage(self~DebugMsgPrefix||"Debug session was aborted")
-  codelocation=programpath'>'sourceerrorline
 end  
 
 self~canopensource = .true
