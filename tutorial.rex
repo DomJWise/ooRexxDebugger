@@ -1,4 +1,5 @@
 SAY 'Welcome to the tutorial! Unless indicated otherwise use the Next button to step forwards'
+SAY 'Lines that start with <-> are from the debugger'
 SAY 'Note the debugger always pauses AFTER executing the line it has stopped on'
 SAY 'The options at the end ensure debugging starts straight away and that everything is debugged' 
 SAY 'The ::REQUIRES statement also ensures the debugger SAY routine (see later) can be used'
@@ -99,10 +100,10 @@ CALL TestRoutine
 SAY 'The same will be true for calls to code blocks which use PROCEDURE'
 SAY ''
 SAY 'At the end of the program:'
-SAY ' When programs launched from rexxdebugger end there is an Open button you can use to start another debug session'
-SAY ' In other scenarios there is no Open button and while the debugger can''t tell when the program has finished the open windows will stay grey'
-SAY ''
-SAY 'For more information hit the Help button'
+SAY ' If on MacOS, some scenarios may need exit and error handling functions to be added'
+SAY ' See the README for specific details of when and what to add'
+SAY
+SAY 'For more general debugger information hit the Help button'
 SAY 'That''s all for this tutorial'
 
 call RexxDebuggerHandleExit

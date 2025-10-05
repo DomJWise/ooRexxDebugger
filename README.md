@@ -192,12 +192,12 @@ They need to be included above the call / require for RexxDebugger in order to b
 
 
 
-### Utility functions for embedded / direct launch debugging
+### Utility functions for embedded / direct launch debugging (important for MacOS)
 
 
-When debugging embedded code or using direct launch there are two utility functions that can be used to provide more control over how the program terminates, making the behaviour similar to that when debugging from rexxdebugger. These can be especially useful on MacOS to prevent the debugger closing immediately at program exit or if a runtime error occurs
+When debugging embedded code or using direct launch there are two utility functions that can be used to provide more control over how the program terminates. It is strongly recommended that these be used when using embedded / direct launch on MacOS because without them the debugger will close immediately at program exit or if a runtime error occurs. 
 
-RexxDebuggerHandleExit can be called at the very end of the program or immediately before any statement (e.g. exit or return) that would cause it to exit. When called it reports that the program has ended then waits for the debugger window to be closed
+RexxDebuggerHandleExit can be called at the very end of the program or immediately before any statement (e.g. exit or return) that would cause it to exit. When called it reports that the program has ended then waits for the debugger window to be closed. The debugger tutorial includes this function to facilitate debugging with direct launch on MacOS.
 
 ```
 x = 1 

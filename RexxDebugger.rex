@@ -82,8 +82,7 @@ else do
   else .local~rexxdebugger.startuphelptext = .List~of("Source not available")
   if .local~rexxdebugger.initialmessages = .nil then do
     .local~rexxdebugger.initialmessages = .List~of(-
-    "The debugger is attached but the debug session is not started yet", -
-    "Debugging will start when the program switches on interactive tracing e.g. with TRACE ?A", -
+    "Debugging starts when the program switches on interactive tracing e.g. with TRACE ?A or ::OPTIONS TRACE ?A", -
     "If interactive tracing is not switched on the program will run to completion and the Run button will do nothing")
   end
 
@@ -103,7 +102,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.27"
+::CONSTANT VERSION "1.44"
 
 --====================================================
 ::class RexxDebugger public
