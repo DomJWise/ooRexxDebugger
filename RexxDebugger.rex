@@ -68,6 +68,25 @@ else do
   parentwindowname = arg(1)
   offsetdirection = arg(2)
 
+  stackroot = .context~stackframes[.context~stackframes~items]
+  if stackroot~executable \= .nil, stackroot~executable~package \= .nil, stackroot~executable~package~source \= .nil then  do
+    prerunsourcelist = .list~new
+    source = stackroot~executable~package~source
+    prefix = COPIES(' ', 1 + source~items~length + 1)
+    width = source~items~length
+    do line over source~allindexes
+      prerunsourcelist~append(' '||line~right(width)||' '||source[line])
+    end
+    .local~rexxdebugger.startuphelptext  = prerunsourcelist
+  end
+  else .local~rexxdebugger.startuphelptext = .List~of("Source not available")
+  if .local~rexxdebugger.initialmessages = .nil then do
+    .local~rexxdebugger.initialmessages = .List~of(-
+    "The debugger is attached but the debug session is not started yet", -
+    "Debugging will start when the program switches on interactive tracing e.g. with TRACE ?A", -
+    "If interactive tracing is not switched on the program will run to completion and the Run button will do nothing")
+  end
+
   if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
   if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
 
@@ -84,7 +103,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.43.24"
+::CONSTANT VERSION "1.43.25"
 
 --====================================================
 ::class RexxDebugger public
@@ -576,6 +595,7 @@ return
 syntax:
 if debuggerui\ = .nil then do
   canopensource = .True  
+  debuggerui~AppendUIConsoleText('')
   debuggerui~AppendUIConsoleText(self~DebugMsgPrefix||"Debug session ended")
   debuggerui~UpdateUIControlStates(.True)
 end

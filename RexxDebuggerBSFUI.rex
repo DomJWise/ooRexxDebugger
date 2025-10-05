@@ -203,7 +203,7 @@ uithreadbasepriority = self~GetJavaThreadPriority
 uithreadmaxpriority = bsf.getStaticValue("java.lang.Thread", "MAX_PRIORITY")
 
 /* Create and build the "main" window" */
-debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext)
+debugdialog = .DebugDialog~new(debugger, self,.rexxdebugger.startuphelptext, .rexxdebugger.initialmessages)
 
 
 ------------------------------------------------------
@@ -714,13 +714,14 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoleappendbuffer debugconsoleupdatetimer lastfind
-use arg debugger, gui, startuphelptext
+expose debugger gui controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoleappendbuffer debugconsoleupdatetimer lastfind initialmessages startmessagedisplayed
+use arg debugger, gui, startuphelptext, initialmessages
 arrstack = .nil
 activesourcename = .nil
 loadedsources = .Directory~new
 watchwindows = .Set~new
 checkedsources = .List~new
+startmessagedisplayed = .False
 
 waiting = .false
 controls = .Directory~new
@@ -773,7 +774,7 @@ end
 ------------------------------------------------------
 ::method OnRunButton
 ------------------------------------------------------
-expose waiting debugger controls gui
+expose waiting debugger controls gui startmessagedisplayed
 if waiting then do
   gui~SetMaximumJavaThreadPriority
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
@@ -781,11 +782,14 @@ if waiting then do
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
-  debugger~SetManualBreak(.True)
-  self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
-  self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
-  self~HighlightLastExecuted
-  gui~RestoreBaseJavaThreadPriority
+  if \debugger~LaunchedByDebugger & \startmessagedisplayed then self~appendtext(debugger~DebugMsgPrefix||"Debugging has not yet started or the program has run to completion")
+  else do
+    debugger~SetManualBreak(.True)
+    self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
+    self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
+    self~HighlightLastExecuted
+    gui~RestoreBaseJavaThreadPriority
+  end
 end
 else do
   gui~SetMaximumJavaThreadPriority
@@ -982,7 +986,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose controls buttonpushed debugger hfnt startuphelptext gui
+expose controls buttonpushed debugger hfnt startuphelptext gui initialmessages
 
 -- Create the frame
 title = debugger~GetCaption
@@ -1209,6 +1213,11 @@ buttonpushed = .False
 
 if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help text is available") 
 self~SetSourceListInfoText(startuphelptext)
+
+if initialmessages~isA(.list) then do msg over initialmessages
+  self~appendtext(debugger~DebugMsgPrefix||msg)
+end
+
 
 self~UpdateControlStates
 /*
@@ -1443,8 +1452,15 @@ self~SetListSource(sourcename)
 ------------------------------------------------------
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
-expose controls arrStack activesourcename loadedsources debugger 
+expose controls arrStack activesourcename loadedsources debugger startmessagedisplayed
 use arg arrstack,activateindex
+
+if \debugger~LaunchedByDebugger & \startmessagedisplayed then do
+  self~appendtext('')
+  self~appendtext(debugger~DebugMsgPrefix||'Debug session started')
+  self~appendtext('')
+  startmessagedisplayed = .true
+end
 
 -- Ensure the (available) sources are loaded
 if arrStack = .nil then return

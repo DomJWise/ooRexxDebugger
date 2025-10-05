@@ -63,7 +63,7 @@ if .WatchHelper~class~defaultname \= .Class~defaultname then .context~package~ad
 if .DebugHelper~class~defaultname \= .Class~defaultname then .context~package~addclass("DebugHelper", debughelperclass)
 .DebugDialog~inherit(.DebugHelper)
 
-debugdialog = .DebugDialog~new(debugger, self, .rexxdebugger.startuphelptext)
+debugdialog = .DebugDialog~new(debugger, self, .rexxdebugger.startuphelptext, .rexxdebugger.initialmessages)
 
 ------------------------------------------------------
 ::method RunUI
@@ -255,8 +255,8 @@ end
 ------------------------------------------------------
 ::method init 
 ------------------------------------------------------
-expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage scrollcharpos gui
-use strict arg debugger, gui, startuphelptext
+expose debugger controls waiting arrcommands commandnum arrstack activesourcename loadedsources watchwindows startuphelptext checkedsources debugconsoletextlength debugconsoleappendbuffer consoleupdateactive debugconsolelastupdate debugconsolefinalupdatemessage scrollcharpos gui initialmessages startmessagedisplayed
+use strict arg debugger, gui, startuphelptext, initialmessages
 
 arrstack = .nil
 activesourcename = .nil
@@ -265,6 +265,7 @@ watchwindows = .Set~new
 checkedsources = .List~new
 scrollcharpos = 1
 waiting = .false
+startmessagedisplayed = .False
 controls = .Directory~new
 
 self~init:.DebugHelper(controls)
@@ -381,16 +382,19 @@ end
 ------------------------------------------------------
 ::method OnRunButton unguarded
 ------------------------------------------------------
-expose waiting debugger controls
+expose waiting debugger controls startmessagedisplayed
 if waiting then do
   self~ButtonSetText(controls, self~BUTTONRUN, "B&reak")
   self~HereIsResponse('RUN')
 end
 else if \debugger~GetManualBreak then do
-  self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
-  self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
-  self~HighlightLastExecuted
-  debugger~SetManualBreak(.True)
+  if \debugger~LaunchedByDebugger & \startmessagedisplayed then self~appendtext(debugger~DebugMsgPrefix||"Debugging has not yet started or the program has run to completion")
+  else do
+    self~ButtonSetText(controls, self~BUTTONRUN, "&Run")
+    self~appendtext(debugger~DebugMsgPrefix||'Automatic breakpoint set for the next line of traceable code.')
+    self~HighlightLastExecuted
+    debugger~SetManualBreak(.True)
+  end
 end
 else do
   debugger~SetManualBreak(.False)
@@ -531,7 +535,7 @@ watchwindows~removeitem(watchwindow)
 ------------------------------------------------------
 ::method InitDialog 
 ------------------------------------------------------
-expose u controls buttonpushed debugger hfnt startuphelptext sourcepopupmenu stackpopupmenu
+expose u controls buttonpushed debugger hfnt startuphelptext sourcepopupmenu stackpopupmenu initialmessages
 
 controls[self~EDITSOURCENAME] = self~newEdit(.DebugDialog~EDITSOURCENAME)
 self~setTabStop(self~EDITSOURCENAME, .False)
@@ -601,6 +605,9 @@ controls[self~LISTSTACK]~setFont(hfnt, .true)
 if \startuphelptext~isA(.list) then startuphelptext = .List~of("No startup help text is available") 
 self~SetSourceListInfoText(startuphelptext)
 
+if initialmessages~isA(.list) then do msg over initialmessages
+  self~appendtext(debugger~DebugMsgPrefix||msg)
+end
 
 self~connectListBoxEvent(self~LISTSTACK, "SELCHANGE", "StackFrameChanged")
 self~connectListBoxEvent(self~LISTSOURCE, "DBLCLK", "SourceLineDoubleClicked")
@@ -958,8 +965,15 @@ self~SetListSource(sourcename)
 ------------------------------------------------------
 ::method UpdateCodeView unguarded
 ------------------------------------------------------
-expose controls arrStack activesourcename loadedsources debugger
+expose controls arrStack activesourcename loadedsources debugger startmessagedisplayed
 use arg arrStack, activateindex
+
+if \debugger~LaunchedByDebugger & \startmessagedisplayed then do
+  self~appendtext('')
+  self~appendtext(debugger~DebugMsgPrefix||'Debug session started')
+  self~appendtext('')
+  startmessagedisplayed = .true
+end
 
 -- Ensure the (available) sources are loaded
 do stackindex = 1 to arrstack~items
