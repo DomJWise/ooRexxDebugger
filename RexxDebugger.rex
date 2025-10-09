@@ -28,27 +28,45 @@ if .local~rexxdebugger.debuggerinit \= .nil then  return
 -- Set version
 .local~rexxdebugger.version = GetPackageConstant("Version")
 
+if .local~rexxdebugger.embeddingwrapper = .nil then .local~rexxdebugger.embeddingwrapper = .Directory~new
 
 -- Below is the help text List that will initially be added to the source list unless already set by the caller (or a source load error)
 if .local~rexxdebugger.startuphelptext = .nil then do 
-  .local~rexxdebugger.startuphelptext = .list~of( -
-  "Command line usage:", - 
-  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] [/fontsize:8-26] <program> <argstring>", - 
-  "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] [/fontsize:8-26] CALL <program> [<arg1>] [..<argn>]", - 
-  "", - 
-  "To launch from Rexx source include the following line:", - 
-  "CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]", -
-  "", - 
-  "Below this add the following to start debugging:", -
-  "TRACE ?A ", - 
-  "", -
-  "Source code will be shown when debugging is started.", -
-  "To select a program to debug now, click the Open button.", -
-  "", -
-  "Note: Window positioning is for Windows/ooDialog only.")
-  
-end
+  if .rexxdebugger.embeddingwrapper~startuphelptext \= .nil then .local~rexxdebugger.startuphelptext = .rexxdebugger.embeddingwrapper~startuphelptext
+  else do
+    .local~rexxdebugger.startuphelptext = .list~of( -
+    "Command line usage:", - 
+    "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] [/fontsize:8-26] <program> <argstring>", - 
+    "Rexxdebugger [/nocapture | /showtrace] [/javaui] [/tracemode:<modeflag>] [/fontsize:8-26] CALL <program> [<arg1>] [..<argn>]", - 
+    "", - 
+    "To launch from Rexx source include the following two", -
+    "lines near the top of the program:", -
+    "")
+    if SysVersion()~translate~pos("WINDOWS") = 1 then .local~rexxdebugger.startuphelptext~append("CALL RexxDebugger [parentwindowtitle, offset(UDL*R*)]")
+    else .local~rexxdebugger.startuphelptext~append("CALL RexxDebugger")
+    .local~rexxdebugger.startuphelptext~appendall(.List~of( - 
+    "TRACE ?A ", - 
+    "", -
+    "If you have ooRexx routines and/or methods to debug in ", -
+    "your parser, instead add the following at the very end ", -
+    "of the parser:", -
+    "", -
+    "::REQUIRES ""RexxDebugger.rex""", - 
+    "::OPTIONS TRACE ?A", -
+    "", -
+    "There is a significant overhead to debugging but it can", -
+    "be switched off for sections of code that don't need  ", -
+    "it and which are very slow to debug with ", -
+    "CALL TRACE('O') and back on again with TRACE ?A ", -
+    "", -
+    "To select a program to debug now, click the Open button.",))
+    if SysVersion()~translate~pos("WINDOWS") = 1 then .local~rexxdebugger.startuphelptext~appendall(.List~of(-
+    "", -
+    "Note: Window positioning is for the native Windows UI", - 
+    "and will have no effect if using the Java UI"))
 
+  end  
+end
 if SetCommandLineIsRexxDebugger() then do
    
   call ConfigureCommandLineDebuggee(ARG(1)~strip)
@@ -65,32 +83,39 @@ if SetCommandLineIsRexxDebugger() then do
    end  
   end  
 else do
-  parentwindowname = arg(1)
-  offsetdirection = arg(2)
 
+  -- Replace the startup text with source if avaialable
+  hassource = .False
   stackroot = .context~stackframes[.context~stackframes~items]
   if stackroot~executable \= .nil, stackroot~executable~package \= .nil, stackroot~executable~package~source \= .nil then  do
-    prerunsourcelist = .list~new
-    source = stackroot~executable~package~source
-    prefix = COPIES(' ', 1 + source~items~length + 1)
-    width = source~items~length
-    do line over source~allindexes
-      prerunsourcelist~append(' '||line~right(width)||' '||source[line])
-    end
-    .local~rexxdebugger.startuphelptext  = prerunsourcelist
+    if .rexxdebugger.embeddingwrapper~programname = .nil | FILESPEC('N', stackroot~executable~package~name~string)~translate \= .rexxdebugger.embeddingwrapper~programname~string~translate then do
+      prerunsourcelist = .list~new
+      source = stackroot~executable~package~source
+      prefix = COPIES(' ', 1 + source~items~length + 1)
+      width = source~items~length
+      do line over source~allindexes
+        prerunsourcelist~append(' '||line~right(width)||' '||source[line])
+      end
+     .local~rexxdebugger.startuphelptext  = prerunsourcelist
+      hassource = .True
+    end  
   end
   else .local~rexxdebugger.startuphelptext = .List~of("Source not available")
+  if .local~rexxdebugger.initialmessages = .nil then do
+    if hassource then .local~rexxdebugger.initialmessages = .rexxdebugger.embeddingwrapper~initialdebugmessages
+    else .local~rexxdebugger.initialmessages =   .rexxdebugger.embeddingwrapper~nosourcemessages
+  end  
   if .local~rexxdebugger.initialmessages = .nil then do
     .local~rexxdebugger.initialmessages = .List~of(-
     "Debugging starts when the program switches on interactive tracing e.g. with TRACE ?A or ::OPTIONS TRACE ?A", -
     "If interactive tracing is not switched on the program will run to completion and the Run button will do nothing")
   end
 
-  if .local~rexxdebugger.parentwindowname \= .nil then parentwindowname = .local~rexxdebugger.parentwindowname
-  if .local~rexxdebugger.offsetdirection \= .nil then offsetdirection = .local~rexxdebugger.offsetdirection
+  if .local~rexxdebugger.parentwindowname = .nil then .local~rexxdebugger.parentwindowname = arg(1)
+  if .local~rexxdebugger.offsetdirection = .nil then .local~rexxdebugger.offsetdirection = arg(2)
 
   -- Launch debugger
-  .local~rexxdebugger.debugger = .RexxDebugger~new(parentwindowname, offsetdirection)
+  .local~rexxdebugger.debugger = .RexxDebugger~new(.local~rexxdebugger.parentwindowname, .local~rexxdebugger.offsetdirection)
 end  
 if .local~rexxdebugger.debugger~debuggerui \= .nil then .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
 else return
@@ -102,7 +127,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.44"
+::CONSTANT VERSION "1.44.1"
 
 --====================================================
 ::class RexxDebugger public
@@ -150,7 +175,9 @@ uiFinished = .True
 ::method init 
 ------------------------------------------------------
 expose  shutdown launched  breakpoints tracedprograms manualbreak windowname offsetdirection traceoutputhandler outputhandler errorhandler uiloaded debuggerui canopensource lastexecfulltime uifinished uithreadid launchedbydebugger getthreadidroutine conditionbackups stackhascontext codelocation trackingmaincontext laststack debugchannels
-use arg windowname = "", offsetdirection = ""
+use arg windowname = .Nil, offsetdirection = .Nil
+if windowname= .Nil then windowname = ""
+if offsetdirection = .Nil then offsetdirection = ""
 if windowname \= "" & offsetdirection = "" then offsetdirection = "R"
 shutdown = .False
 launched = .False
@@ -688,7 +715,9 @@ self~SendDebugMessage('')
 ------------------------------------------------------
 ::method GetCaption unguarded
 ------------------------------------------------------
-return "ooRexx Debugger Version "||GetPackageConstant("Version")
+prefix = "ooRexx Debugger"
+if .rexxdebugger.embeddingwrapper~titleprefix \= .Nil then prefix = .rexxdebugger.embeddingwrapper~titleprefix
+return prefix" Version "||GetPackageConstant("Version")
 
 
 ------------------------------------------------------
