@@ -127,7 +127,7 @@ else .local~rexxdebugger.debugger~TrackMainContext
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.44.1"
+::CONSTANT VERSION "1.44.2"
 
 --====================================================
 ::class RexxDebugger public
@@ -640,10 +640,9 @@ use arg frames, context
 if \trackingmaincontext then return
 
 guard on
-if \(maincontext~class = .context~class), frames \= .nil then do
-  if context \= .nil, frames~items = 1, (context~executable~class = .routine) then do 
-    maincontext = context
-  end
+if \(maincontext~class = .context~class) then do
+  if .local~debuggermaincontext~class = .context~class then maincontext = .local~debuggermaincontext
+  else if context \= .nil, frames \= .nil, frames~items = 1, (context~executable~class = .routine) then maincontext = context 
 end
 guard off
 ------------------------------------------------------
