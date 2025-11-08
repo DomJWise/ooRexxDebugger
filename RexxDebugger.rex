@@ -123,11 +123,16 @@ else return
 if .local~rexxdebugger.commandlineisrexxdebugger then .local~rexxdebugger.debugger~WaitForUIToEnd
 else .local~rexxdebugger.debugger~TrackMainContext
 
+if .rexxdebugger.embeddingwrapper~programname \= .nil, stackroot~executable \= .nil, stackroot~executable~package \= .nil, stackroot~executable~package~source \= .nil, FILESPEC('N', stackroot~executable~package~name~string)~translate = .rexxdebugger.embeddingwrapper~programname~string~translate then do
+  .local~rexxdebugger.debugger~canopensource = .true
+  .local~rexxdebugger.debugger~debuggerui~UpdateUIControlStates
+end
+
 /*====================================================
 The core code of the debugging library follows below
 ====================================================*/
 
-::CONSTANT VERSION "1.44.2"
+::CONSTANT VERSION "1.44.3"
 
 --====================================================
 ::class RexxDebugger public
