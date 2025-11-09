@@ -229,6 +229,34 @@ exit
 ::OPTIONS TRACE ?A
 ```
 
+ ### Customized debugger wrappers for embedded environments
+
+For embedded scenarios it is possible to deploy a customized debugger wrapper for the code to use. This can be useful for picking up information about the embedded environment (e.g. a screen location to position the debugger window alongside) or for setting up the environment in a particular way using command handlers or external routines it provides. The appearance of the debugger can also be customized - the title, content of the debugger startup help and initial console output - to provide information relevant to that specific environment.
+
+To do this a wrapper program needs to be written e.g. ExampleDebuggerWrapper.Rex which is called by the program instead of RexxDebugger. The wrapper needs to contain some boilerplate code and can also be used to query/configure the environment before calling RexxDebugger in the usual way. The code below is an example of how this can be done, though in this example there is no embedded environment to query/configure.
+
+```
+-- Ensure only one debugger instance is activated
+if .local~rexxdebugger.debuggerinit \= .nil then  return
+
+-- Set up the wrapper details 
+.local~rexxdebugger.embeddingwrapper = .Directory~new
+.rexxdebugger.embeddingwrapper~titleprefix = "Example Debugger Wrapper"
+.rexxdebugger.embeddingwrapper~programname = "ExampleDebuggerWrapper.rex" 
+.rexxdebugger.embeddingwrapper~startuphelptext = .list~of("This is the startup help for an embedding wrapper example")
+.rexxdebugger.embeddingwrapper~initialdebugmessages=.List~of("Output from the debugger will show in this window when debugging")
+.rexxdebugger.embeddingwrapper~nosourcemessages = .List~of("This debugger wrapper is only intended for direct launch or embedded scenarios")
+
+-- Invoke the debugger 
+call RexxDebugger.rex
+
+```
+Important note! The call to RexxDebugger will launch the debugger and continue so any code after this call in the wrapper will be executed immediately before control is returned to the program to be debugged
+
+Such wrappers are not intended to be launched directly from the command line. Doing so will display the customized debugger window with any startup help text and "no source messages" console output that was defined and the only option available will be to close the window.
+
+
+
 Control of program / trace output and possible limitations with embedded environments
 ----------------------------------------------------------
 
