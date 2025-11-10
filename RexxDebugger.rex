@@ -48,8 +48,8 @@ if .local~rexxdebugger.startuphelptext = .nil then do
     "TRACE ?A ", - 
     "", -
     "If you have ooRexx routines and/or methods to debug in ", -
-    "your parser, instead add the following at the very end ", -
-    "of the parser:", -
+    "your program, instead add the following at the very end ", -
+    "of the program:", -
     "", -
     "::REQUIRES ""RexxDebugger.rex""", - 
     "::OPTIONS TRACE ?A", -
@@ -59,12 +59,7 @@ if .local~rexxdebugger.startuphelptext = .nil then do
     "it and which are very slow to debug with ", -
     "CALL TRACE('O') and back on again with TRACE ?A ", -
     "", -
-    "To select a program to debug now, click the Open button.",))
-    if SysVersion()~translate~pos("WINDOWS") = 1 then .local~rexxdebugger.startuphelptext~appendall(.List~of(-
-    "", -
-    "Note: Window positioning is for the native Windows UI", - 
-    "and will have no effect if using the Java UI"))
-
+    "To select a program to debug now, click the Open button."))    
   end  
 end
 if SetCommandLineIsRexxDebugger() then do
